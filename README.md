@@ -4,13 +4,13 @@
 
 ## 基于 AST 理论的人感 PPT 大纲导演 Skill
 
-**先把资料变成人愿意听的大纲，再交给下游 PPT / HTML Slide Skill 生成页面。**
+**先把资料变成人愿意听的大纲，再交给HTML PPT Skill做风格探索，生成页面，做演讲模式和部署上线**
 
 [![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live-green?style=flat-square)](https://learnprompt.github.io/humanize-ppt/)
 [![Release](https://img.shields.io/github/v/release/LearnPrompt/humanize-ppt?style=flat-square)](https://github.com/LearnPrompt/humanize-ppt/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](LICENSE)
 
-[在线 Demo](https://learnprompt.github.io/humanize-ppt/) · [English](README.en.md) · [AST 理论](docs/AST-theory.md) · [OPC 工作流](docs/OPC-workflow.md)
+[在线 Demo](https://learnprompt.github.io/humanize-ppt/) · [English](README.en.md) · [AST 理论](docs/AST-theory.md) · [OPC 工作流](docs/OPC-workflow.md) · [Agent Teams](docs/agent-teams.md)
 
 </div>
 
@@ -18,24 +18,23 @@
 
 ## 这是什么
 
-Humanize PPT 是一个 **PPT 大纲导演层**，不是又一个模板库，也不是普通文本润色工具。
+Humanize PPT 是一个 **PPT 大纲导演**，不是又一个HTML PPT模板库，也不是普通的文本润色工具。
 
-它先用 AST 理论把原始资料拆成：
+用 AST 理论把原始资料拆成：
 
 - 观众是谁；
 - 观众看之前是什么状态；
 - 看完以后应该变成什么状态；
 - 中间最大的认知张力是什么；
 - 每一页如何推动状态转移；
-- 最后应该交给哪个下游 Skill 或 Adapter 完成。
 
-然后再把这份干净的生产说明书交给下游工具，比如 guizang、Zara 风格探索、HyperFrames、Presenter Adapter 或部署流程。
+然后再把这份干净的生产说明书交给下游Skill生成HTML PPT和视频，比如op7418/guizang-ppt-skill、zarazhangrui/frontend-slides、heygen-com/hyperframes和lewislulu/html-ppt-skill
 
 ## 核心判断
 
-> **PPT 不是信息容器，而是观众状态改变器。**
+> **PPT 不只是信息容器，而是观众状态改变器。**
 
-AI 直接生成 PPT 时，最容易出问题的地方不是页面不够漂亮，而是：模型把自己的解释欲、推理痕迹、总结腔和结构噪音写进页面里。
+AI 直接生成 PPT 时，容易出问题的地方已经不是页面不够漂亮了，模型把自己的解释过程、中间推理痕迹和结构噪音都写进了页面里。
 
 Humanize PPT 的作用是先把资料“洗干净”，重组成一条适合讲解、适合演示、适合下游生成的观众路径。
 
@@ -45,10 +44,10 @@ V0.1 先验证一个最小闭环：
 
 ```text
 原始资料
-→ Humanize PPT / AST Outline Director
-→ 风格探索 HTML Deck
-→ 外壳式 Presenter Adapter
-→ 静态上线包
+→ 生成大纲：Humanize PPT / AST Outline Director
+→ 风格探索：frontend-slides和guizang-ppt-skill
+→ 演讲模式：lewislulu/html-ppt-skill
+→ 静态上线：frontend-slides
 ```
 
 当前包含：
@@ -108,13 +107,6 @@ out/
 - AI 工具更新演讲模式：https://learnprompt.github.io/humanize-ppt/demo/presenter/index.html
 - Hermes 安装讲解风格探索：https://learnprompt.github.io/humanize-ppt/demo/hermes-install/styles/index.html
 - Hermes 安装讲解演讲模式：https://learnprompt.github.io/humanize-ppt/demo/hermes-install/presenter/index.html
-
-## 它不是什么
-
-- 不是通用 PPT 生成器；
-- 不是几个 HTML PPT Skill 的固定合集；
-- 不是普通 humanizer；
-- 不是 guizang 和 Zara 的模板互转工具。
 
 ## License
 

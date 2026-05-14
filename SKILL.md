@@ -14,9 +14,17 @@ Use this skill when a user wants to turn raw material, notes, voice transcripts,
 
 ## Positioning
 
-Humanize PPT is an **Outline Director**, not a slide renderer.
+Humanize PPT is an **Outline Director** and **Agent Teams Orchestrator**, not a slide renderer.
 
 It should run before downstream PPT / HTML slide skills. Its job is to produce a clean AST-based production brief so renderers do not ingest raw noisy material directly.
+
+In Agent Teams mode, the main Humanize PPT Agent loads this skill and controls specialist agents:
+
+- Guizang Agent for Chinese stable rendering.
+- Zara Agent for style exploration, HTML production, and deploy.
+- HyperFrames Agent for video slots.
+- Presenter Agent for presenter mode after the deck is finalized.
+- QA Agent for content, visual, path, and delivery checks.
 
 ## AST theory
 
