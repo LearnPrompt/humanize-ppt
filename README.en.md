@@ -2,15 +2,15 @@
 
 # Humanize PPT
 
-## AST-based outline director Skill for human-centered AI presentation workflows
+## AST-based outline director for human-centered AI presentation workflows
 
-**Turn raw material into an audience-aware deck brief before handing it to compatible PPT / HTML PPT skills.**
+**Turn raw material into an audience-aware deck brief before rendering slides.**
 
 [![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live-green?style=flat-square)](https://learnprompt.github.io/humanize-ppt/)
 [![Release](https://img.shields.io/github/v/release/LearnPrompt/humanize-ppt?style=flat-square)](https://github.com/LearnPrompt/humanize-ppt/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](LICENSE)
 
-[Live Demo](https://learnprompt.github.io/humanize-ppt/) · [中文](README.md) · [AST Theory](docs/AST-theory.md) · [OPC Workflow](docs/OPC-workflow.md) · [WorkBuddy Team Agent](docs/workbuddy-team-agent.md)
+[Live Demo](https://learnprompt.github.io/humanize-ppt/) · [中文](README.md) · [AST Theory](docs/AST-theory.md) · [OPC Workflow](docs/OPC-workflow.md)
 
 </div>
 
@@ -18,7 +18,7 @@
 
 ## What is this?
 
-Humanize PPT is an **outline director Skill** for presentation workflows. It is not another slide template, not a normal text humanizer, and not an Agent hard-wired to four downstream skills.
+Humanize PPT is an **outline director** for presentation workflows. It is not another slide template and not a normal text humanizer.
 
 It uses AST theory to turn raw material into a structured production brief:
 
@@ -29,7 +29,7 @@ It uses AST theory to turn raw material into a structured production brief:
 - how each slide moves the audience forward;
 - which downstream renderer or adapter should finish the job.
 
-The clean brief can then be passed to compatible downstream tools. Guizang, Zara / frontend-slides, HyperFrames, and presenter-mode skills are recommended examples, not hard dependencies.
+The clean brief can then be passed to downstream tools such as guizang, Zara-style HTML deck exploration, HyperFrames, presenter shells, or deployment adapters.
 
 ## Core idea
 
@@ -39,30 +39,15 @@ When AI generates slides directly from raw material, the problem is often not vi
 
 Humanize PPT cleans and reorganizes the material into a presentation path before slide rendering starts.
 
-## WorkBuddy Team Agent packaging
-
-In this repository, Humanize PPT remains a Skill. For Tencent WorkBuddy, the right package shape is a Team Agent that includes this Skill and wraps it with role-specific agents:
-
-```text
-WorkBuddy Team Agent
-├── Lead Agent: creates the team, dispatches members, and assembles delivery
-├── Outline Director Agent: loads the humanize-ppt Skill and produces AST contracts
-├── Renderer Agent: loads a selected or recommended PPT / HTML PPT Skill
-├── Presenter Agent: adds presenter mode and speaker notes after the deck is finalized
-└── QA Agent: verifies narrative, human feel, assets, paths, and delivery readiness
-```
-
-See: [WorkBuddy Team Agent packaging](docs/workbuddy-team-agent.md)
-
 ## V0.1 public preview
 
 V0.1 validates a minimal loop:
 
 ```text
 Raw material
-→ Humanize PPT / AST Outline Director Skill
-→ Compatible PPT / HTML PPT skill for style exploration and rendering
-→ Presenter Adapter or presenter-mode skill
+→ Humanize PPT / AST Outline Director
+→ Style exploration HTML deck
+→ Shell-style Presenter Adapter
 → Static deploy package
 ```
 
@@ -71,7 +56,6 @@ It includes:
 - `SKILL.md` — agent skill entrypoint;
 - `docs/AST-theory.md` — AST theory;
 - `docs/OPC-workflow.md` — Outline / Produce / Complete workflow;
-- `docs/workbuddy-team-agent.md` — Tencent WorkBuddy Team Agent packaging plan;
 - `contracts/` — output contract templates;
 - `scripts/humanize_ppt_v1.py` — deterministic local demo runner;
 - `examples/` — safe sample inputs.
@@ -106,7 +90,7 @@ python3 scripts/humanize_ppt_v1.py   --source examples/02-hermes-install-guide/s
 
 - Not a generic PPT generator.
 - Not a fixed bundle of several HTML PPT skills.
-- Not a WorkBuddy Agent by itself; the Team Agent is a packaging layer around this Skill.
+- Not a normal text humanizer.
 - Not a guizang/Zara template converter.
 
 ## License

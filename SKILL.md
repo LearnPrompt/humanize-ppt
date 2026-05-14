@@ -14,17 +14,9 @@ Use this skill when a user wants to turn raw material, notes, voice transcripts,
 
 ## Positioning
 
-Humanize PPT is an **Outline Director Skill**, not a slide renderer, not a fixed bundle of HTML PPT skills, and not itself a WorkBuddy Agent.
+Humanize PPT is an **Outline Director**, not a slide renderer.
 
-Its job is to run before downstream PPT / HTML slide skills and produce a clean AST-based production brief, so renderers do not ingest raw noisy material directly.
-
-In a Tencent WorkBuddy **Team Agent** package, this skill should be installed under `skills/humanize-ppt/` and loaded by one or more agents. The agents can then call or hand off to different downstream skills according to the user's goal. The recommended HTML PPT skills below are examples, not hard dependencies:
-
-- Guizang path for stable Chinese HTML PPT rendering.
-- Zara / frontend-slides path for style exploration, HTML production, and deploy.
-- HyperFrames path for video slots and motion assets.
-- Presenter / html-ppt path for presenter mode after the deck is finalized.
-- QA path for content, visual, path, and delivery checks.
+It should run before downstream PPT / HTML slide skills. Its job is to produce a clean AST-based production brief so renderers do not ingest raw noisy material directly.
 
 ## AST theory
 
@@ -53,11 +45,11 @@ For every Humanize PPT run, produce:
 
 ```text
 O — Outline Director
-  Humanize PPT Skill: raw material → AST outline + production brief
+  Humanize PPT: raw material → AST outline + production brief
 
 P — Presentation Production
-  Any compatible PPT / HTML PPT skill
-  Recommended paths: guizang, Zara / frontend-slides, other renderer skills
+  guizang path: Chinese stable HTML PPT
+  Zara path: style exploration and HTML production
 
 C — Complete / Control
   HyperFrames video adapter
@@ -72,14 +64,15 @@ C — Complete / Control
 2. Keep presenter mode as a post-processing adapter, not a style.
 3. Separate deployment from presenter mode.
 4. Absorb AI-writing cleanup principles from humanizer tools, but do not reduce Humanize PPT to text polishing.
-5. Treat downstream PPT skills as pluggable renderers: recommend good defaults, but do not hard-code the workflow to four fixed skills.
-6. In WorkBuddy packaging, keep Humanize PPT as a Skill and put orchestration in the Team Agent's lead/member agent prompts.
-7. Prefer a small verified workflow over a broad unverified promise.
+5. Prefer a small verified workflow over a broad unverified promise.
 
 ## Local demo
 
 If this repository is installed locally, run:
 
 ```bash
-python3 scripts/humanize_ppt_v1.py   --source examples/01-ai-tool-update/source.md   --out .humanize-ppt-runs/ai-tool-update   --title "AI 工具更新，不只是功能清单"
+python3 scripts/humanize_ppt_v1.py \
+  --source examples/01-ai-tool-update/source.md \
+  --out .humanize-ppt-runs/ai-tool-update \
+  --title "AI 工具更新，不只是功能清单"
 ```
