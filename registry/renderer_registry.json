@@ -1,0 +1,204 @@
+{
+  "version": "0.5.0",
+  "renderers": [
+    {
+      "id": "guizang",
+      "display_name": "Guizang PPT Skill",
+      "skill_name": "guizang-ppt-skill",
+      "role": "primary-renderer",
+      "best_for": [
+        "中文分享",
+        "稳定成稿",
+        "杂志风",
+        "瑞士风",
+        "截图美化",
+        "配图适配"
+      ],
+      "inputs": [
+        "deck_brief.md",
+        "ast_outline.md",
+        "slide_plan.json",
+        "speaker_intent.md",
+        "asset_manifest.md"
+      ],
+      "outputs": [
+        "outputs/guizang/index.html",
+        "outputs/guizang/render_report.md"
+      ],
+      "local_skill_paths": [
+        "~/.agents/skills/guizang-ppt-skill",
+        "~/.hermes/skills/guizang-ppt-skill"
+      ],
+      "command_file": "commands/guizang-agent.md"
+    },
+    {
+      "id": "beautiful-html-templates",
+      "display_name": "Beautiful HTML Templates",
+      "skill_name": "beautiful-html-templates",
+      "role": "style-exploration-renderer",
+      "best_for": [
+        "34套模板",
+        "先出3个真实预览",
+        "按occasion和mood选风格",
+        "design.md视觉契约"
+      ],
+      "inputs": [
+        "deck_brief.md",
+        "ast_outline.md",
+        "slide_plan.json",
+        "style_brief.md",
+        "asset_manifest.md"
+      ],
+      "outputs": [
+        "outputs/beautiful/previews/index.html",
+        "outputs/beautiful/previews/01-<slug>/index.html",
+        "outputs/beautiful/preview_manifest.json",
+        "outputs/beautiful/selected/index.html",
+        "outputs/beautiful/selected_manifest.json",
+        "outputs/beautiful/render_report.md"
+      ],
+      "local_skill_paths": [
+        "~/.agents/skills/beautiful-html-templates",
+        "~/.hermes/skills/beautiful-html-templates"
+      ],
+      "command_file": "commands/beautiful-agent.md"
+    },
+    {
+      "id": "html-ppt",
+      "display_name": "HTML PPT Studio",
+      "skill_name": "html-ppt",
+      "role": "full-deck-and-presenter-renderer",
+      "best_for": [
+        "演讲者模式",
+        "逐字稿",
+        "36主题",
+        "15个full-deck模板",
+        "31个布局",
+        "动画丰富"
+      ],
+      "inputs": [
+        "deck_brief.md",
+        "slide_plan.json",
+        "speaker_intent.md",
+        "asset_manifest.md"
+      ],
+      "outputs": [
+        "outputs/html-ppt/index.html",
+        "outputs/html-ppt/render_report.md"
+      ],
+      "local_skill_paths": [
+        "~/.hermes/skills/html-ppt",
+        "~/.agents/skills/html-ppt"
+      ],
+      "command_file": "commands/html-ppt-agent.md"
+    },
+    {
+      "id": "frontend-slides",
+      "display_name": "Frontend Slides",
+      "skill_name": "frontend-slides",
+      "role": "pptx-conversion-and-style-discovery-renderer",
+      "best_for": [
+        "PPTX转HTML",
+        "show-don't-tell风格预览",
+        "viewport fitting",
+        "Vercel deploy",
+        "PDF export"
+      ],
+      "inputs": [
+        "deck_brief.md",
+        "slide_plan.json",
+        "asset_manifest.md",
+        "source.pptx"
+      ],
+      "outputs": [
+        "outputs/frontend-slides/index.html",
+        "outputs/frontend-slides/export.pdf",
+        "outputs/frontend-slides/render_report.md"
+      ],
+      "local_skill_paths": [
+        "~/.agents/skills/frontend-slides",
+        "~/.hermes/skills/frontend-slides"
+      ],
+      "command_file": "commands/frontend-slides-agent.md"
+    },
+    {
+      "id": "presenter-adapter",
+      "display_name": "Humanize Presenter Adapter",
+      "skill_name": "humanize-ppt",
+      "role": "post-processing-presenter-shell",
+      "best_for": [
+        "最终deck演讲者视图",
+        "speaker notes",
+        "CURRENT/NEXT提示",
+        "键盘翻页控制"
+      ],
+      "inputs": [
+        "outputs/<renderer>/index.html",
+        "slide_plan.json",
+        "speaker_intent.md"
+      ],
+      "outputs": [
+        "outputs/presenter/index.html",
+        "outputs/presenter/presenter_manifest.json",
+        "outputs/presenter/render_report.md"
+      ],
+      "local_skill_paths": [
+        "~/.hermes/skills/humanize-ppt"
+      ],
+      "command_file": "commands/presenter-adapter-agent.md"
+    },
+    {
+      "id": "export-adapter",
+      "display_name": "Humanize Export Adapter",
+      "skill_name": "humanize-ppt",
+      "role": "post-processing-export-package",
+      "best_for": [
+        "可移植HTML包",
+        "PDF导出脚本",
+        "交付清单",
+        "离线归档"
+      ],
+      "inputs": [
+        "outputs/<renderer>/index.html",
+        "run_manifest.json"
+      ],
+      "outputs": [
+        "outputs/export/package/index.html",
+        "outputs/export/export_pdf.sh",
+        "outputs/export/export_manifest.json",
+        "outputs/export/README.md"
+      ],
+      "local_skill_paths": [
+        "~/.hermes/skills/humanize-ppt"
+      ],
+      "command_file": "commands/export-adapter-agent.md"
+    },
+    {
+      "id": "qa",
+      "display_name": "Humanize PPT QA",
+      "skill_name": "humanize-ppt",
+      "role": "quality-gate",
+      "best_for": [
+        "检查AST是否保留",
+        "检查AI草稿痕迹",
+        "检查路径",
+        "检查speaker notes",
+        "检查交付清单"
+      ],
+      "inputs": [
+        "router_plan.json",
+        "run_manifest.json",
+        "outputs/"
+      ],
+      "outputs": [
+        "outputs/qa/qa_report.md",
+        "outputs/qa/fix_list.md",
+        "outputs/qa/final_manifest.json"
+      ],
+      "local_skill_paths": [
+        "~/.hermes/skills/humanize-ppt"
+      ],
+      "command_file": "commands/qa-agent.md"
+    }
+  ]
+}

@@ -10,7 +10,7 @@
 [![Release](https://img.shields.io/github/v/release/LearnPrompt/humanize-ppt?style=flat-square)](https://github.com/LearnPrompt/humanize-ppt/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](LICENSE)
 
-[Live Preview](https://learnprompt.github.io/humanize-ppt/) · [中文](README.md) · [AST Theory](docs/AST-theory.md) · [OPC Workflow](docs/OPC-workflow.md)
+[Live Preview](https://learnprompt.github.io/humanize-ppt/) · [中文](README.md) · [AST Theory](docs/AST-theory.md) · [OPC Workflow](docs/OPC-workflow.md) · [Agent Teams](docs/agent-teams.md)
 
 </div>
 
@@ -39,16 +39,17 @@ When AI generates slides directly from raw material, the problem is often not vi
 
 Humanize PPT cleans and reorganizes the material into a presentation path before slide rendering starts.
 
-## V0.1 public preview
+## V0.5 public preview
 
-V0.1 validates a minimal loop:
+V0.5 validates a complete deck loop:
 
 ```text
 Raw material
 → Humanize PPT / AST Outline Director
 → Style exploration HTML deck
-→ Shell-style Presenter Adapter
-→ Static deploy package
+→ Selected-template full deck
+→ Presenter Adapter shell
+→ Export Adapter package
 ```
 
 It includes:
@@ -57,7 +58,9 @@ It includes:
 - `docs/AST-theory.md` — AST theory;
 - `docs/OPC-workflow.md` — Outline / Produce / Complete workflow;
 - `contracts/` — output contract templates;
-- `scripts/humanize_ppt_v1.py` — deterministic local demo runner;
+- `scripts/humanize_ppt_v5.py` — Presenter / Export Adapter entrypoint;
+- `scripts/humanize_ppt_v4.py` — Selected Template Full Deck wrapper;
+- `scripts/humanize_ppt_v1.py` — deterministic legacy demo runner;
 - `examples/` — safe sample inputs.
 
 ## Quick start
@@ -66,10 +69,17 @@ It includes:
 git clone https://github.com/LearnPrompt/humanize-ppt.git
 cd humanize-ppt
 
-python3 scripts/humanize_ppt_v1.py   --source examples/01-ai-tool-update/source.md   --out .humanize-ppt-runs/ai-tool-update   --title "AI 工具更新，不只是功能清单"
+python3 scripts/humanize_ppt_v5.py \
+  --source examples/01-ai-tool-update/source.md \
+  --out .humanize-ppt-runs/ai-tool-update-v0.5-complete \
+  --title "AI 工具更新，不只是功能清单" \
+  --selected-template <slug> \
+  --presenter-adapter \
+  --export-adapter
 
-open .humanize-ppt-runs/ai-tool-update/styles/index.html
-open .humanize-ppt-runs/ai-tool-update/presenter/index.html
+open .humanize-ppt-runs/ai-tool-update-v0.5-complete/outputs/beautiful/selected/index.html
+open .humanize-ppt-runs/ai-tool-update-v0.5-complete/outputs/presenter/index.html
+open .humanize-ppt-runs/ai-tool-update-v0.5-complete/outputs/export/package/index.html
 ```
 
 Run the Hermes installation explainer demo:

@@ -13,19 +13,22 @@ Humanize PPT consumes raw material and outputs the AST production contract:
 
 ## P — Presentation Production
 
-V0.1 keeps two paths:
+V0.3 routes to one primary renderer and optional post-processing adapters. The `beautiful-html-templates` route now renders real preview-first artifacts.
 
-### Chinese stable path
+| Route | Best for |
+|---|---|
+| `guizang` | Chinese stable HTML PPT, magazine / Swiss style, screenshots and image framing |
+| `beautiful-html-templates` | preview-first style exploration with 34 templates and `design.md` contracts |
+| `html-ppt` | full-deck templates, presenter mode, speaker scripts, rich themes and animations |
+| `frontend-slides` | PPTX conversion, style discovery, viewport fitting, deploy/export references |
+
+### Router-first path
 
 ```text
-Humanize PPT → guizang-style renderer → stable Chinese HTML PPT
+Humanize PPT → router_plan.json → commands/*.md → outputs/<renderer>/
 ```
 
-### Style exploration path
-
-```text
-Humanize PPT → Zara-style exploration → select direction → full HTML deck
-```
+Downstream renderers consume the AST contract, not raw source, unless a command explicitly permits it.
 
 ## C — Complete / Control
 
