@@ -114,6 +114,8 @@ C — Complete / Control
 - `docs/versions/v0.3-preview-first.md` — V0.3 Preview-First implementation notes: real `beautiful-html-templates` preview gallery, template selection, manifests, and version boundary.
 - `docs/versions/v0.4-selected-template-full-deck.md` — V0.4 Selected Template Full Deck notes: `--selected-template`, selected deck output, manifests, QA, and current boundaries.
 - `docs/versions/v0.5-presenter-export-adapter.md` — V0.5 Presenter / Export Adapter notes: `--presenter-adapter`, `--export-adapter`, output artifacts, and boundaries.
+- `docs/smoke-test.md` — No-dependency smoke check for validating the stable entrypoint on machines without pytest.
+- `docs/plans/2026-05-25-release-readiness-checklist.md` — V0.6 release-readiness checklist and release-note draft.
 
 ## Local demo
 

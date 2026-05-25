@@ -2,15 +2,15 @@
 
 # Humanize PPT
 
-## 基于 AST 理论的人感 PPT 大纲导演 Skill
+## 基于AST理论的人感PPT大纲导演Skill
 
-**先把资料变成人愿意听的大纲，再交给HTML PPT Skill做风格探索，生成页面，做演讲模式和部署上线**
+**先把资料变成人愿意听的大纲，再交给HTML PPT Skill做风格探索、生成页面、补演讲模式和导出包。**
 
 [![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live-green?style=flat-square)](https://learnprompt.github.io/humanize-ppt/)
 [![Release](https://img.shields.io/github/v/release/LearnPrompt/humanize-ppt?style=flat-square)](https://github.com/LearnPrompt/humanize-ppt/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](LICENSE)
 
-[在线预览](https://learnprompt.github.io/humanize-ppt/) · [English](README.en.md) · [AST 理论](docs/AST-theory.md) · [OPC 工作流](docs/OPC-workflow.md) · [Agent Teams](docs/agent-teams.md)
+[在线预览](https://learnprompt.github.io/humanize-ppt/) · [English](README.en.md) · [AST理论](docs/AST-theory.md) · [OPC工作流](docs/OPC-workflow.md) · [Agent Teams](docs/agent-teams.md)
 
 </div>
 
@@ -18,113 +18,75 @@
 
 ## 这是什么
 
-Humanize PPT 是一个 **PPT 大纲导演**，不是又一个HTML PPT模板库，也不是普通的文本润色工具。
+Humanize PPT 是一个**PPT大纲导演**。它不直接充当模板库，也不把原始资料粗暴塞进页面，而是先生成一份适合讲解、适合演示、适合交给下游渲染器的生产契约。
 
-用 AST 理论把原始资料拆成：
+它用AST理论把资料拆成：
 
-- 观众是谁；
-- 观众看之前是什么状态；
-- 看完以后应该变成什么状态；
-- 中间最大的认知张力是什么；
-- 每一页如何推动状态转移；
+- **Audience**：观众是谁，知道什么，抗拒什么；
+- **State**：观众看之前是什么状态，看完以后应该变成什么状态；
+- **Transfer**：每一页如何推动这次状态转移。
 
-然后再把这份干净的生产说明书交给下游Skill生成HTML PPT和视频，比如op7418/guizang-ppt-skill、zarazhangrui/frontend-slides、heygen-com/hyperframes和lewislulu/html-ppt-skill
+核心判断：
 
-## 核心判断
-
-> **PPT 不只是信息容器，而是观众状态改变器。**
-
-AI 直接生成 PPT 时，容易出问题的地方已经不是页面不够漂亮了，模型把自己的解释过程、中间推理痕迹和结构噪音都写进了页面里。
-
-Humanize PPT 的作用是先把资料“洗干净”，重组成一条适合讲解、适合演示、适合下游生成的观众路径。
-
-## V0.5 能做什么
-
-V0.5 在 **Selected Template Full Deck** 之后补齐 Presenter / Export Adapter：
-
-```text
-原始资料
-→ Humanize PPT 生成 AST 生产契约
-→ 自动选择 renderer 路由
-→ 输出 commands/*.md 给下游专业 Agent
-→ 可先跑 guizang 稳定 HTML deck，或接入 beautiful-html-templates 生成 3 个真实标题页预览
-→ 用 --selected-template <slug> 把选中的 Beautiful 模板生成完整 deck
-→ 用 --presenter-adapter 生成演讲者 shell 和逐页 notes
-→ 用 --export-adapter 生成可移植HTML包和 PDF 导出脚本
-→ 生成 run_manifest.json 和 QA 报告
-```
-
-当前包含：
-
-- `SKILL.md`：Agent Skill 入口；
-- `registry/renderer_registry.json`：下游 renderer 能力注册表；
-- `docs/AST-theory.md`：AST 理论；
-- `docs/OPC-workflow.md`：Outline / Produce / Complete 工作流；
-- `contracts/`：输出契约模板与 schema；
-- `scripts/humanize_ppt.py`：推荐主入口；
-- `scripts/humanize_ppt_v5.py`：V0.5 Presenter / Export Adapter 兼容入口；
-- `scripts/humanize_ppt_v4.py`：V0.4 Selected Template Full Deck 兼容入口；
-- `scripts/humanize_ppt_v3.py`：V0.3 Preview-First 兼容入口；
-- `scripts/humanize_ppt_v2.py`：V0.2 Router Edition 兼容 Runner；
-- `scripts/humanize_ppt_v1.py`：V0.1 最小 Demo Runner；
-- `examples/`：脱敏测试素材。
+> PPT不只是信息容器，而是观众状态改变器。
 
 ## 快速开始
 
-```bash
-git clone https://github.com/LearnPrompt/humanize-ppt.git
-cd humanize-ppt
+新用户只需要记住一个入口：
 
-# 第一步：先看 3 个风格预览
+```bash
 python3 scripts/humanize_ppt.py \
   --source examples/01-ai-tool-update/source.md \
-  --out .humanize-ppt-runs/ai-tool-update-v0.3-preview \
+  --out .humanize-ppt-runs/ai-tool-update-preview \
   --title "AI 工具更新，不只是功能清单" \
   --style-mode preview-first
+```
 
-open .humanize-ppt-runs/ai-tool-update-v0.3-preview/outputs/beautiful/previews/index.html
+查看结果：
 
-# 第二步：选中一个模板后生成完整 deck，并补齐 presenter/export
+```bash
+open .humanize-ppt-runs/ai-tool-update-preview/outputs/beautiful/previews/index.html
+open .humanize-ppt-runs/ai-tool-update-preview/outputs/qa/qa_report.md
+```
+
+如果已经选中一个Beautiful模板，可以继续生成完整deck，并补齐presenter/export：
+
+```bash
 python3 scripts/humanize_ppt.py \
   --source examples/01-ai-tool-update/source.md \
-  --out .humanize-ppt-runs/ai-tool-update-v0.5-complete \
+  --out .humanize-ppt-runs/ai-tool-update-complete \
   --title "AI 工具更新，不只是功能清单" \
   --selected-template <slug> \
   --presenter-adapter \
   --export-adapter
-
-open .humanize-ppt-runs/ai-tool-update-v0.5-complete/outputs/beautiful/selected/index.html
-open .humanize-ppt-runs/ai-tool-update-v0.5-complete/outputs/presenter/index.html
-open .humanize-ppt-runs/ai-tool-update-v0.5-complete/outputs/export/package/index.html
-open .humanize-ppt-runs/ai-tool-update-v0.5-complete/outputs/qa/qa_report.md
 ```
-旧版 `scripts/humanize_ppt_v1.py` 到 `scripts/humanize_ppt_v5.py` 仍保留用于兼容和历史复现；新用户只需要记住 `scripts/humanize_ppt.py`。
 
+旧版`scripts/humanize_ppt_v1.py`到`scripts/humanize_ppt_v5.py`仍保留，用于兼容和历史复现；README只推荐`scripts/humanize_ppt.py`。
 
-也可以显式指定 beautiful-html-templates 仓库路径：
+## 无依赖smoke验证
+
+如果本机没有pytest，也可以先跑标准库smoke check：
 
 ```bash
-python3 scripts/humanize_ppt.py \
-  --source examples/01-ai-tool-update/source.md \
-  --out .humanize-ppt-runs/ai-tool-update-v0.5-complete \
-  --title "AI 工具更新，不只是功能清单" \
-  --selected-template <slug> \
-  --presenter-adapter \
-  --export-adapter \
-  --beautiful-repo /path/to/beautiful-html-templates
+python3 scripts/smoke_check.py
 ```
 
-也可以跑 Hermes 安装讲解案例：
+它会使用稳定入口跑一条不依赖外部模板库的最小链路，并检查这些关键文件：
 
-```bash
-python3 scripts/humanize_ppt.py \
-  --source examples/02-hermes-install-guide/source.md \
-  --out .humanize-ppt-runs/hermes-install-v0.3-preview \
-  --title "把 Hermes 装成一个真正能干活的 Agent" \
-  --style-mode preview-first
+```text
+deck_brief.md
+ast_outline.md
+slide_plan.json
+router_plan.json
+run_manifest.json
+outputs/qa/qa_report.md
 ```
 
-## 输出结果
+完整说明见：[docs/smoke-test.md](docs/smoke-test.md)。
+
+## 输出结构
+
+一次运行会生成：
 
 ```text
 out/
@@ -139,55 +101,42 @@ out/
   router_plan.json
   run_manifest.json
   commands/
-    guizang-agent.md
-    beautiful-agent.md
-    html-ppt-agent.md
-    frontend-slides-agent.md
-    presenter-adapter-agent.md
-    export-adapter-agent.md
-    qa-agent.md
+    *.md
   outputs/
-    guizang/
-      index.html
-      render_report.md
     beautiful/
-      previews/
-        index.html
-        01-<slug>/index.html
-        02-<slug>/index.html
-        03-<slug>/index.html
-      preview_manifest.json
-      selected/
-        index.html
-      selected_manifest.json
-      render_report.md
+    guizang/
     presenter/
-      index.html
-      presenter_manifest.json
-      render_report.md
     export/
-      package/
-        index.html
-      export_pdf.sh
-      export_manifest.json
-      README.md
     qa/
-      qa_report.md
-      fix_list.md
-      final_manifest.json
 ```
+
+根据是否选择模板、是否启用presenter/export，部分输出目录可能为空或标记为待处理。
+
+## 当前能力边界
+
+- 推荐入口：`scripts/humanize_ppt.py`
+- 兼容入口：`scripts/humanize_ppt_v1.py`到`scripts/humanize_ppt_v5.py`
+- 历史版本说明：`docs/versions/`
+- 版本计划与审查：`docs/plans/`
+- 脱敏样例：`examples/`
+
+Humanize PPT 当前重点是稳定“资料 → AST生产契约 → 风格预览/完整deck → presenter/export → QA”的工作流。更多renderer自动化、视频生成、部署平台集成和团队包上传会放到后续版本，不塞进这次目录整理。
 
 ## 在线预览
 
 - 首页：https://learnprompt.github.io/humanize-ppt/
-- Skill 分享 PPT 展示页：https://learnprompt.github.io/humanize-ppt/showcase/skill-share/
+- Skill分享PPT展示页：https://learnprompt.github.io/humanize-ppt/showcase/skill-share/
 
-风格探索、演讲者模式和其他生成模式还在调试中，公开入口先隐藏。Roadmap：
+风格探索、演讲者模式和其他生成模式还在调试中，公开入口先隐藏。稳定后再恢复在线Demo入口。
 
-- 稳定 Humanize PPT 的最小输出链路；
-- 调试多风格展示结果；
-- 补齐演讲者模式的讲稿、翻页和控制体验；
-- 完成后再恢复在线 Demo 入口。
+## 参考文档
+
+- [AST理论](docs/AST-theory.md)
+- [OPC工作流](docs/OPC-workflow.md)
+- [Agent Teams](docs/agent-teams.md)
+- [Smoke Test](docs/smoke-test.md)
+- [版本历史](docs/versions/)
+- [发版前审查清单](docs/plans/2026-05-25-release-readiness-checklist.md)
 
 ## License
 
