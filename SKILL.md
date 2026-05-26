@@ -1,7 +1,7 @@
 ---
 name: humanize-ppt
 description: AST-based outline director and router for human-centered AI presentation workflows. Use before generating PPT/HTML slides from raw material, or as the single entrypoint that routes to downstream PPT Skills.
-version: 0.6.0
+version: 0.6.1
 author: LearnPrompt
 license: MIT
 metadata:
@@ -101,12 +101,15 @@ C — Complete / Control
 10. When `beautiful-html-templates` is the preview-first route, do not stop at a planned command file. A connected path must produce real `outputs/beautiful/previews/index.html`, three candidate title-slide previews, `preview_manifest.json`, a render report, and a QA-visible route status. Treat this as V0.3+ capability, because it changes the user-facing workflow from routing advice to visible style selection.
 11. When the user chooses a Beautiful candidate, run V0.4+ `--selected-template <slug>` and produce a real full deck at `outputs/beautiful/selected/index.html` plus `selected_manifest.json`. Do not call this complete if only the preview gallery exists.
 12. In V0.5, presenter/export are post-processing adapters. They require a rendered final deck (`outputs/<renderer>/index.html` or `outputs/beautiful/selected/index.html`), not just a preview gallery.
+13. When routing to `guizang-ppt-skill`, treat guizang as the stable Chinese production renderer, then run a separate visual/material QA pass before presenter or deploy. Check that template class names actually exist in the copied template CSS; do not trust layout docs blindly. If an SVG, GPT image, screenshot, or Remotion clip is inserted, it must support the page instead of repeating the page title, and all internal text must fit within its own safe area.
+14. For Swiss-style guizang decks, use Remotion as a material producer for short process clips and deterministic SVG/HTML diagrams for text-heavy Chinese information graphics. Prefer GPT image generation for non-textual photos, mood images, or visual concepts; use deterministic SVG/HTML when exact Chinese labels, grid alignment, or validation-friendly text is required.
 
 ## Operational references
 
 - `references/agent-teams-public-preview.md` — Agent Teams architecture, specialist-agent command protocol, public preview release loop, and README split convention.
 - `references/humanize-ppt-public-writing.md` — Public-facing positioning and article/script patterns: Humanize PPT as adaptable outline/director layer, not a fixed 4-Skill bundle.
 - `references/workbuddy-team-packaging-and-video-materials.md` — WorkBuddy/CodeBuddy team upload zip structure, validation script, scenario rules shape, and the Remotion/HyperFrames-as-material-producers pitfall.
+- `references/guizang-material-qa.md` — Guizang downstream workflow, material production rules, Swiss visual QA checklist, and failure patterns learned from a full Humanize PPT → guizang deck pass.
 - `references/beautiful-preview-first-adapter.md` — Durable adapter pattern for connecting `beautiful-html-templates`: version boundary, template selection, real title-slide previews, manifests, QA, and pitfalls.
 - `references/selected-template-full-deck-adapter.md` — Durable adapter pattern for V0.4 selected-template full deck generation: required artifacts, routing, QA, and TDD coverage.
 - `references/presenter-export-adapter.md` — Durable adapter pattern for adding V0.5-style presenter shell and export package after a final deck exists.
@@ -114,6 +117,7 @@ C — Complete / Control
 - `docs/versions/v0.3-preview-first.md` — V0.3 Preview-First implementation notes: real `beautiful-html-templates` preview gallery, template selection, manifests, and version boundary.
 - `docs/versions/v0.4-selected-template-full-deck.md` — V0.4 Selected Template Full Deck notes: `--selected-template`, selected deck output, manifests, QA, and current boundaries.
 - `docs/versions/v0.5-presenter-export-adapter.md` — V0.5 Presenter / Export Adapter notes: `--presenter-adapter`, `--export-adapter`, output artifacts, and boundaries.
+- `docs/versions/v0.6.1-guizang-material-qa.md` — V0.6.1 Guizang material QA notes: downstream artifact recording, Remotion-as-material, SVG-safe Chinese diagrams, and visual review rules.
 - `docs/smoke-test.md` — No-dependency smoke check for validating the stable entrypoint on machines without pytest.
 - `docs/plans/2026-05-25-release-readiness-checklist.md` — V0.6 release-readiness checklist and release-note draft.
 
