@@ -124,12 +124,16 @@ Humanize PPT 当前重点是稳定“资料 → AST生产契约 → 风格预览
 
 V0.6.1 补充了 guizang downstream 工作流经验：Humanize PPT 先产出 AST 契约，guizang 负责中文稳定渲染，素材生产和视觉 QA 作为独立 pass 记录。文字精确的信息图优先用 SVG/HTML 等确定性素材；Remotion 用作短流程视频素材，不替代 PPT 页面本体。
 
+V0.6.2 固定中文 PPT 的下一段默认路径：`Humanize PPT → guizang → material QA → presenter → static deploy`。当内容是中文且没有显式要求多风格探索时，优先把 guizang 当作稳定成稿路径；成稿后再补演讲模式和部署包，而不是把 presenter 当成另一种视觉风格。
+
 ## 在线预览
 
 - 首页：https://learnprompt.github.io/humanize-ppt/
 - Skill分享PPT展示页：https://learnprompt.github.io/humanize-ppt/showcase/skill-share/
+- Hermes Agent Mastery 演讲模式：https://learnprompt.github.io/humanize-ppt/showcase/hermes-agent-mastery/presenter/
+- Hermes Agent Mastery PPT：https://learnprompt.github.io/humanize-ppt/showcase/hermes-agent-mastery/ppt/
 
-风格探索、演讲者模式和其他生成模式还在调试中，公开入口先隐藏。稳定后再恢复在线Demo入口。
+风格探索和其他生成模式还在调试中，公开入口先隐藏。中文 guizang → presenter 路径先作为稳定样例开放。
 
 ## 参考文档
 
@@ -138,6 +142,7 @@ V0.6.1 补充了 guizang downstream 工作流经验：Humanize PPT 先产出 AST
 - [Agent Teams](docs/agent-teams.md)
 - [Smoke Test](docs/smoke-test.md)
 - [Guizang material QA](references/guizang-material-qa.md)
+- [Guizang presenter deploy](references/guizang-presenter-deploy.md)
 - [版本历史](docs/versions/)
 - [发版前审查清单](docs/plans/2026-05-25-release-readiness-checklist.md)
 

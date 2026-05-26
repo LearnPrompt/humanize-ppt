@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2100" height="900" viewBox="0 0 2100 900">
+  <rect width="2100" height="900" fill="#fafaf8"/>
+  <defs>
+    <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
+      <path d="M60 0H0V60" fill="none" stroke="#e0e0e0" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="2100" height="900" fill="url(#grid)" opacity="0.34"/>
+
+  <text x="105" y="94" font-size="26" font-weight="600" fill="#737373" text-anchor="start" style="font-family: Inter, Helvetica Neue, Arial, PingFang SC, Noto Sans SC, sans-serif;letter-spacing:.03em">WITHOUT TOOLS</text>
+  <text x="105" y="190" font-size="76" font-weight="200" fill="#0a0a0a" text-anchor="start" style="font-family: Inter, Helvetica Neue, Arial, PingFang SC, Noto Sans SC, sans-serif;">只能建议</text>
+
+  <text x="1260" y="94" font-size="26" font-weight="600" fill="#737373" text-anchor="start" style="font-family: Inter, Helvetica Neue, Arial, PingFang SC, Noto Sans SC, sans-serif;letter-spacing:.03em">WITH HERMES</text>
+  <text x="1260" y="190" font-size="76" font-weight="200" fill="#002FA7" text-anchor="start" style="font-family: Inter, Helvetica Neue, Arial, PingFang SC, Noto Sans SC, sans-serif;">可以执行</text>
+
+  <line x1="1050" y1="110" x2="1050" y2="760" stroke="#d4d4d2" stroke-width="2"/>
+
+  <rect x="120" y="315" width="650" height="118" fill="#f0f0ee" stroke="#d4d4d2" stroke-width="1"/>
+  <text x="165" y="388" font-size="38" font-weight="400" fill="#0a0a0a" text-anchor="start" style="font-family: Inter, Helvetica Neue, Arial, PingFang SC, Noto Sans SC, sans-serif;">方案 / 建议 / 草稿</text>
+
+  <line x1="445" y1="433" x2="445" y2="500" stroke="#737373" stroke-width="2"/>
+  <rect x="215" y="500" width="460" height="86" fill="#fafaf8" stroke="#d4d4d2" stroke-width="1"/>
+  <text x="445" y="554" font-size="28" font-weight="400" fill="#737373" text-anchor="middle" style="font-family: Inter, Helvetica Neue, Arial, PingFang SC, Noto Sans SC, sans-serif;">下一步仍靠人执行</text>
+
+  <rect x="1190" y="300" width="220" height="108" fill="#0a0a0a" stroke="#0a0a0a" stroke-width="1"/>
+  <text x="1300" y="367" font-size="32" font-weight="500" fill="#fff" text-anchor="middle" style="font-family: Inter, Helvetica Neue, Arial, PingFang SC, Noto Sans SC, sans-serif;">模型</text>
+
+  <rect x="1490" y="300" width="220" height="108" fill="#002FA7" stroke="#002FA7" stroke-width="1"/>
+  <text x="1600" y="367" font-size="32" font-weight="500" fill="#fff" text-anchor="middle" style="font-family: Inter, Helvetica Neue, Arial, PingFang SC, Noto Sans SC, sans-serif;">工具</text>
+
+  <rect x="1790" y="300" width="220" height="108" fill="#f0f0ee" stroke="#d4d4d2" stroke-width="1"/>
+  <text x="1900" y="367" font-size="32" font-weight="500" fill="#0a0a0a" text-anchor="middle" style="font-family: Inter, Helvetica Neue, Arial, PingFang SC, Noto Sans SC, sans-serif;">Skill</text>
+
+  <line x1="1410" y1="354" x2="1490" y2="354" stroke="#002FA7" stroke-width="4"/>
+  <line x1="1710" y1="354" x2="1790" y2="354" stroke="#002FA7" stroke-width="4"/>
+  <line x1="1600" y1="408" x2="1600" y2="535" stroke="#002FA7" stroke-width="3"/>
+
+  <rect x="1285" y="535" width="630" height="132" fill="#fafaf8" stroke="#002FA7" stroke-width="3"/>
+  <text x="1600" y="616" font-size="36" font-weight="500" fill="#002FA7" text-anchor="middle" style="font-family: Inter, Helvetica Neue, Arial, PingFang SC, Noto Sans SC, sans-serif;">读取 → 执行 → 检查 → 写回</text>
+
+  <text x="105" y="792" font-size="30" font-weight="400" fill="#525252" text-anchor="start" style="font-family: Inter, Helvetica Neue, Arial, PingFang SC, Noto Sans SC, sans-serif;">模式差异：聊天框输出语言；Hermes 输出可验收的工作结果。</text>
+</svg>

@@ -1,5 +1,5 @@
 {
-  "version": "0.6.1",
+  "version": "0.6.2",
   "renderers": [
     {
       "id": "guizang",
@@ -9,10 +9,13 @@
       "best_for": [
         "中文分享",
         "稳定成稿",
+        "中文默认生产路径",
         "杂志风",
         "瑞士风",
         "截图美化",
-        "配图适配"
+        "配图适配",
+        "presenter后处理",
+        "static deploy"
       ],
       "inputs": [
         "deck_brief.md",
@@ -23,7 +26,9 @@
       ],
       "outputs": [
         "outputs/guizang/index.html",
-        "outputs/guizang/render_report.md"
+        "outputs/guizang/render_report.md",
+        "outputs/presenter/index.html",
+        "outputs/export/package/index.html"
       ],
       "local_skill_paths": [
         "~/.agents/skills/guizang-ppt-skill",

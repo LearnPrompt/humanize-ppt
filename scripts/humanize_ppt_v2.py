@@ -11,7 +11,7 @@ from pathlib import Path
 
 SKILL_ROOT = Path(__file__).resolve().parents[1]
 REGISTRY_PATH = SKILL_ROOT / "registry" / "renderer_registry.json"
-VERSION = "0.6.1"
+VERSION = "0.6.2"
 BEAUTIFUL_REPO_URL = "https://github.com/zarazhangrui/beautiful-html-templates.git"
 
 ROLE_ARC = [
@@ -775,10 +775,20 @@ main{{display:grid;grid-template-columns:minmax(0,2fr) minmax(340px,1fr);height:
 iframe{{width:100%;aspect-ratio:16/9;border:0;border-radius:16px;background:#000;box-shadow:0 20px 80px rgba(0,0,0,.45)}}
 aside{{border-left:1px solid rgba(255,255,255,.12);padding:22px;display:grid;grid-template-rows:auto auto 1fr auto;gap:16px;background:#171923}}
 .kicker{{letter-spacing:.12em;color:#e5b65b;font-size:12px;text-transform:uppercase}}h1{{margin:.1em 0;font-size:28px}}.cards{{display:grid;grid-template-columns:1fr 1fr;gap:12px}}.card{{border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:14px;background:rgba(255,255,255,.05)}}.label{{font-size:11px;color:#9aa3b2;letter-spacing:.12em}}#script{{white-space:pre-wrap;font-size:20px;line-height:1.55;overflow:auto}}button{{border:0;border-radius:12px;padding:12px 16px;background:#e5b65b;color:#111;font-weight:700}}.nav{{display:flex;gap:10px;align-items:center}}
-</style></head><body><main><section class=\"stage\"><iframe id=\"deck\" src=\"{html.escape(deck_href)}\"></iframe></section><aside><div><div class=\"kicker\">Humanize PPT · Presenter Adapter</div><h1>{html.escape(title)}</h1></div><div class=\"cards\"><div class=\"card\"><div class=\"label\">CURRENT</div><strong id=\"current\"></strong></div><div class=\"card\"><div class=\"label\">NEXT</div><strong id=\"next\"></strong></div></div><div class=\"card\"><div class=\"label\">SCRIPT</div><div id=\"script\"></div></div><div class=\"nav\"><button id=\"prev\">← Prev</button><button id=\"nextBtn\">Next →</button><span id=\"counter\"></span></div></aside></main><script>
+</style></head><body><main><section class=\"stage\"><iframe id=\"deck\" src=\"{html.escape(deck_href)}?slide=1\"></iframe></section><aside><div><div class=\"kicker\">Humanize PPT · Presenter Adapter</div><h1>{html.escape(title)}</h1></div><div class=\"cards\"><div class=\"card\"><div class=\"label\">CURRENT</div><strong id=\"current\"></strong></div><div class=\"card\"><div class=\"label\">NEXT</div><strong id=\"next\"></strong></div></div><div class=\"card\"><div class=\"label\">SCRIPT</div><div id=\"script\"></div></div><div class=\"nav\"><button id=\"prev\">← Prev</button><button id=\"nextBtn\">Next →</button><span id=\"counter\"></span></div></aside></main><script>
 const notes = {notes_json};
 let idx = 0;
 const deck = document.getElementById('deck');
+const deckBase = deck.getAttribute('src').replace(/\\?.*$/, '');
+function deckUrl(index) {{
+  return `${{deckBase}}?slide=${{index + 1}}`;
+}}
+function syncDeck() {{
+  if(deck.contentWindow) {{
+    deck.contentWindow.postMessage({{type:'presenter-goto', index:idx}}, '*');
+    deck.contentWindow.postMessage({{type:'preview-goto', idx}}, '*');
+  }}
+}}
 function render() {{
   const item = notes[idx] || notes[0];
   const next = notes[idx + 1];
@@ -786,12 +796,18 @@ function render() {{
   document.getElementById('next').textContent = next ? `${{next.slide_id}} · ${{next.title}}` : 'END';
   document.getElementById('script').textContent = item ? item.script : '';
   document.getElementById('counter').textContent = `${{idx + 1}} / ${{notes.length}}`;
-  deck.contentWindow && deck.contentWindow.postMessage({{type:'preview-goto', idx}}, '*');
+  syncDeck();
 }}
-function go(next) {{ idx = Math.max(0, Math.min(notes.length - 1, next)); render(); }}
+function go(next) {{
+  idx = Math.max(0, Math.min(notes.length - 1, next));
+  const target = deckUrl(idx);
+  if(!deck.src.endsWith(`slide=${{idx + 1}}`)) deck.src = target;
+  render();
+}}
 document.getElementById('prev').onclick = () => go(idx - 1);
 document.getElementById('nextBtn').onclick = () => go(idx + 1);
 document.addEventListener('keydown', e => {{ if (e.key === 'ArrowRight') go(idx + 1); if (e.key === 'ArrowLeft') go(idx - 1); }});
+deck.addEventListener('load', syncDeck);
 render();
 </script></body></html>"""
     presenter = target / "index.html"
@@ -1006,6 +1022,35 @@ def slide_sections(title, plan):
     return "\n\n".join(sections)
 
 
+def inject_presenter_bridge(html_doc):
+    """Expose guizang deck navigation to Humanize PPT presenter shells."""
+    if "presenter-goto" in html_doc:
+        return html_doc
+    bridge = """
+window.__goSlide = go;
+addEventListener('message',e=>{
+  const msg=e.data||{};
+  if(!msg || typeof msg!=='object')return;
+  if(msg.type==='presenter-goto' && Number.isFinite(msg.index)){lock=false;go(msg.index);}
+  if(msg.type==='preview-goto' && Number.isFinite(msg.idx)){lock=false;go(msg.idx);}
+  if(msg.type==='presenter-next'){lock=false;go(idx+1);}
+  if(msg.type==='presenter-prev'){lock=false;go(idx-1);}
+  if(msg.type==='presenter-state-request' && parent!==window){
+    parent.postMessage({type:'presenter-state',index:idx,total},'*');
+  }
+});
+"""
+    marker = "\n\n/* =============== ESC 索引视图 =============== */"
+    if "function go(n)" in html_doc and marker in html_doc:
+        html_doc = html_doc.replace(marker, "\n" + bridge + marker, 1)
+    initial = """const initialSlideParam = new URLSearchParams(location.search).get('slide');
+const initialSlide = initialSlideParam ? Number(initialSlideParam) - 1 : 0;
+go(Number.isFinite(initialSlide) ? initialSlide : 0);"""
+    if "\ngo(0);\n</script>" in html_doc and "initialSlideParam" not in html_doc:
+        html_doc = html_doc.replace("\ngo(0);\n</script>", "\n" + initial + "\n</script>", 1)
+    return html_doc
+
+
 def write_guizang_output(out, title, plan):
     target = out / "outputs" / "guizang"
     target.mkdir(parents=True, exist_ok=True)
@@ -1015,6 +1060,7 @@ def write_guizang_output(out, title, plan):
         template = template_path.read_text(encoding="utf-8", errors="replace")
         html_doc = template.replace("[必填] 替换为 PPT 标题 · Deck Title", f"{title} · Humanize PPT V0.4")
         html_doc = html_doc.replace("<!-- SLIDES_HERE -->", sections)
+        html_doc = inject_presenter_bridge(html_doc)
         report = f"# Guizang Render Report\n\n- status: rendered\n- template: {template_path}\n- output: {target / 'index.html'}\n- slides: {len(plan)}\n"
     else:
         html_doc = fallback_deck(title, plan)
@@ -1026,7 +1072,7 @@ def write_guizang_output(out, title, plan):
 
 def fallback_deck(title, plan):
     sections = slide_sections(title, plan)
-    return f"""<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{html.escape(title)}</title><style>body{{margin:0;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;background:#111;color:#f6f1e8;overflow:hidden}}.slide{{display:none;width:100vw;height:100vh;padding:8vh 8vw;box-sizing:border-box}}.slide:first-of-type{{display:block}}.h-hero,.h-xl{{font-size:clamp(44px,7vw,108px);line-height:1.02;margin:0 0 4vh}}.lead{{font-size:clamp(22px,2.4vw,38px);line-height:1.35}}.kicker,.foot,.callout-src{{color:#d7b56d;letter-spacing:.08em}}.grid-2-7-5{{display:grid;grid-template-columns:7fr 5fr;gap:5vw}}li{{font-size:clamp(18px,1.5vw,26px);line-height:1.55;margin:.5em 0}}</style></head><body>{sections}<script>const s=[...document.querySelectorAll('.slide')];let i=0;function show(n){{i=Math.max(0,Math.min(s.length-1,n));s.forEach((x,k)=>x.style.display=k===i?'block':'none')}}document.addEventListener('keydown',e=>{{if(e.key==='ArrowRight'||e.key===' ')show(i+1);if(e.key==='ArrowLeft')show(i-1)}});show(0)</script></body></html>"""
+    return f"""<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{html.escape(title)}</title><style>body{{margin:0;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;background:#111;color:#f6f1e8;overflow:hidden}}.slide{{display:none;width:100vw;height:100vh;padding:8vh 8vw;box-sizing:border-box}}.slide:first-of-type{{display:block}}.h-hero,.h-xl{{font-size:clamp(44px,7vw,108px);line-height:1.02;margin:0 0 4vh}}.lead{{font-size:clamp(22px,2.4vw,38px);line-height:1.35}}.kicker,.foot,.callout-src{{color:#d7b56d;letter-spacing:.08em}}.grid-2-7-5{{display:grid;grid-template-columns:7fr 5fr;gap:5vw}}li{{font-size:clamp(18px,1.5vw,26px);line-height:1.55;margin:.5em 0}}</style></head><body>{sections}<script>const s=[...document.querySelectorAll('.slide')];let i=0;function show(n){{i=Math.max(0,Math.min(s.length-1,n));window.__currentSlideIndex=i;s.forEach((x,k)=>x.style.display=k===i?'block':'none');if(parent!==window)parent.postMessage({{type:'presenter-state',index:i,total:s.length}},'*')}}window.__goSlide=show;addEventListener('message',e=>{{const m=e.data||{{}};if(m.type==='presenter-goto'&&Number.isFinite(m.index))show(m.index);if(m.type==='preview-goto'&&Number.isFinite(m.idx))show(m.idx);if(m.type==='presenter-state-request')show(i)}});document.addEventListener('keydown',e=>{{if(e.key==='ArrowRight'||e.key===' ')show(i+1);if(e.key==='ArrowLeft')show(i-1)}});const start=Number(new URLSearchParams(location.search).get('slide')||1)-1;show(Number.isFinite(start)?start:0)</script></body></html>"""
 
 
 def write_qa(out, plan, render_issues=None):

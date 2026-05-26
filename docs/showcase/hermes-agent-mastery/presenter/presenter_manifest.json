@@ -1,0 +1,18 @@
+{
+  "title": "Agent 从入门到精通 Hermes 版",
+  "mode": "presenter",
+  "status": "rendered",
+  "deck_path": "../ppt/index.html",
+  "entry": "index.html",
+  "notes_path": "notes.json",
+  "screenshot_path": "presenter-screenshot.png",
+  "slide_count": 8,
+  "features": [
+    "current-slide-preview",
+    "next-slide-card",
+    "speaker-notes",
+    "timer",
+    "postmessage-deck-control"
+  ],
+  "generated_at": "2026-05-26"
+}

@@ -1,11 +1,45 @@
 import json
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 import humanize_ppt_v2 as hp
+
+
+def test_zh_default_route_uses_guizang_with_presenter_adapter():
+    args = SimpleNamespace(
+        renderer="auto",
+        style_mode="stable-first",
+        selected_template=None,
+        presenter=False,
+        presenter_adapter=True,
+        export_adapter=False,
+    )
+
+    primary, routes = hp.choose_routes(args, Path("source.md"), "中文 Agent 分享内容", "zh")
+
+    assert primary == "guizang"
+    assert [route["id"] for route in routes] == ["guizang", "presenter-adapter", "qa"]
+    assert routes[0]["reason"] == "中文内容且未指定风格探索，优先走guizang稳定路径。"
+
+
+def test_inject_presenter_bridge_adds_guizang_deck_control():
+    html = """<script>
+function go(n){idx=n}
+
+/* =============== ESC 索引视图 =============== */
+go(0);
+</script>"""
+
+    bridged = hp.inject_presenter_bridge(html)
+
+    assert "window.__goSlide = go" in bridged
+    assert "presenter-goto" in bridged
+    assert "preview-goto" in bridged
+    assert "initialSlideParam" in bridged
 
 
 def make_repo(tmp_path):
@@ -216,7 +250,9 @@ def test_write_presenter_adapter_creates_presenter_shell_with_notes(tmp_path):
     assert manifest.exists()
     html = presenter.read_text(encoding="utf-8")
     assert "Humanize PPT · Presenter Adapter" in html
-    assert "../beautiful/selected/index.html" in html
+    assert "../beautiful/selected/index.html?slide=1" in html
+    assert "presenter-goto" in html
+    assert "preview-goto" in html
     assert "CURRENT" in html
     assert "NEXT" in html
     assert "SCRIPT" in html

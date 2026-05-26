@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Presenter · Agent 从入门到精通 Hermes 版</title>
+  <style>
+    :root{
+      --ink:#0f2537;
+      --muted:#637589;
+      --line:#d8e2eb;
+      --paper:#f6f8fa;
+      --panel:#ffffff;
+      --accent:#0647c9;
+      --accent-soft:#e8f0ff;
+      --dark:#0d2234;
+      --ok:#0f7b53;
+      font-family: Inter, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      background:var(--paper);
+      color:var(--ink);
+      overflow:hidden;
+    }
+    .app{
+      height:100vh;
+      display:grid;
+      grid-template-columns:minmax(0,1fr) 420px;
+      gap:18px;
+      padding:18px;
+    }
+    .stage{
+      min-width:0;
+      display:grid;
+      grid-template-rows:auto minmax(0,1fr) 188px;
+      gap:14px;
+    }
+    .topbar,.panel,.next-card,.slide-rail{
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:8px;
+    }
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:12px 14px;
+      min-height:62px;
+    }
+    .deck-title{
+      min-width:0;
+    }
+    .eyebrow{
+      font-family:"SFMono-Regular", Menlo, Consolas, monospace;
+      letter-spacing:.18em;
+      text-transform:uppercase;
+      font-size:12px;
+      color:var(--muted);
+      margin-bottom:3px;
+      white-space:nowrap;
+    }
+    h1{
+      margin:0;
+      font-size:22px;
+      line-height:1.16;
+      font-weight:650;
+      letter-spacing:0;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    .clock{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex:0 0 auto;
+    }
+    .time{
+      font-family:"SFMono-Regular", Menlo, Consolas, monospace;
+      font-size:30px;
+      line-height:1;
+      color:var(--dark);
+      min-width:96px;
+      text-align:right;
+    }
+    button{
+      appearance:none;
+      border:1px solid var(--line);
+      background:#fff;
+      color:var(--ink);
+      border-radius:6px;
+      padding:9px 12px;
+      font:600 13px/1 Inter, "Helvetica Neue", Arial, sans-serif;
+      cursor:pointer;
+    }
+    button:hover{border-color:#a8b8c8;background:#f9fbfd}
+    button.primary{
+      border-color:var(--accent);
+      background:var(--accent);
+      color:#fff;
+    }
+    button.icon{
+      width:38px;
+      height:38px;
+      display:grid;
+      place-items:center;
+      padding:0;
+      font-size:18px;
+    }
+    .deck-frame{
+      min-height:0;
+      background:#0b1521;
+      border-radius:8px;
+      overflow:hidden;
+      border:1px solid #0b1521;
+      box-shadow:0 18px 50px rgba(13,34,52,.16);
+    }
+    iframe{
+      width:100%;
+      height:100%;
+      border:0;
+      display:block;
+      background:#d8e8f8;
+    }
+    .bottom{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:14px;
+      min-height:0;
+    }
+    .next-card{
+      overflow:hidden;
+      display:grid;
+      grid-template-columns:180px minmax(0,1fr);
+    }
+    .next-preview{
+      position:relative;
+      background:#d8e8f8;
+      border-right:1px solid var(--line);
+      overflow:hidden;
+      padding:18px;
+      display:flex;
+      align-items:center;
+    }
+    .mini-slide{
+      width:100%;
+      aspect-ratio:16/9;
+      background:#f8fbff;
+      border:1px solid rgba(6,71,201,.18);
+      display:grid;
+      grid-template-rows:auto 1fr auto;
+      padding:14px;
+      box-shadow:0 10px 26px rgba(13,34,52,.08);
+    }
+    .mini-num{
+      font-family:"SFMono-Regular", Menlo, Consolas, monospace;
+      color:var(--accent);
+      font-size:12px;
+      letter-spacing:.14em;
+    }
+    .mini-title{
+      align-self:center;
+      font-size:19px;
+      line-height:1.12;
+      font-weight:680;
+      color:var(--dark);
+      overflow-wrap:anywhere;
+    }
+    .mini-section{
+      font-family:"SFMono-Regular", Menlo, Consolas, monospace;
+      color:var(--muted);
+      font-size:11px;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+    }
+    .next-meta{
+      padding:16px;
+      min-width:0;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      gap:8px;
+    }
+    .kicker{
+      font-family:"SFMono-Regular", Menlo, Consolas, monospace;
+      font-size:12px;
+      letter-spacing:.16em;
+      text-transform:uppercase;
+      color:var(--muted);
+    }
+    .next-title{
+      font-size:22px;
+      line-height:1.16;
+      font-weight:650;
+      overflow-wrap:anywhere;
+    }
+    .controls{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:16px;
+    }
+    .controls .group{display:flex;gap:8px;align-items:center}
+    .progress{
+      height:8px;
+      width:170px;
+      border-radius:999px;
+      background:#dce5ee;
+      overflow:hidden;
+    }
+    .progress span{
+      display:block;
+      height:100%;
+      width:0;
+      background:var(--accent);
+      transition:width .25s ease;
+    }
+    .sidebar{
+      min-width:0;
+      display:grid;
+      grid-template-rows:auto minmax(0,1fr) 230px;
+      gap:14px;
+    }
+    .panel{
+      min-height:0;
+      padding:18px;
+      overflow:hidden;
+    }
+    .panel.current{
+      display:grid;
+      grid-template-rows:auto auto minmax(0,1fr);
+      gap:14px;
+    }
+    .slide-number{
+      font-family:"SFMono-Regular", Menlo, Consolas, monospace;
+      color:var(--accent);
+      font-size:18px;
+      letter-spacing:.08em;
+    }
+    h2{
+      margin:0;
+      font-size:30px;
+      line-height:1.12;
+      font-weight:680;
+      letter-spacing:0;
+    }
+    .script{
+      overflow:auto;
+      padding-right:4px;
+      font-size:21px;
+      line-height:1.62;
+      color:#183247;
+    }
+    .beats{
+      margin:0;
+      padding:0;
+      list-style:none;
+      display:grid;
+      gap:10px;
+    }
+    .beats li{
+      display:grid;
+      grid-template-columns:22px minmax(0,1fr);
+      gap:10px;
+      align-items:start;
+      font-size:16px;
+      line-height:1.42;
+      color:#274258;
+    }
+    .beats li::before{
+      content:"";
+      width:8px;
+      height:8px;
+      margin-top:7px;
+      border-radius:50%;
+      background:var(--accent);
+      box-shadow:0 0 0 5px var(--accent-soft);
+    }
+    .slide-rail{
+      overflow:auto;
+      padding:10px;
+    }
+    .slide-button{
+      width:100%;
+      display:grid;
+      grid-template-columns:34px minmax(0,1fr) auto;
+      gap:10px;
+      align-items:center;
+      text-align:left;
+      border:0;
+      border-radius:6px;
+      background:transparent;
+      padding:10px;
+      color:var(--ink);
+    }
+    .slide-button:hover{background:#f2f6fa}
+    .slide-button.active{background:var(--accent-soft);color:var(--accent)}
+    .slide-button .num{
+      font-family:"SFMono-Regular", Menlo, Consolas, monospace;
+      font-size:13px;
+      color:inherit;
+    }
+    .slide-button .name{
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+      font-weight:650;
+      font-size:14px;
+    }
+    .slide-button .dur{
+      font-family:"SFMono-Regular", Menlo, Consolas, monospace;
+      font-size:12px;
+      color:var(--muted);
+    }
+    @media (max-width:1100px){
+      body{overflow:auto}
+      .app{
+        height:auto;
+        min-height:100vh;
+        grid-template-columns:1fr;
+      }
+      .stage{grid-template-rows:auto 56vw auto}
+      .sidebar{grid-template-rows:auto auto auto}
+      .deck-frame{min-height:56vw}
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="stage">
+      <header class="topbar">
+        <div class="deck-title">
+          <div class="eyebrow">Presenter Console</div>
+          <h1>Agent 从入门到精通 Hermes 版</h1>
+        </div>
+        <div class="clock">
+          <div class="time" id="timer">00:00</div>
+          <button id="timerToggle" class="primary" type="button">开始</button>
+          <button id="timerReset" type="button">重置</button>
+        </div>
+      </header>
+
+      <div class="deck-frame" aria-label="current slide">
+        <iframe id="deckFrame" title="Current slide" src="../ppt/index.html?slide=1"></iframe>
+      </div>
+
+      <div class="bottom">
+        <section class="next-card" aria-label="next slide">
+          <div class="next-preview">
+            <div class="mini-slide">
+              <div class="mini-num" id="nextMiniNum">02 / 08</div>
+              <div class="mini-title" id="nextMiniTitle">Agent 不是聊天框，是执行系统</div>
+              <div class="mini-section" id="nextMiniSection">Core Shift</div>
+            </div>
+          </div>
+          <div class="next-meta">
+            <div class="kicker" id="nextKicker">Next · 02 / 08</div>
+            <div class="next-title" id="nextTitle">Agent 不是聊天框，是执行系统</div>
+          </div>
+        </section>
+        <section class="topbar controls" aria-label="deck controls">
+          <div class="group">
+            <button class="icon" id="prevBtn" type="button" aria-label="Previous slide">←</button>
+            <button class="icon primary" id="nextBtn" type="button" aria-label="Next slide">→</button>
+          </div>
+          <div class="group">
+            <div class="progress" aria-label="progress"><span id="progressBar"></span></div>
+            <div class="kicker" id="progressText">01 / 08</div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <aside class="sidebar">
+      <section class="panel current">
+        <div class="slide-number" id="currentSection">Opening · 01 / 08</div>
+        <h2 id="currentTitle">Agent 从入门到精通</h2>
+        <div class="script" id="currentScript"></div>
+      </section>
+
+      <section class="panel">
+        <div class="kicker" style="margin-bottom:14px">Cues</div>
+        <ul class="beats" id="beats"></ul>
+      </section>
+
+      <nav class="slide-rail" id="slideRail" aria-label="slides"></nav>
+    </aside>
+  </main>
+
+  <script>
+    const notes = {
+      title: "Agent 从入门到精通 Hermes 版",
+      deck: "../ppt/index.html",
+      slides: [
+        {number:1,title:"Agent 从入门到精通",section:"Opening",duration:"1:00",beats:["先把 Agent 从聊天框里拿出来。","这场分享关注 Hermes 工作台如何让 Agent 变成能交付的系统。","听众最后要带走一套可复用的升级路径。"],script:"开场先定调：今天不是讲一个更会聊天的模型，而是讲一个能接模型、工具、Skill、上下文和质量门的执行系统。Hermes 版的关键词是可操作、可检查、可沉淀。我们会从最小闭环开始，一页页走到工具、Skill、记忆、团队编排，最后落到一个能长期工作的个人 Agent 工作台。"},
+        {number:2,title:"Agent 不是聊天框，是执行系统",section:"Core Shift",duration:"1:40",beats:["对比聊天输出和执行系统。","强调模型只是第一层，后面需要工具、Skill、上下文和质量门。","把 Hermes 定义成执行栈，不是单个聊天窗口。"],script:"这一页是全场核心转向。普通聊天框擅长给建议，但建议不等于交付。Hermes 的价值在于把模型放进执行栈：模型负责判断和生成，工具负责行动，Skill 负责复用经验，上下文负责理解项目，质量门负责检查输出。这样 Agent 才不会停在一句话，而是能把事情推进到文件、命令、报告和下一步。"},
+        {number:3,title:"先跑通一个真实小任务",section:"Entry Loop",duration:"1:30",beats:["从安装、配置模型、Doctor 到交付，形成第一条闭环。","视频素材是节奏提示，不重复读标题。","强调小任务真实可验收。"],script:"入门不要先追求复杂自动化，先跑通一个真实小任务。比如装好 Hermes，配置模型，跑 Doctor，最后产出一个明确交付物。重点不是任务多炫，而是每一步都有检查点：启动是否成功、模型是否可用、工具是否能跑、最后有没有可验收结果。这个闭环跑通后，Agent 才从概念变成工作流。"},
+        {number:4,title:"工具决定 Agent 的执行边界",section:"Tools",duration:"1:40",beats:["没有工具时 Agent 只能建议。","接入工具后才进入读取、执行、检查、写回。","工具边界也是权限边界。"],script:"工具是 Agent 的手脚。没有工具时，它只能停在方案、建议、草稿；有了 Hermes 工具层，流程才进入读取、执行、检查、写回。这里也要提醒：工具不是越多越好，工具边界就是权限边界。一个成熟 Agent 应该知道自己能做什么、不能做什么，以及什么时候要把风险交回给人确认。"},
+        {number:5,title:"把经验封装成 Skill",section:"Skill Layer",duration:"1:50",beats:["Skill 是可复用工作流，不是提示词收藏夹。","六个模块：触发、输入、步骤、边界、检查、交付。","用这页解释如何把一次成功经验变成下次默认能力。"],script:"Skill 这一层最容易被低估。它不是把提示词存起来，而是把一次成功的工作经验变成可复用流程。一个好 Skill 至少说清楚六件事：什么时候触发，需要什么输入，按什么步骤执行，哪些动作能做，哪些要确认，如何判断不是草稿，以及最后交付成什么格式。做到这里，Agent 才开始积累组织能力。"},
+        {number:6,title:"让 Hermes 真的认识项目",section:"Context System",duration:"1:40",beats:["三层上下文：项目级、任务级、个人级。","上下文进入 Agent 后，输出才稳定。","项目记忆不是堆资料，而是减少重复解释。"],script:"这一页讲记忆和上下文。项目级让 Hermes 知道仓库、架构、命令和决策；任务级让它知道这一次的 brief、路线、修改和异常；个人级让它理解偏好、语言、审美和交付习惯。三层上下文进入 Agent 后，输出会明显稳定，因为我们不再每次从零解释，也不再靠模型临场猜。"},
+        {number:7,title:"从单 Agent 到团队编排",section:"Agent Teams",duration:"1:40",beats:["单 Agent 强在连续性，团队编排强在分工。","设计、工程、QA、发布各自负责可验收节点。","团队不是并发噱头，而是把质量门拆开。"],script:"当任务变复杂，单 Agent 会遇到角色混杂的问题。团队编排的价值不是热闹，而是把设计、工程、QA、发布拆成不同责任面。每个 Agent 有自己的输入、产出和检查标准，最后由主流程收束。这样一来，复杂任务不再是一长串聊天，而是一组可以追踪、可以失败重试、可以复盘的节点。"},
+        {number:8,title:"让 Agent 成为工作台",section:"Closing",duration:"1:20",beats:["回收四个 takeaway。","强调下一步是把工作流产品化和线上化。","给听众一个可执行的起点。"],script:"结尾回到行动。真正的升级路线不是一口气做超级 Agent，而是先跑通小任务，再接工具，再封装 Skill，再沉淀上下文，最后进入团队编排和发布。Hermes 的意义在于把 Agent 放进日常工作台，让它稳定地产出、检查、写回。下一步可以从一个高频任务开始，把它变成可复用 Skill。"}
+      ]
+    };
+
+    const deckFrame = document.getElementById('deckFrame');
+    const currentSection = document.getElementById('currentSection');
+    const currentTitle = document.getElementById('currentTitle');
+    const currentScript = document.getElementById('currentScript');
+    const nextMiniNum = document.getElementById('nextMiniNum');
+    const nextMiniTitle = document.getElementById('nextMiniTitle');
+    const nextMiniSection = document.getElementById('nextMiniSection');
+    const nextKicker = document.getElementById('nextKicker');
+    const nextTitle = document.getElementById('nextTitle');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    const beats = document.getElementById('beats');
+    const slideRail = document.getElementById('slideRail');
+    const total = notes.slides.length;
+    let current = 0;
+
+    function pad(n){return String(n).padStart(2,'0')}
+    function slideUrl(index){return `${notes.deck}?slide=${index + 1}`}
+
+    function send(type, payload={}){
+      deckFrame.contentWindow?.postMessage({type, ...payload}, '*');
+    }
+
+    function renderRail(){
+      slideRail.innerHTML = '';
+      notes.slides.forEach((slide, index)=>{
+        const btn = document.createElement('button');
+        btn.className = 'slide-button';
+        btn.type = 'button';
+        btn.dataset.index = index;
+        btn.innerHTML = `<span class="num">${pad(slide.number)}</span><span class="name"></span><span class="dur">${slide.duration}</span>`;
+        btn.querySelector('.name').textContent = slide.title;
+        btn.addEventListener('click',()=>setSlide(index, true));
+        slideRail.appendChild(btn);
+      });
+    }
+
+    function renderNotes(index){
+      const slide = notes.slides[index];
+      const next = notes.slides[index + 1];
+      currentSection.textContent = `${slide.section} · ${pad(index + 1)} / ${pad(total)}`;
+      currentTitle.textContent = slide.title;
+      currentScript.textContent = slide.script;
+      beats.innerHTML = '';
+      slide.beats.forEach(beat=>{
+        const li = document.createElement('li');
+        li.textContent = beat;
+        beats.appendChild(li);
+      });
+      nextKicker.textContent = next ? `Next · ${pad(index + 2)} / ${pad(total)}` : 'Next · End';
+      nextTitle.textContent = next ? next.title : '演讲结束';
+      nextMiniNum.textContent = next ? `${pad(index + 2)} / ${pad(total)}` : `${pad(total)} / ${pad(total)}`;
+      nextMiniTitle.textContent = next ? next.title : '演讲结束';
+      nextMiniSection.textContent = next ? next.section : 'Closing';
+      progressText.textContent = `${pad(index + 1)} / ${pad(total)}`;
+      progressBar.style.width = `${((index + 1) / total) * 100}%`;
+      document.querySelectorAll('.slide-button').forEach((btn,i)=>btn.classList.toggle('active',i===index));
+    }
+
+    function setSlide(index, notifyDeck){
+      current = Math.max(0, Math.min(total - 1, index));
+      renderNotes(current);
+      if(notifyDeck) send('presenter-goto', {index: current});
+    }
+
+    function next(){setSlide(current + 1, true)}
+    function prev(){setSlide(current - 1, true)}
+
+    document.getElementById('nextBtn').addEventListener('click', next);
+    document.getElementById('prevBtn').addEventListener('click', prev);
+
+    window.addEventListener('message', event=>{
+      if(event.source !== deckFrame.contentWindow) return;
+      const msg = event.data || {};
+      if(msg.type === 'presenter-state' && Number.isFinite(msg.index)){
+        setSlide(msg.index, false);
+      }
+    });
+
+    window.addEventListener('keydown', event=>{
+      if(event.metaKey || event.ctrlKey || event.altKey) return;
+      if(['ArrowRight','PageDown',' ','ArrowDown'].includes(event.key)){event.preventDefault();next()}
+      if(['ArrowLeft','PageUp','ArrowUp'].includes(event.key)){event.preventDefault();prev()}
+      if(event.key === 'Home'){event.preventDefault();setSlide(0,true)}
+      if(event.key === 'End'){event.preventDefault();setSlide(total - 1,true)}
+      if(event.key.toLowerCase() === 'r'){resetTimer()}
+    });
+
+    let timerSeconds = 0;
+    let timerHandle = null;
+    const timer = document.getElementById('timer');
+    const timerToggle = document.getElementById('timerToggle');
+
+    function drawTimer(){
+      const minutes = Math.floor(timerSeconds / 60);
+      const seconds = timerSeconds % 60;
+      timer.textContent = `${pad(minutes)}:${pad(seconds)}`;
+    }
+    function startTimer(){
+      if(timerHandle) return;
+      timerToggle.textContent = '暂停';
+      timerHandle = setInterval(()=>{timerSeconds += 1; drawTimer()}, 1000);
+    }
+    function pauseTimer(){
+      clearInterval(timerHandle);
+      timerHandle = null;
+      timerToggle.textContent = '开始';
+    }
+    function resetTimer(){
+      pauseTimer();
+      timerSeconds = 0;
+      drawTimer();
+    }
+    timerToggle.addEventListener('click',()=>timerHandle ? pauseTimer() : startTimer());
+    document.getElementById('timerReset').addEventListener('click', resetTimer);
+
+    deckFrame.addEventListener('load',()=>send('presenter-state-request'));
+    renderRail();
+    setSlide(0, false);
+    drawTimer();
+  </script>
+</body>
+</html>

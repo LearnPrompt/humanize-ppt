@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2100" height="900" viewBox="0 0 2100 900">
+  <rect width="2100" height="900" fill="#fafaf8"/>
+  <defs><pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse"><path d="M60 0H0V60" fill="none" stroke="#e0e0e0" stroke-width="1"/></pattern></defs>
+  <rect width="2100" height="900" fill="url(#grid)" opacity="0.42"/>
+  
+  <text x="90" y="95" font-size="28" font-weight="600" fill="#737373" text-anchor="start" style="font-family: Inter, Helvetica Neue, Arial, PingFang SC, Noto Sans SC, sans-serif;">AGENT TEAMS ORCHESTRATION</text>
+  <text x="90" y="165" font-size="72" font-weight="200" fill="#0a0a0a" text-anchor="start" style="font-family: Inter, Helvetica Neue, Arial, PingFang SC, Noto Sans SC, sans-serif;">主控、生产、校验形成闭环</text>
+  <rect x="750" y="255" width="600" height="150" fill="#002FA7" stroke="#002FA7" stroke-width="1"/><text x="1050" y="325" font-size="54" font-weight="300" fill="#fff" text-anchor="middle" style="font-family: Inter, Helvetica Neue, Arial, PingFang SC, Noto Sans SC, sans-serif;">主 Agent</text><text x="1050" y="372" font-size="28" font-weight="400" fill="#e6ebff" text-anchor="middle" style="font-family: Inter, Helvetica Neue, Arial, PingFang SC, Noto Sans SC, sans-serif;">目标判断 · 拆解任务 · 收口质量</text>
+  <rect x="210" y="540" width="520" height="150" fill="#f0f0ee" stroke="#d4d4d2" stroke-width="1"/><text x="470" y="605" font-size="46" font-weight="300" fill="#0a0a0a" text-anchor="middle" style="font-family: Inter, Helvetica Neue, Arial, PingFang SC, Noto Sans SC, sans-serif;">生产 Agent</text><text x="470" y="653" font-size="26" font-weight="400" fill="#525252" text-anchor="middle" style="font-family: Inter, Helvetica Neue, Arial, PingFang SC, Noto Sans SC, sans-serif;">代码 / PPT / 文档 / 素材</text>
+  <rect x="1370" y="540" width="520" height="150" fill="#0a0a0a" stroke="#0a0a0a" stroke-width="1"/><text x="1630" y="605" font-size="46" font-weight="300" fill="#fff" text-anchor="middle" style="font-family: Inter, Helvetica Neue, Arial, PingFang SC, Noto Sans SC, sans-serif;">QA Agent</text><text x="1630" y="653" font-size="26" font-weight="400" fill="#d4d4d2" text-anchor="middle" style="font-family: Inter, Helvetica Neue, Arial, PingFang SC, Noto Sans SC, sans-serif;">路径 / 内容 / 运行 / 风险</text>
+  <line x1="915" y1="405" x2="590" y2="540" stroke="#002FA7" stroke-width="4"/><line x1="1185" y1="405" x2="1510" y2="540" stroke="#002FA7" stroke-width="4"/><line x1="730" y1="615" x2="1370" y2="615" stroke="#002FA7" stroke-width="4"/>
+  <path d="M1630 540 C1700 420 1440 250 1260 295" fill="none" stroke="#002FA7" stroke-width="4"/>
+  <path d="M470 690 C560 815 1540 815 1630 690" fill="none" stroke="#737373" stroke-width="2" stroke-dasharray="12 12"/>
+  <rect x="120" y="755" width="420" height="70" fill="#fafaf8" stroke="#d4d4d2" stroke-width="1"/><text x="330" y="800" font-size="28" font-weight="500" fill="#525252" text-anchor="middle" style="font-family: Inter, Helvetica Neue, Arial, PingFang SC, Noto Sans SC, sans-serif;">输入清洗</text>
+  <rect x="610" y="755" width="420" height="70" fill="#fafaf8" stroke="#d4d4d2" stroke-width="1"/><text x="820" y="800" font-size="28" font-weight="500" fill="#525252" text-anchor="middle" style="font-family: Inter, Helvetica Neue, Arial, PingFang SC, Noto Sans SC, sans-serif;">工具执行</text>
+  <rect x="1100" y="755" width="420" height="70" fill="#fafaf8" stroke="#d4d4d2" stroke-width="1"/><text x="1310" y="800" font-size="28" font-weight="500" fill="#525252" text-anchor="middle" style="font-family: Inter, Helvetica Neue, Arial, PingFang SC, Noto Sans SC, sans-serif;">状态记录</text>
+  <rect x="1590" y="755" width="420" height="70" fill="#fafaf8" stroke="#002FA7" stroke-width="3"/><text x="1800" y="800" font-size="28" font-weight="500" fill="#002FA7" text-anchor="middle" style="font-family: Inter, Helvetica Neue, Arial, PingFang SC, Noto Sans SC, sans-serif;">可验收交付</text>
+
+</svg>
