@@ -122,6 +122,8 @@ out/
 
 Humanize PPT 当前重点是稳定“资料 → AST生产契约 → 风格预览/完整deck → presenter/export → QA”的工作流。更多renderer自动化、视频生成、部署平台集成和团队包上传会放到后续版本，不塞进这次目录整理。
 
+V0.6.1 补充了 guizang downstream 工作流经验：Humanize PPT 先产出 AST 契约，guizang 负责中文稳定渲染，素材生产和视觉 QA 作为独立 pass 记录。文字精确的信息图优先用 SVG/HTML 等确定性素材；Remotion 用作短流程视频素材，不替代 PPT 页面本体。
+
 ## 在线预览
 
 - 首页：https://learnprompt.github.io/humanize-ppt/
@@ -135,6 +137,7 @@ Humanize PPT 当前重点是稳定“资料 → AST生产契约 → 风格预览
 - [OPC工作流](docs/OPC-workflow.md)
 - [Agent Teams](docs/agent-teams.md)
 - [Smoke Test](docs/smoke-test.md)
+- [Guizang material QA](references/guizang-material-qa.md)
 - [版本历史](docs/versions/)
 - [发版前审查清单](docs/plans/2026-05-25-release-readiness-checklist.md)
 
