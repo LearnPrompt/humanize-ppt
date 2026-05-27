@@ -1,5 +1,5 @@
 {
-  "version": "0.6.2",
+  "version": "0.6.3",
   "renderers": [
     {
       "id": "guizang",
@@ -43,7 +43,8 @@
       "role": "style-exploration-renderer",
       "best_for": [
         "34套模板",
-        "先出3个真实预览",
+        "中文默认3个真实预览",
+        "英文默认至少5个真实预览",
         "按occasion和mood选风格",
         "design.md视觉契约"
       ],
@@ -104,6 +105,7 @@
       "role": "pptx-conversion-and-style-discovery-renderer",
       "best_for": [
         "PPTX转HTML",
+        "英文style discovery",
         "show-don't-tell风格预览",
         "viewport fitting",
         "Vercel deploy",

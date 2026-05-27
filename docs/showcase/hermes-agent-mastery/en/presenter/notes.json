@@ -1,0 +1,68 @@
+[
+  {
+    "section": "Opening",
+    "title": "Agent from Beginner to Mastery",
+    "beat": "Open by reframing the topic: this is not a deck about another chatbot.",
+    "script": "Set the frame: Hermes is valuable when language turns into inspected work. We are moving from prompt novelty to an execution system that can read, act, check, and write back."
+  },
+  {
+    "section": "Core Shift",
+    "title": "Not a chat box. An execution system.",
+    "beat": "Separate the model from the system around it.",
+    "script": "The model is one layer. The useful system adds tools, skills, context, and QA. The test is simple: does the work end as advice, or does it end as a checked deliverable?"
+  },
+  {
+    "section": "Minimum Viable Agent",
+    "title": "Start with one real task.",
+    "beat": "Keep the first Hermes win small enough to verify.",
+    "script": "Do not start by automating everything. Start with Hermes running, a provider configured, Doctor passing, and one artifact delivered. That is the first reliable loop."
+  },
+  {
+    "section": "Tools",
+    "title": "Tools decide the execution boundary.",
+    "beat": "Tool access is both capability and permission design.",
+    "script": "Without tools, an agent can suggest. With Hermes tools, it can read files, run commands, verify output, and write results back. The boundary has to be visible."
+  },
+  {
+    "section": "Skill Layer",
+    "title": "Package experience into reusable workflows.",
+    "beat": "A Hermes skill is an operating procedure, not a prompt folder.",
+    "script": "A useful skill says when Hermes should load it, what the user must provide, what SKILL.md defines, what requires confirmation, and how the output is judged."
+  },
+  {
+    "section": "Context System",
+    "title": "Hermes needs context it can act on.",
+    "beat": "Context is for stable decisions, not memory hoarding.",
+    "script": "Hermes becomes more reliable when it can see project memory, current task state, and user working preferences. The goal is fewer repeated explanations and better decisions."
+  },
+  {
+    "section": "Agent Teams",
+    "title": "Complex work needs separated responsibility.",
+    "beat": "Agent teams work only when handoffs are accountable.",
+    "script": "The value is not parallelism for show. Design, build, QA, and deploy agents each own a bounded output and a visible check."
+  },
+  {
+    "section": "Workbench Outcome",
+    "title": "Make agents part of the desk.",
+    "beat": "Tie the operating pattern together before the material demos.",
+    "script": "Mastery means the workflow compounds: small loops, tool access, reusable skills, project context, and visible QA. That is how an agent becomes part of daily work."
+  },
+  {
+    "section": "GPT Image 2 Material",
+    "title": "Generated atmosphere can replace generic placeholders.",
+    "beat": "Show where image generation belongs in this workflow.",
+    "script": "For exact labels, keep text in HTML or SVG. Use GPT Image 2 where atmosphere matters: cover texture, mood, workbench context, and non-textual visual evidence."
+  },
+  {
+    "section": "Remotion Material",
+    "title": "Motion should explain the loop, not replace the slide.",
+    "beat": "The video is a material producer, not a separate deck format.",
+    "script": "This page embeds a real Remotion MP4. The clip explains the read, act, check, write-back loop. Presenter and deploy can later decide whether to keep video or use a poster fallback."
+  },
+  {
+    "section": "Closing Loop",
+    "title": "Hermes mastery is a working system.",
+    "beat": "End with the repeatable operating path.",
+    "script": "Close on the state transfer: run one real Hermes task, package the repeated win into a skill, keep context and QA visible, then split complex work into accountable handoffs."
+  }
+]

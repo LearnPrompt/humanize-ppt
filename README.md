@@ -126,14 +126,18 @@ V0.6.1 补充了 guizang downstream 工作流经验：Humanize PPT 先产出 AST
 
 V0.6.2 固定中文 PPT 的下一段默认路径：`Humanize PPT → guizang → material QA → presenter → static deploy`。当内容是中文且没有显式要求多风格探索时，优先把 guizang 当作稳定成稿路径；成稿后再补演讲模式和部署包，而不是把 presenter 当成另一种视觉风格。
 
+V0.6.3 固定英文 PPT 的风格探索闸门：`Humanize PPT → theme brief → 5-style gallery → selected style full deck → presenter/deploy`。英文路径不直接跳到单一成稿风格；先基于主题生成至少 5 个可见候选，选中后再走完整 deck、演讲模式和部署。
+
 ## 在线预览
 
 - 首页：https://learnprompt.github.io/humanize-ppt/
 - Skill分享PPT展示页：https://learnprompt.github.io/humanize-ppt/showcase/skill-share/
 - Hermes Agent Mastery 演讲模式：https://learnprompt.github.io/humanize-ppt/showcase/hermes-agent-mastery/presenter/
 - Hermes Agent Mastery PPT：https://learnprompt.github.io/humanize-ppt/showcase/hermes-agent-mastery/ppt/
+- Hermes Agent Mastery English Presenter：https://learnprompt.github.io/humanize-ppt/showcase/hermes-agent-mastery/en/presenter/
+- Hermes Agent Mastery English PPT：https://learnprompt.github.io/humanize-ppt/showcase/hermes-agent-mastery/en/ppt/
 
-风格探索和其他生成模式还在调试中，公开入口先隐藏。中文 guizang → presenter 路径先作为稳定样例开放。
+风格探索和其他生成模式还在调试中，公开入口先隐藏。中文 guizang → presenter 路径和英文 Neo-Grid → presenter 路径先作为稳定样例开放。
 
 ## 参考文档
 
@@ -143,6 +147,7 @@ V0.6.2 固定中文 PPT 的下一段默认路径：`Humanize PPT → guizang →
 - [Smoke Test](docs/smoke-test.md)
 - [Guizang material QA](references/guizang-material-qa.md)
 - [Guizang presenter deploy](references/guizang-presenter-deploy.md)
+- [English style gallery](docs/versions/v0.6.3-english-style-gallery.md)
 - [版本历史](docs/versions/)
 - [发版前审查清单](docs/plans/2026-05-25-release-readiness-checklist.md)
 

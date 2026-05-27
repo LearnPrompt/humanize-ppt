@@ -1,0 +1,38 @@
+[
+  {
+    "video_id": "V03_ENTRY_LOOP",
+    "slide_id": "S03",
+    "producer": "remotion",
+    "purpose": "Animate the minimum viable agent loop: Install -> Configure -> Doctor -> Deliver.",
+    "duration_seconds": 10,
+    "aspect_ratio": "16:9",
+    "output": "materials/videos/03-entry-loop.mp4",
+    "poster": "materials/videos/03-entry-loop-poster.png",
+    "fallback_static": "poster-s03-entry-loop",
+    "status": "planned"
+  },
+  {
+    "video_id": "V07_AGENT_HANDOFF",
+    "slide_id": "S07",
+    "producer": "remotion",
+    "purpose": "Animate specialist handoffs: Design -> Build -> QA -> Deploy with visible checks.",
+    "duration_seconds": 12,
+    "aspect_ratio": "16:9",
+    "output": "materials/videos/07-agent-handoff.mp4",
+    "poster": "materials/videos/07-agent-handoff-poster.png",
+    "fallback_static": "poster-s07-agent-handoff",
+    "status": "planned"
+  },
+  {
+    "video_id": "V10_REMOTION_EFFECT_TEST",
+    "slide_id": "S10",
+    "producer": "remotion",
+    "purpose": "Extra effect-test page showing an embedded Neo-Grid Remotion MP4 inside the deck.",
+    "duration_seconds": 6,
+    "aspect_ratio": "16:9",
+    "output": "materials/videos/10-remotion-entry-loop.mp4",
+    "poster": "materials/posters/10-remotion-entry-loop-poster.png",
+    "fallback_static": "poster-s10-remotion-entry-loop",
+    "status": "generated"
+  }
+]

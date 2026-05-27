@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Presenter · Agent from Beginner to Mastery: Hermes Edition</title>
+  <style>
+    :root{
+      --ink:#0a0a0a;
+      --paper:#f5f4ef;
+      --bg:#ecece8;
+      --accent:#e6ff3d;
+      --muted:#8a8a85;
+      --font:Arial,"Helvetica Neue",sans-serif;
+      --mono:Menlo,Monaco,ui-monospace,monospace;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%;overflow:hidden;background:var(--ink);color:var(--paper);font-family:var(--font)}
+    .app{height:100vh;display:grid;grid-template-columns:minmax(0,1fr) 470px;gap:14px;padding:14px;background:var(--ink)}
+    .main{display:grid;grid-template-rows:82px minmax(0,1fr) 170px;gap:14px;min-width:0}
+    .bar,.panel,.controls,.next-text{border:2px solid var(--paper);background:#151515}
+    .bar{display:flex;justify-content:space-between;align-items:center;padding:14px 18px}
+    .k{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+    h1,h2,p{margin:0}
+    h1{font-size:24px;line-height:1.05;text-transform:uppercase}
+    .timer{font-family:var(--mono);font-size:34px;color:var(--accent)}
+    .stage{min-height:0;background:#000;border:2px solid var(--paper)}
+    iframe{width:100%;height:100%;border:0;background:#111;display:block}
+    .bottom{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .next-text{padding:18px;display:flex;flex-direction:column;justify-content:space-between}
+    .next-title{font-size:28px;line-height:1;text-transform:uppercase;font-weight:900;color:var(--paper)}
+    .controls{display:flex;align-items:center;justify-content:center;gap:10px;padding:14px}
+    button{border:2px solid var(--paper);background:var(--ink);color:var(--paper);font-weight:900;font-size:16px;padding:12px 16px;cursor:pointer;text-transform:uppercase}
+    button.primary{background:var(--accent);color:var(--ink);border-color:var(--accent)}
+    .side{display:grid;grid-template-rows:240px minmax(0,1fr) 245px;gap:14px;min-height:0}
+    .next-preview{padding:12px;display:grid;grid-template-rows:24px minmax(0,1fr);gap:10px}
+    .next-frame{background:#000;overflow:hidden}
+    .notes{padding:20px;overflow:auto}
+    .section{font-family:var(--mono);font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+    h2{font-size:30px;line-height:1.02;margin:10px 0 14px;text-transform:uppercase}
+    .beat{font-size:18px;line-height:1.32;color:var(--accent);font-weight:800;margin-bottom:14px}
+    .script{font-size:18px;line-height:1.42;font-weight:700;color:var(--paper)}
+    .rail{padding:12px;overflow:auto;display:flex;flex-direction:column;gap:6px}
+    .rail button{display:grid;grid-template-columns:32px 1fr;gap:8px;text-align:left;padding:8px 10px;font-size:12px;line-height:1.15;background:#151515;color:var(--paper);border-color:#444}
+    .rail button.active{background:var(--accent);color:var(--ink);border-color:var(--accent)}
+    .rail span:first-child{font-family:var(--mono)}
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="main">
+      <header class="bar">
+        <div><div class="k">Neo-Grid Presenter Console</div><h1>Agent from Beginner to Mastery: Hermes Edition</h1></div>
+        <div class="timer" id="timer">00:00</div>
+      </header>
+      <div class="stage"><iframe id="deckFrame" src="../ppt/index.html?slide=1" title="Current slide"></iframe></div>
+      <div class="bottom">
+        <div class="next-text">
+          <div class="k" id="nextK">Next · 02 / 11</div>
+          <div class="next-title" id="nextTitle">Not a chat box. An execution system.</div>
+        </div>
+        <div class="controls">
+          <button id="prev">Prev</button>
+          <button class="primary" id="next">Next</button>
+          <button id="start">Start</button>
+          <button id="reset">Reset</button>
+        </div>
+      </div>
+    </section>
+    <aside class="side">
+      <section class="panel next-preview">
+        <div class="k" id="previewK">Next Preview</div>
+        <div class="next-frame"><iframe id="nextFrame" src="../ppt/index.html?slide=2" title="Next slide preview"></iframe></div>
+      </section>
+      <section class="panel notes">
+        <div class="section" id="section">Opening · 01 / 11</div>
+        <h2 id="title">Agent from Beginner to Mastery</h2>
+        <div class="beat" id="beat"></div>
+        <div class="script" id="script"></div>
+      </section>
+      <nav class="panel rail" id="rail"></nav>
+    </aside>
+  </main>
+  <script>
+    const notes=[
+      {section:"Opening",title:"Agent from Beginner to Mastery",beat:"Open by reframing the topic: this is not a deck about another chatbot.",script:"Set the frame: Hermes is valuable when language turns into inspected work. We are moving from prompt novelty to an execution system that can read, act, check, and write back."},
+      {section:"Core Shift",title:"Not a chat box. An execution system.",beat:"Separate the model from the system around it.",script:"The model is one layer. The useful system adds tools, skills, context, and QA. The test is simple: does the work end as advice, or does it end as a checked deliverable?"},
+      {section:"Minimum Viable Agent",title:"Start with one real task.",beat:"Keep the first Hermes win small enough to verify.",script:"Do not start by automating everything. Start with Hermes running, a provider configured, Doctor passing, and one artifact delivered. That is the first reliable loop."},
+      {section:"Tools",title:"Tools decide the execution boundary.",beat:"Tool access is both capability and permission design.",script:"Without tools, an agent can suggest. With Hermes tools, it can read files, run commands, verify output, and write results back. The boundary has to be visible."},
+      {section:"Skill Layer",title:"Package experience into reusable workflows.",beat:"A Hermes skill is an operating procedure, not a prompt folder.",script:"A useful skill says when Hermes should load it, what the user must provide, what SKILL.md defines, what requires confirmation, and how the output is judged."},
+      {section:"Context System",title:"Hermes needs context it can act on.",beat:"Context is for stable decisions, not memory hoarding.",script:"Hermes becomes more reliable when it can see project memory, current task state, and user working preferences. The goal is fewer repeated explanations and better decisions."},
+      {section:"Agent Teams",title:"Complex work needs separated responsibility.",beat:"Agent teams work only when handoffs are accountable.",script:"The value is not parallelism for show. Design, build, QA, and deploy agents each own a bounded output and a visible check."},
+      {section:"Workbench Outcome",title:"Make agents part of the desk.",beat:"Tie the operating pattern together before the material demos.",script:"Mastery means the workflow compounds: small loops, tool access, reusable skills, project context, and visible QA. That is how an agent becomes part of daily work."},
+      {section:"GPT Image 2 Material",title:"Generated atmosphere can replace generic placeholders.",beat:"Show where image generation belongs in this workflow.",script:"For exact labels, keep text in HTML or SVG. Use GPT Image 2 where atmosphere matters: cover texture, mood, workbench context, and non-textual visual evidence."},
+      {section:"Remotion Material",title:"Motion should explain the loop, not replace the slide.",beat:"The video is a material producer, not a separate deck format.",script:"This page embeds a real Remotion MP4. The clip explains the read, act, check, write-back loop. Presenter and deploy can later decide whether to keep video or use a poster fallback."},
+      {section:"Closing Loop",title:"Hermes mastery is a working system.",beat:"End with the repeatable operating path.",script:"Close on the state transfer: run one real Hermes task, package the repeated win into a skill, keep context and QA visible, then split complex work into accountable handoffs."}
+    ];
+    const deck=document.getElementById('deckFrame');
+    const nextFrame=document.getElementById('nextFrame');
+    const rail=document.getElementById('rail');
+    const deckBase="../ppt/index.html";
+    let idx=0, seconds=0, ticker=null;
+    const pad=n=>String(n).padStart(2,'0');
+    function send(){
+      deck.contentWindow?.postMessage({type:'presenter-goto',index:idx},'*');
+      nextFrame.contentWindow?.postMessage({type:'presenter-goto',index:Math.min(idx+1,notes.length-1)},'*');
+    }
+    function render(){
+      const note=notes[idx];
+      const next=notes[idx+1];
+      document.getElementById('section').textContent=`${note.section} · ${pad(idx+1)} / ${pad(notes.length)}`;
+      document.getElementById('title').textContent=note.title;
+      document.getElementById('beat').textContent=note.beat;
+      document.getElementById('script').textContent=note.script;
+      document.getElementById('nextK').textContent=next?`Next · ${pad(idx+2)} / ${pad(notes.length)}`:'Next · End';
+      document.getElementById('nextTitle').textContent=next?next.title:'End';
+      document.getElementById('previewK').textContent=next?`Next Preview · ${pad(idx+2)}`:'Next Preview · End';
+      [...rail.children].forEach((button,i)=>button.classList.toggle('active',i===idx));
+      send();
+    }
+    function go(nextIndex){
+      idx=Math.max(0,Math.min(notes.length-1,nextIndex));
+      deck.src=`${deckBase}?slide=${idx+1}`;
+      nextFrame.src=`${deckBase}?slide=${Math.min(idx+2,notes.length)}`;
+      render();
+    }
+    function drawTimer(){document.getElementById('timer').textContent=`${pad(Math.floor(seconds/60))}:${pad(seconds%60)}`}
+    notes.forEach((note,i)=>{
+      const b=document.createElement('button');
+      b.innerHTML=`<span>${pad(i+1)}</span><span>${note.title}</span>`;
+      b.onclick=()=>go(i);
+      rail.appendChild(b);
+    });
+    document.getElementById('next').onclick=()=>go(idx+1);
+    document.getElementById('prev').onclick=()=>go(idx-1);
+    document.getElementById('start').onclick=()=>{
+      if(ticker){clearInterval(ticker);ticker=null;document.getElementById('start').textContent='Start'}
+      else{ticker=setInterval(()=>{seconds++;drawTimer()},1000);document.getElementById('start').textContent='Pause'}
+    };
+    document.getElementById('reset').onclick=()=>{clearInterval(ticker);ticker=null;seconds=0;drawTimer();document.getElementById('start').textContent='Start'};
+    addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key===' ')go(idx+1);if(e.key==='ArrowLeft')go(idx-1)});
+    deck.addEventListener('load',send);
+    nextFrame.addEventListener('load',send);
+    render();
+    drawTimer();
+  </script>
+</body>
+</html>
