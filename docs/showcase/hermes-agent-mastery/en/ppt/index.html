@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Agent from Beginner to Mastery: Hermes Edition - Neo-Grid Bold</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#ecece8;
+      --ink:#0a0a0a;
+      --paper:#f5f4ef;
+      --accent:#e6ff3d;
+      --muted:#8a8a85;
+      --stage:#1a1a1a;
+      --font-display:"Space Grotesk","Helvetica Neue",Arial,sans-serif;
+      --font-mono:"JetBrains Mono",ui-monospace,monospace;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--stage);color:var(--ink);font-family:var(--font-display)}
+    .viewport{position:fixed;inset:0;overflow:hidden;background:var(--stage)}
+    #stage{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0}
+    .slide{position:absolute;inset:0;width:1920px;height:1080px;background:var(--bg);overflow:hidden;visibility:hidden;opacity:0;pointer-events:none;transition:opacity .26s ease,visibility .26s ease}
+    .slide.active{visibility:visible;opacity:1;pointer-events:auto}
+    .frame{position:absolute;inset:40px;display:grid;grid-template-columns:repeat(12,1fr);grid-template-rows:repeat(8,1fr);gap:12px}
+    .panel{position:relative;overflow:hidden;background:var(--paper);padding:32px}
+    .ink{background:var(--ink);color:var(--paper)}
+    .lemon{background:var(--accent);color:var(--ink)}
+    .photo{background:#111;color:var(--paper)}
+    .photo:before{content:"";position:absolute;inset:0;background:radial-gradient(85% 80% at 54% 35%,#2b2b2b 0,#090909 72%),repeating-linear-gradient(135deg,rgba(255,255,255,.055) 0 2px,transparent 2px 10px);opacity:.9}
+    .pagenum{position:absolute;left:0;bottom:0;background:var(--paper);color:var(--ink);font-family:var(--font-mono);font-size:24px;letter-spacing:.04em;padding:14px 22px;z-index:5}
+    .pagenum.invert{background:var(--ink);color:var(--paper)}
+    .pagenum.lemon{background:var(--accent);color:var(--ink)}
+    h1,h2,h3,p{margin:0}
+    .display{font-size:132px;line-height:.92;font-weight:700;letter-spacing:-.02em;text-transform:uppercase}
+    .title{font-size:88px;line-height:.95;font-weight:700;letter-spacing:-.015em;text-transform:uppercase}
+    .subtitle{font-size:56px;line-height:1;font-weight:700;letter-spacing:-.01em;text-transform:uppercase}
+    .body{font-size:28px;line-height:1.34;font-weight:400}
+    .body-sm{font-size:22px;line-height:1.42;font-weight:400}
+    .label{font-family:var(--font-mono);font-size:20px;letter-spacing:.1em;text-transform:uppercase}
+    .label-sm{font-family:var(--font-mono);font-size:15px;letter-spacing:.12em;text-transform:uppercase}
+    .num-xl{font-size:246px;line-height:.82;font-weight:700;letter-spacing:-.045em}
+    .num{font-size:120px;line-height:.85;font-weight:700;letter-spacing:-.03em}
+    mark{background:var(--accent);color:var(--ink);padding:0 8px}
+    em{font-style:normal;color:var(--accent)}
+    .blockmark{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:6px;width:64px;height:64px}
+    .blockmark i:nth-child(1),.blockmark i:nth-child(4){background:currentColor}
+    .blockmark i:nth-child(2),.blockmark i:nth-child(3){background:transparent}
+    .corner{position:absolute;right:24px;top:24px;width:42px;height:42px;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:5px;color:currentColor}
+    .corner i{background:currentColor}.corner i:nth-child(2){background:transparent}
+    .mono-line{font-family:var(--font-mono);font-size:17px;letter-spacing:.1em;text-transform:uppercase}
+    .rule{height:3px;background:currentColor;opacity:.95}
+    .hud{display:none}
+    .dot{width:9px;height:9px;background:rgba(245,244,239,.35)}
+    .dot.active{background:var(--accent)}
+    .reveal{opacity:0;transform:translateY(24px);transition:opacity .55s ease,transform .55s ease}
+    .active .reveal{opacity:1;transform:translateY(0)}
+    .active .reveal:nth-child(2){transition-delay:.05s}
+    .active .reveal:nth-child(3){transition-delay:.1s}
+    .active .reveal:nth-child(4){transition-delay:.15s}
+    .active .reveal:nth-child(5){transition-delay:.2s}
+
+    .s1 .portrait-l{grid-column:1/span 3;grid-row:1/span 8}
+    .s1 .hero{grid-column:4/span 5;grid-row:1/span 8;display:flex;flex-direction:column;justify-content:flex-end;padding:42px}
+    .s1 .hero .display{font-size:102px}
+    .s1 .photo-r{grid-column:9/span 4;grid-row:1/span 5}
+    .s1 .meta{grid-column:9/span 4;grid-row:6/span 3;display:flex;flex-direction:column;justify-content:space-between}
+    .qr{position:absolute;left:28px;top:28px;width:92px;height:92px;display:grid;grid-template-columns:repeat(5,1fr);grid-template-rows:repeat(5,1fr)}
+    .qr i{background:var(--ink)}.qr i:nth-child(3n){background:var(--accent)}
+
+    .s2 .claim{grid-column:1/span 6;grid-row:1/span 5;display:flex;flex-direction:column;justify-content:space-between}
+    .s2 .claim .display{font-size:96px}
+    .s2 .loop{grid-column:7/span 6;grid-row:1/span 5;display:grid;grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(2,1fr);gap:12px;padding:0;background:transparent}
+    .mini{padding:26px;display:flex;flex-direction:column;justify-content:space-between;background:var(--paper)}
+    .mini.ink{background:var(--ink);color:var(--paper)}
+    .mini.lemon{background:var(--accent);color:var(--ink)}
+    .s2 .note{grid-column:1/span 12;grid-row:6/span 3;display:grid;grid-template-columns:2fr 1fr;gap:28px;align-items:end}
+
+    .s3 .ordinal{grid-column:1/span 3;grid-row:1/span 8;display:flex;flex-direction:column;justify-content:space-between}
+    .s3 .steps{grid-column:4/span 9;grid-row:1/span 8;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:1fr 1fr;gap:12px;padding:0;background:transparent}
+    .step{padding:28px;display:flex;flex-direction:column;justify-content:space-between;background:var(--paper)}
+    .step.big{grid-column:1/span 4;background:var(--ink);color:var(--paper);display:grid;grid-template-columns:1fr 1.2fr;align-items:end;gap:30px}
+
+    .s4 .left{grid-column:1/span 5;grid-row:1/span 8;display:flex;flex-direction:column;justify-content:space-between}
+    .s4 .right{grid-column:6/span 7;grid-row:1/span 8;display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(8,1fr);gap:12px;padding:0;background:transparent}
+    .s4 .tool{padding:26px;display:flex;flex-direction:column;justify-content:space-between}
+    .s4 .tool.a{grid-column:1/span 3;grid-row:1/span 3;background:var(--paper)}
+    .s4 .tool.b{grid-column:4/span 4;grid-row:1/span 3;background:var(--accent)}
+    .s4 .tool.c{grid-column:1/span 2;grid-row:4/span 2;background:var(--ink);color:var(--paper)}
+    .s4 .tool.d{grid-column:3/span 3;grid-row:4/span 2;background:var(--paper)}
+    .s4 .tool.e{grid-column:6/span 2;grid-row:4/span 2;background:var(--ink);color:var(--paper)}
+    .s4 .pipeline{grid-column:1/span 7;grid-row:6/span 3;background:var(--paper);padding:28px;display:flex;align-items:center;justify-content:space-between}
+    .chip{border:2px solid currentColor;padding:14px 16px;font-family:var(--font-mono);font-size:18px;letter-spacing:.08em;text-transform:uppercase}
+
+    .s5 .head{grid-column:1/span 12;grid-row:1/span 2;display:flex;align-items:end;justify-content:space-between}
+    .s5 .head .title{font-size:78px}
+    .s5 .card{padding:26px;display:flex;flex-direction:column;justify-content:space-between}
+    .s5 .c1{grid-column:1/span 4;grid-row:3/span 3;background:var(--accent)}
+    .s5 .c2{grid-column:5/span 4;grid-row:3/span 3;background:var(--paper)}
+    .s5 .c3{grid-column:9/span 4;grid-row:3/span 3;background:var(--ink);color:var(--paper)}
+    .s5 .c4{grid-column:1/span 3;grid-row:6/span 3;background:var(--paper)}
+    .s5 .c5{grid-column:4/span 6;grid-row:6/span 3;background:var(--ink);color:var(--paper)}
+    .s5 .c6{grid-column:10/span 3;grid-row:6/span 3;background:var(--accent)}
+
+    .s6 .context-title{grid-column:1/span 5;grid-row:1/span 8;display:flex;flex-direction:column;justify-content:space-between}
+    .s6 .context-title .title{font-size:76px}
+    .s6 .layer{display:flex;flex-direction:column;justify-content:space-between}
+    .s6 .l1{grid-column:6/span 7;grid-row:1/span 2;background:var(--paper)}
+    .s6 .l2{grid-column:6/span 7;grid-row:3/span 3;background:var(--accent)}
+    .s6 .l3{grid-column:6/span 7;grid-row:6/span 3;background:var(--ink);color:var(--paper)}
+    .s6 .layer{padding:28px}
+
+    .s7 .teams-title{grid-column:1/span 5;grid-row:1/span 4;display:flex;flex-direction:column;justify-content:space-between}
+    .s7 .quote{grid-column:1/span 5;grid-row:5/span 4;display:flex;flex-direction:column;justify-content:space-between}
+    .s7 .role{padding:26px;display:flex;flex-direction:column;justify-content:space-between}
+    .s7 .r1{grid-column:6/span 3;grid-row:1/span 3;background:var(--paper)}
+    .s7 .r2{grid-column:9/span 4;grid-row:1/span 3;background:var(--accent)}
+    .s7 .r3{grid-column:6/span 3;grid-row:4/span 3;background:var(--accent)}
+    .s7 .r4{grid-column:9/span 4;grid-row:4/span 3;background:var(--paper)}
+    .s7 .flow{grid-column:6/span 7;grid-row:7/span 2;background:var(--ink);color:var(--paper);display:flex;align-items:center;justify-content:space-between}
+
+    .s8 .final{grid-column:1/span 8;grid-row:1/span 5;display:flex;flex-direction:column;justify-content:space-between}
+    .s8 .final .display{font-size:116px}
+    .s8 .stamp{grid-column:9/span 4;grid-row:1/span 5;display:flex;flex-direction:column;justify-content:space-between}
+    .s8 .take{padding:26px;display:flex;flex-direction:column;justify-content:space-between}
+    .s8 .t1{grid-column:1/span 3;grid-row:6/span 3;background:var(--paper)}
+    .s8 .t2{grid-column:4/span 3;grid-row:6/span 3;background:var(--accent)}
+    .s8 .t3{grid-column:7/span 3;grid-row:6/span 3;background:var(--ink);color:var(--paper)}
+    .s8 .t4{grid-column:10/span 3;grid-row:6/span 3;background:var(--paper)}
+    .s9 .image-title{grid-column:1/span 4;grid-row:1/span 8;display:flex;flex-direction:column;justify-content:space-between}
+    .s9 .image-title .title{font-size:78px}
+    .s9 .image-panel{grid-column:5/span 8;grid-row:1/span 6;padding:0;background:var(--ink)}
+    .s9 .image-panel img{width:100%;height:100%;object-fit:cover;display:block;filter:contrast(1.08)}
+    .s9 .image-note{grid-column:5/span 8;grid-row:7/span 2;display:grid;grid-template-columns:1fr 1.2fr;gap:28px;align-items:end}
+    .s10 .motion-title{grid-column:1/span 4;grid-row:1/span 8;display:flex;flex-direction:column;justify-content:space-between}
+    .s10 .motion-title .title{font-size:78px}
+    .s10 .video-panel{grid-column:5/span 8;grid-row:1/span 6;padding:0;background:var(--ink)}
+    .s10 .video-panel video{width:100%;height:100%;object-fit:cover;display:block;background:var(--ink)}
+    .s10 .motion-note{grid-column:5/span 8;grid-row:7/span 2;display:grid;grid-template-columns:1.1fr 1fr;gap:28px;align-items:end}
+    .s11 .close-hero{grid-column:1/span 8;grid-row:1/span 8;display:flex;flex-direction:column;justify-content:space-between}
+    .s11 .close-hero .display{font-size:118px}
+    .s11 .close-side{grid-column:9/span 4;grid-row:1/span 8;display:grid;grid-template-rows:repeat(4,1fr);gap:12px;padding:0;background:transparent}
+    .s11 .close-step{padding:26px;display:flex;flex-direction:column;justify-content:space-between}
+    @media (prefers-reduced-motion:reduce){.slide,.reveal{transition:none!important}}
+  </style>
+</head>
+<body>
+  <div class="viewport">
+    <main id="stage">
+      <section class="slide s1 active">
+        <div class="frame">
+          <div class="panel photo portrait-l"><div class="pagenum invert">01 / 11</div></div>
+          <div class="panel lemon hero reveal">
+            <div class="qr"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            <div>
+              <div class="label">Hermes edition</div>
+              <h1 class="display">Agent from beginner to mastery</h1>
+              <p class="body-sm">Execution over chat. Artifacts over answers.</p>
+            </div>
+          </div>
+          <div class="panel photo photo-r"></div>
+          <div class="panel meta reveal">
+            <div class="blockmark"><i></i><i></i><i></i><i></i></div>
+            <div>
+              <p class="label-sm">Field deck / 2026</p>
+              <p class="label-sm">Working systems for builders</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide s2">
+        <div class="frame">
+          <div class="panel lemon claim reveal">
+            <div class="label">Core shift</div>
+            <h2 class="display">Not a chat box. <mark>An execution system.</mark></h2>
+          </div>
+          <div class="loop reveal">
+            <div class="mini"><p class="label-sm">01 / model</p><h3 class="subtitle">Reason</h3></div>
+            <div class="mini ink"><p class="label-sm">02 / tools</p><h3 class="subtitle">Act</h3></div>
+            <div class="mini lemon"><p class="label-sm">03 / skills</p><h3 class="subtitle">Repeat</h3></div>
+            <div class="mini"><p class="label-sm">04 / QA</p><h3 class="subtitle">Verify</h3></div>
+          </div>
+          <div class="panel note reveal">
+            <p class="body">Hermes matters when model output becomes inspectable work: files read, commands run, checks passed, and results written back.</p>
+            <div><p class="label">read -> act -> check -> write back</p><div class="pagenum">02 / 11</div></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide s3">
+        <div class="frame">
+          <div class="panel lemon ordinal reveal">
+            <div class="label">Minimum viable agent</div>
+            <div class="num-xl">04</div>
+            <p class="body-sm">The first win is not scale. It is one reliable loop.</p>
+          </div>
+          <div class="steps reveal">
+            <div class="step big">
+              <h2 class="title">Start with one real task.</h2>
+              <p class="body">A beginner path should end with an output the user can inspect, not a vague feeling that the agent is configured.</p>
+            </div>
+            <div class="step"><p class="label-sm">01 / install</p><h3 class="subtitle">Hermes</h3><p class="body-sm">Make the runtime start reliably.</p></div>
+            <div class="step lemon"><p class="label-sm">02 / setup</p><h3 class="subtitle">Provider</h3><p class="body-sm">Configure the model and credentials outside the deck.</p></div>
+            <div class="step"><p class="label-sm">03 / doctor</p><h3 class="subtitle">Doctor</h3><p class="body-sm">Run environment checks before trusting output.</p></div>
+            <div class="step ink"><p class="label-sm">04 / artifact</p><h3 class="subtitle">Deliver</h3><p class="body-sm">Produce a file, report, or next action.</p></div>
+          </div>
+          <div class="pagenum lemon">03 / 11</div>
+        </div>
+      </section>
+
+      <section class="slide s4">
+        <div class="frame">
+          <div class="panel ink left reveal">
+            <div class="label">Tools as limbs</div>
+            <h2 class="display">Tools decide the execution boundary.</h2>
+            <p class="body">Without tools, an agent can suggest. With tools, it can read, act, verify, and deliver.</p>
+          </div>
+          <div class="right reveal">
+            <div class="tool a"><p class="label-sm">Without tools</p><h3 class="subtitle">Suggest</h3></div>
+            <div class="tool b"><p class="label-sm">With Hermes</p><h3 class="subtitle">Execute</h3></div>
+            <div class="tool c"><p class="label-sm">Read</p><p class="body-sm">Files, docs, repo state.</p></div>
+            <div class="tool d"><p class="label-sm">Run</p><p class="body-sm">Commands and local checks.</p></div>
+            <div class="tool e"><p class="label-sm">Write</p><p class="body-sm">Artifacts and reports.</p></div>
+            <div class="pipeline">
+              <span class="chip">read</span><span class="chip">act</span><span class="chip">check</span><span class="chip">write back</span>
+            </div>
+          </div>
+          <div class="pagenum invert">04 / 11</div>
+        </div>
+      </section>
+
+      <section class="slide s5">
+        <div class="frame">
+          <div class="panel head reveal">
+            <div>
+              <p class="label">Skill layer</p>
+              <h2 class="title">Package experience into reusable workflows.</h2>
+            </div>
+            <div class="blockmark"><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="panel card c1 reveal"><p class="label-sm">01 / trigger</p><h3 class="subtitle">When Hermes loads it</h3></div>
+          <div class="panel card c2 reveal"><p class="label-sm">02 / inputs</p><h3 class="subtitle">What the user provides</h3></div>
+          <div class="panel card c3 reveal"><p class="label-sm">03 / steps</p><h3 class="subtitle">What SKILL.md defines</h3></div>
+          <div class="panel card c4 reveal"><p class="label-sm">04 / boundary</p><h3 class="body">What requires confirmation.</h3></div>
+          <div class="panel card c5 reveal"><p class="label-sm">05 / checks</p><h3 class="subtitle">How output stops being a draft</h3></div>
+          <div class="panel card c6 reveal"><p class="label-sm">06 / delivery</p><h3 class="body">Files, paths, reports, next steps.</h3></div>
+          <div class="pagenum">05 / 11</div>
+        </div>
+      </section>
+
+      <section class="slide s6">
+        <div class="frame">
+          <div class="panel ink context-title reveal">
+            <div class="label">Context system</div>
+            <h2 class="title">Hermes needs context it can act on.</h2>
+            <p class="body-sm">Context is not storing everything. It is reducing repeated explanation and stabilizing decisions.</p>
+          </div>
+          <div class="panel layer l1 reveal"><p class="label-sm">Layer 01 / repo</p><h3 class="subtitle">Project memory</h3><p class="body-sm">README, architecture, commands, decisions, constraints.</p></div>
+          <div class="panel layer l2 reveal"><p class="label-sm">Layer 02 / run</p><h3 class="subtitle">Task state</h3><p class="body-sm">Brief, route, current changes, blockers, acceptance checks.</p></div>
+          <div class="panel layer l3 reveal"><p class="label-sm">Layer 03 / user</p><h3 class="subtitle">Working preference</h3><p class="body-sm">Language, style, risk tolerance, delivery habits.</p></div>
+          <div class="pagenum invert">06 / 11</div>
+        </div>
+      </section>
+
+      <section class="slide s7">
+        <div class="frame">
+          <div class="panel lemon teams-title reveal">
+            <p class="label">Agent teams</p>
+            <h2 class="title">Complex work needs separated responsibility.</h2>
+          </div>
+          <div class="panel quote reveal">
+            <p class="body">The point is not parallelism for show. The point is accountable handoffs.</p>
+            <p class="mono-line">brief -> artifact -> review -> publish</p>
+          </div>
+          <div class="panel role r1 reveal"><p class="label-sm">Hermes skill</p><h3 class="subtitle">Design Agent</h3></div>
+          <div class="panel role r2 reveal"><p class="label-sm">Hermes tools</p><h3 class="subtitle">Build Agent</h3></div>
+          <div class="panel role r3 reveal"><p class="label-sm">Hermes QA</p><h3 class="subtitle">QA Agent</h3></div>
+          <div class="panel role r4 reveal"><p class="label-sm">Hermes release</p><h3 class="subtitle">Deploy Agent</h3></div>
+          <div class="panel flow reveal"><span class="chip">bounded output</span><span class="chip">visible check</span><span class="chip">owned handoff</span></div>
+          <div class="pagenum lemon">07 / 11</div>
+        </div>
+      </section>
+
+      <section class="slide s8">
+        <div class="frame">
+          <div class="panel lemon final reveal">
+            <p class="label">Workbench outcome</p>
+            <h2 class="display">Make agents part of the desk.</h2>
+            <p class="body">Mastery means the workflow compounds: small loops, tool access, reusable skills, project context, and visible QA.</p>
+          </div>
+          <div class="panel ink stamp reveal">
+            <div class="num">08</div>
+            <div><p class="label">Hermes edition</p><p class="body-sm">Execution systems compound.</p></div>
+          </div>
+          <div class="panel take t1 reveal"><p class="label-sm">01</p><h3 class="body">Start with one real loop.</h3></div>
+          <div class="panel take t2 reveal"><p class="label-sm">02</p><h3 class="body">Give the agent tools.</h3></div>
+          <div class="panel take t3 reveal"><p class="label-sm">03</p><h3 class="body">Package wins as skills.</h3></div>
+          <div class="panel take t4 reveal"><p class="label-sm">04</p><h3 class="body">Keep QA visible.</h3></div>
+          <div class="pagenum lemon">08 / 11</div>
+        </div>
+      </section>
+
+      <section class="slide s9">
+        <div class="frame">
+          <div class="panel lemon image-title reveal">
+            <div>
+              <p class="label">GPT Image 2 material</p>
+              <h2 class="title">Generated atmosphere can replace generic placeholders.</h2>
+            </div>
+            <p class="body-sm">Use Image 2 for non-textual mood, cover texture, and visual evidence where exact labels are not required.</p>
+          </div>
+          <div class="panel image-panel reveal">
+            <img src="../materials/images/09-image2-workbench.png" alt="Black-and-white AI agent workbench generated by GPT Image 2">
+          </div>
+          <div class="panel image-note reveal">
+            <div>
+              <p class="label-sm">Producer</p>
+              <h3 class="subtitle">GPT Image 2</h3>
+            </div>
+            <p class="body-sm">Prompt constraint: no readable text, no logos, no people. The deck keeps exact words in HTML, and lets the bitmap carry atmosphere.</p>
+          </div>
+          <div class="pagenum lemon">09 / 11</div>
+        </div>
+      </section>
+
+      <section class="slide s10">
+        <div class="frame">
+          <div class="panel ink motion-title reveal">
+            <div>
+              <p class="label">Remotion material</p>
+              <h2 class="title">Motion should explain the loop, not replace the slide.</h2>
+            </div>
+            <p class="body-sm">This is a rendered MP4 from Remotion, embedded as a material test before presenter mode.</p>
+          </div>
+          <div class="panel video-panel reveal">
+            <video src="../materials/videos/10-remotion-entry-loop.mp4" poster="../materials/posters/10-remotion-entry-loop-poster.png" autoplay muted loop playsinline controls></video>
+          </div>
+          <div class="panel motion-note reveal">
+            <p class="body-sm">The clip animates read -> act -> check -> write back in Neo-Grid form. Presenter/deploy can later decide whether to keep video playback or use the poster fallback.</p>
+            <div>
+              <p class="label-sm">Output</p>
+              <h3 class="subtitle">MP4 + poster</h3>
+            </div>
+          </div>
+          <div class="pagenum invert">10 / 11</div>
+        </div>
+      </section>
+
+      <section class="slide s11">
+        <div class="frame">
+          <div class="panel lemon close-hero reveal">
+            <div>
+              <p class="label">Closing loop</p>
+              <h2 class="display">Hermes mastery is a working system.</h2>
+            </div>
+            <p class="body">The end state is not a better chat session. It is a repeatable operating path: Hermes can understand the project, use tools, call skills, verify work, and hand off to specialist agents.</p>
+          </div>
+          <div class="close-side reveal">
+            <div class="panel close-step"><p class="label-sm">01 / start</p><h3 class="body">Run one real Hermes task.</h3></div>
+            <div class="panel close-step ink"><p class="label-sm">02 / package</p><h3 class="body">Turn the repeated win into a skill.</h3></div>
+            <div class="panel close-step"><p class="label-sm">03 / remember</p><h3 class="body">Keep project context and QA visible.</h3></div>
+            <div class="panel close-step ink"><p class="label-sm">04 / scale</p><h3 class="body">Split complex work into agent handoffs.</h3></div>
+          </div>
+          <div class="pagenum lemon">11 / 11</div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <div class="hud" id="hud"></div>
+  <script>
+    class Deck {
+      constructor(){
+        this.slides=[...document.querySelectorAll('.slide')];
+        this.stage=document.getElementById('stage');
+        this.hud=document.getElementById('hud');
+        this.index=0;
+        this.scale();
+        addEventListener('resize',()=>this.scale());
+        addEventListener('keydown',e=>{
+          if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown')this.go(this.index+1);
+          if(e.key==='ArrowLeft'||e.key==='PageUp')this.go(this.index-1);
+          if(e.key==='Home')this.go(0);
+          if(e.key==='End')this.go(this.slides.length-1);
+        });
+        addEventListener('message',e=>{
+          const m=e.data||{};
+          if(m.type==='presenter-goto'&&Number.isFinite(m.index))this.go(m.index);
+          if(m.type==='preview-goto'&&Number.isFinite(m.idx))this.go(m.idx);
+          if(m.type==='presenter-next')this.go(this.index+1);
+          if(m.type==='presenter-prev')this.go(this.index-1);
+          if(m.type==='presenter-state-request')this.broadcast();
+        });
+        let start=Number(new URLSearchParams(location.search).get('slide')||1)-1;
+        this.go(Number.isFinite(start)?start:0);
+      }
+      scale(){
+        const s=Math.min(innerWidth/1920,innerHeight/1080);
+        this.stage.style.transform=`scale(${s})`;
+        this.stage.style.left=`${(innerWidth-1920*s)/2}px`;
+        this.stage.style.top=`${(innerHeight-1080*s)/2}px`;
+      }
+      go(n){
+        this.index=Math.max(0,Math.min(this.slides.length-1,n));
+        this.slides.forEach((slide,i)=>slide.classList.toggle('active',i===this.index));
+        window.__currentSlideIndex=this.index;
+        this.renderHud();
+        this.broadcast();
+      }
+      renderHud(){
+        this.hud.innerHTML=this.slides.map((_,i)=>`<span class="dot ${i===this.index?'active':''}"></span>`).join('')+`<span>${String(this.index+1).padStart(2,'0')} / ${String(this.slides.length).padStart(2,'0')}</span>`;
+      }
+      broadcast(){
+        if(parent!==window)parent.postMessage({type:'presenter-state',index:this.index,total:this.slides.length},'*');
+      }
+    }
+    window.__deck=new Deck();
+    window.__goSlide=index=>window.__deck.go(index);
+  </script>
+</body>
+</html>

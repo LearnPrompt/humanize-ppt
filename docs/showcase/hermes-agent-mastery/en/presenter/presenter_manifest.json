@@ -1,0 +1,10 @@
+{
+  "version": "0.6.3",
+  "title": "Agent from Beginner to Mastery: Hermes Edition",
+  "mode": "presenter-adapter",
+  "deck": "../beautiful/selected/index.html",
+  "presenter": "index.html",
+  "notes": "notes.json",
+  "slide_count": 11,
+  "status": "rendered"
+}

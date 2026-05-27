@@ -51,6 +51,7 @@ def make_repo(tmp_path):
         ("soft-editorial", "Soft Editorial", ["quiet", "editorial", "warm"], ["research synthesis"], ["literary", "considered"], "light", "medium"),
         ("broadside", "Broadside", ["dramatic", "editorial"], ["brand manifesto", "design talk"], ["graphic", "punchy"], "dark", "medium"),
         ("playful", "Playful", ["playful", "warm"], ["classroom kickoff"], ["approachable"], "light", "medium"),
+        ("sharp-systems", "Sharp Systems", ["confident", "technical"], ["developer tools", "systems talk"], ["precise", "structured"], "dark", "high"),
     ]
     index = {"schema_version": 1, "template_count": len(templates), "templates": []}
     for slug, name, mood, occasion, tone, scheme, density in templates:
@@ -97,6 +98,30 @@ def test_select_beautiful_templates_returns_three_distinct_candidates(tmp_path):
     assert {"slug", "name", "score", "reason"}.issubset(picked[0].keys())
 
 
+def test_english_preview_count_defaults_to_at_least_five():
+    assert hp.resolve_preview_count("en", None) == 5
+    assert hp.resolve_preview_count("en", 3) == 5
+    assert hp.resolve_preview_count("en", 7) == 7
+    assert hp.resolve_preview_count("zh", None) == 3
+
+
+def test_en_default_route_uses_five_style_exploration_gate():
+    args = SimpleNamespace(
+        renderer="auto",
+        style_mode="stable-first",
+        selected_template=None,
+        presenter=False,
+        presenter_adapter=False,
+        export_adapter=False,
+    )
+
+    primary, routes = hp.choose_routes(args, Path("source.md"), "Hermes agent workflow for English teams.", "en")
+
+    assert primary == "beautiful-html-templates"
+    assert routes[0]["id"] == "beautiful-html-templates"
+    assert "至少5个风格候选" in routes[0]["reason"]
+
+
 def test_write_beautiful_previews_creates_real_title_slide_previews(tmp_path):
     repo = make_repo(tmp_path)
     out = tmp_path / "run"
@@ -130,6 +155,32 @@ def test_write_beautiful_previews_creates_real_title_slide_previews(tmp_path):
     assert "Second" not in html
     assert "01 / 01" in html
     assert (first_preview.parent / "deck-stage.js").exists()
+
+
+def test_write_beautiful_previews_can_render_five_candidates(tmp_path):
+    repo = make_repo(tmp_path)
+    out = tmp_path / "run"
+    plan = [{"slide_id": "S01", "message": "Theme-first, then style exploration", "title": "Hermes Agent Mastery"}]
+
+    result = hp.write_beautiful_previews(
+        out,
+        title="Hermes Agent Mastery",
+        text="agent teams, developer tools, systems talk, orchestration",
+        plan=plan,
+        repo_path=repo,
+        language="en",
+        occasion="developer tools systems talk",
+        mood="confident technical editorial",
+        count=5,
+    )
+
+    manifest = json.loads((out / "outputs" / "beautiful" / "preview_manifest.json").read_text(encoding="utf-8"))
+
+    assert result["status"] == "rendered"
+    assert len(result["previews"]) == 5
+    assert manifest["language"] == "en"
+    assert manifest["preview_count"] == 5
+    assert manifest["requested_preview_count"] == 5
 
 
 def test_write_beautiful_previews_returns_missing_when_library_absent(tmp_path):

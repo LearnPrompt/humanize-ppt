@@ -4,17 +4,42 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Agent 从入门到精通 Hermes 版</title>
-  <meta http-equiv="refresh" content="0; url=presenter/">
   <style>
     body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f6f8fa;color:#0f2537;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif}
-    main{max-width:680px;padding:32px}
-    a{color:#0647c9;font-weight:700}
+    main{width:min(880px,calc(100vw - 48px));padding:48px 0}
+    h1{margin:0 0 12px;font-size:clamp(32px,5vw,64px);line-height:1.05;letter-spacing:0}
+    p{margin:0;color:#43576a;font-size:17px;line-height:1.7}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:32px}
+    section{border:1px solid #d6dee8;background:white;border-radius:8px;padding:22px}
+    h2{margin:0 0 10px;font-size:20px}
+    .links{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+    a{color:#0647c9;font-weight:700;text-decoration:none}
+    .button{border:1px solid #b8c7d8;border-radius:6px;padding:9px 12px;background:#f8fbff}
+    @media (max-width:720px){.grid{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
   <main>
     <h1>Agent 从入门到精通 Hermes 版</h1>
-    <p>正在打开演讲模式。也可以直接进入 <a href="presenter/">Presenter</a> 或 <a href="ppt/">PPT</a>。</p>
+    <p>Humanize PPT showcase: 中文 guizang 稳定路径，以及英文 Neo-Grid 多风格选择后的完整路径。</p>
+    <div class="grid">
+      <section>
+        <h2>中文稳定样例</h2>
+        <p>Humanize PPT → guizang → material QA → presenter → static deploy。</p>
+        <div class="links">
+          <a class="button" href="presenter/">演讲模式</a>
+          <a class="button" href="ppt/">PPT</a>
+        </div>
+      </section>
+      <section>
+        <h2>English Neo-Grid Case</h2>
+        <p>Theme brief → 5-style gallery → selected full deck → presenter/deploy.</p>
+        <div class="links">
+          <a class="button" href="en/presenter/">Presenter</a>
+          <a class="button" href="en/ppt/">PPT</a>
+        </div>
+      </section>
+    </div>
   </main>
 </body>
 </html>

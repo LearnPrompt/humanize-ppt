@@ -11,8 +11,10 @@ from pathlib import Path
 
 SKILL_ROOT = Path(__file__).resolve().parents[1]
 REGISTRY_PATH = SKILL_ROOT / "registry" / "renderer_registry.json"
-VERSION = "0.6.2"
+VERSION = "0.6.3"
 BEAUTIFUL_REPO_URL = "https://github.com/zarazhangrui/beautiful-html-templates.git"
+DEFAULT_ZH_PREVIEW_COUNT = 3
+DEFAULT_EN_PREVIEW_COUNT = 5
 
 ROLE_ARC = [
     ("hook", "抓住注意力：先把观众从信息疲劳里拉出来。"),
@@ -239,7 +241,7 @@ def choose_routes(args, source_path, text, language):
         reason = f"用户指定 selected_template={args.selected_template}，用选中 Beautiful 模板生成完整 deck。"
     elif args.style_mode == "preview-first":
         primary = "beautiful-html-templates"
-        reason = "用户选择 preview-first，优先生成3个风格候选。"
+        reason = "用户选择 preview-first，优先进入可视化风格探索。"
     elif args.style_mode == "presenter-first" or args.presenter:
         primary = "html-ppt"
         reason = "用户需要演讲者模式，优先走html-ppt。"
@@ -248,7 +250,7 @@ def choose_routes(args, source_path, text, language):
         reason = "中文内容且未指定风格探索，优先走guizang稳定路径。"
     else:
         primary = "beautiful-html-templates"
-        reason = "英文或跨风格内容，优先走模板探索。"
+        reason = "英文或跨风格内容，先定主题并生成至少5个风格候选，再进入成稿。"
 
     routes = [
         {
@@ -304,6 +306,13 @@ def choose_routes(args, source_path, text, language):
         }
     )
     return primary, routes
+
+
+def resolve_preview_count(language, requested=None):
+    if language == "zh":
+        return max(1, requested if requested is not None else DEFAULT_ZH_PREVIEW_COUNT)
+    baseline = DEFAULT_EN_PREVIEW_COUNT
+    return max(baseline, requested if requested is not None else baseline)
 
 
 def renderer_by_id(registry):
@@ -603,8 +612,11 @@ def write_beautiful_previews(out, title, text, plan, repo_path, language, occasi
         "generated_at": now_iso(),
         "repo": str(repo),
         "title": title,
+        "language": language,
         "occasion": occasion,
         "mood": mood,
+        "preview_count": len(previews),
+        "requested_preview_count": count,
         "gallery": str(gallery),
         "previews": previews,
     }
@@ -1126,18 +1138,27 @@ def write_manifest(out, title, source_path, primary, routes, qa_passed):
     return manifest
 
 
-def write_style_brief(out, primary, language):
+def write_style_brief(out, primary, language, preview_count=None):
+    if language == "zh":
+        route_rule = "中文默认走 guizang 稳定成稿；用户显式要求时再进入 preview-first。"
+    else:
+        route_rule = f"英文默认先定主题，再生成至少 {preview_count or DEFAULT_EN_PREVIEW_COUNT} 个风格候选；选中风格后才进入完整 deck、presenter 和 deploy。"
     style = {
         "version": VERSION,
         "primary_renderer": primary,
         "language": language,
         "style_mode": "stable-first" if primary == "guizang" else "preview-first",
         "rule": "先保留AST叙事，再选择视觉系统；不要把推荐Skill清单写成产品边界。",
+        "route_rule": route_rule,
+        "preview_count": preview_count,
     }
     (out / "style_brief.md").write_text(
         "# Style Brief\n\n"
         f"- primary_renderer: `{primary}`\n"
         f"- language: `{language}`\n"
+        f"- style_mode: `{style['style_mode']}`\n"
+        f"- preview_count: `{preview_count}`\n"
+        f"- route_rule: {route_rule}\n"
         f"- principle: {style['rule']}\n",
         encoding="utf-8",
     )
@@ -1162,7 +1183,7 @@ def parse_args():
     ap.add_argument("--export-adapter", action="store_true", help="Generate outputs/export package and export_pdf.sh for PDF export.")
     ap.add_argument("--occasion", default=None, help="Optional occasion hint for beautiful-html-templates selection.")
     ap.add_argument("--mood", default=None, help="Optional mood/vibe hint for beautiful-html-templates selection.")
-    ap.add_argument("--preview-count", type=int, default=3, help="Number of beautiful-html-templates previews to render.")
+    ap.add_argument("--preview-count", type=int, default=None, help="Number of beautiful-html-templates previews to render. English runs are floored at 5.")
     ap.add_argument("--beautiful-repo", default=None, help="Path to zarazhangrui/beautiful-html-templates. Auto-detected if omitted.")
     ap.add_argument("--no-beautiful-auto-clone", action="store_true", help="Do not auto-clone beautiful-html-templates into ~/.cache/humanize-ppt.")
     ap.add_argument("--presenter", action="store_true")
@@ -1179,12 +1200,18 @@ def main():
 
     source_path, text, segments = read_source(args.source)
     language = detect_language(text)
+    preview_count = resolve_preview_count(language, args.preview_count)
     registry = load_registry()
     primary, routes = choose_routes(args, source_path, text, language)
+    if primary == "beautiful-html-templates" and not args.selected_template:
+        for route in routes:
+            if route["id"] == "beautiful-html-templates":
+                route["style_gate"] = "theme-first"
+                route["preview_count"] = preview_count
     plan = build_slide_plan(args.title, text, segments, primary)
 
     write_contracts(out, args.title, source_path, text, plan, language)
-    write_style_brief(out, primary, language)
+    write_style_brief(out, primary, language, preview_count=preview_count)
     copy_registry_snapshot(out)
     router_plan = write_router_plan(out, args.title, source_path, primary, routes, registry)
     write_commands(out, router_plan)
@@ -1228,7 +1255,7 @@ def main():
                 language=language,
                 occasion=args.occasion,
                 mood=args.mood,
-                count=max(1, args.preview_count),
+                count=preview_count,
             )
             if beautiful_result.get("status") == "rendered":
                 rendered = beautiful_result.get("gallery")

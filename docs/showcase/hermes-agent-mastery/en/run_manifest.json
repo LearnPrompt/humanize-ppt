@@ -1,0 +1,115 @@
+{
+  "version": "0.6.3",
+  "generated_at": "2026-05-27T07:20:33+00:00",
+  "title": "Agent from Beginner to Mastery: Hermes Edition",
+  "source": ".humanize-ppt-inputs/hermes-agent-mastery-en.md",
+  "primary_renderer": "beautiful-html-templates",
+  "routes": [
+    {
+      "id": "beautiful-html-templates",
+      "stage": "produce",
+      "purpose": "根据Humanize PPT契约生成主deck或候选预览。",
+      "reason": "用户指定 selected_template=neo-grid-bold，用选中 Beautiful 模板生成完整 deck。",
+      "command_file": "commands/beautiful-agent.md",
+      "status": "rendered",
+      "display_name": "Beautiful HTML Templates",
+      "skill_name": "beautiful-html-templates",
+      "expected_inputs": [
+        "deck_brief.md",
+        "ast_outline.md",
+        "slide_plan.json",
+        "style_brief.md",
+        "asset_manifest.md"
+      ],
+      "expected_outputs": [
+        "outputs/beautiful/previews/index.html",
+        "outputs/beautiful/previews/01-<slug>/index.html",
+        "outputs/beautiful/preview_manifest.json",
+        "outputs/beautiful/selected/index.html",
+        "outputs/beautiful/selected_manifest.json",
+        "outputs/beautiful/render_report.md"
+      ],
+      "actual_output": "ppt/index.html",
+      "selected_template": "neo-grid-bold",
+      "selected_manifest": "ppt/selected_manifest.json"
+    },
+    {
+      "id": "presenter-adapter",
+      "stage": "complete",
+      "purpose": "Generate presenter mode for the finalized Neo-Grid Bold English deck.",
+      "reason": "English showcase case moved to presenter mode after full deck approval.",
+      "command_file": "commands/presenter-adapter-agent.md",
+      "status": "rendered",
+      "display_name": "Humanize Presenter Adapter",
+      "skill_name": "humanize-ppt",
+      "expected_inputs": [
+        "outputs/beautiful/selected/index.html",
+        "slide_plan.json",
+        "speaker_intent.md"
+      ],
+      "expected_outputs": [
+        "outputs/presenter/index.html",
+        "outputs/presenter/presenter_manifest.json",
+        "outputs/presenter/render_report.md"
+      ],
+      "actual_output": "presenter/index.html",
+      "presenter_manifest": "presenter/presenter_manifest.json"
+    },
+    {
+      "id": "qa",
+      "stage": "control",
+      "purpose": "检查契约、路径、人感、AI草稿痕迹和交付完整性。",
+      "reason": "所有Humanize PPT运行必须经过QA。",
+      "command_file": "commands/qa-agent.md",
+      "status": "pass",
+      "display_name": "Humanize PPT QA",
+      "skill_name": "humanize-ppt",
+      "expected_inputs": [
+        "router_plan.json",
+        "run_manifest.json",
+        "outputs/"
+      ],
+      "expected_outputs": [
+        "outputs/qa/qa_report.md",
+        "outputs/qa/fix_list.md",
+        "outputs/qa/final_manifest.json"
+      ],
+      "actual_output": "qa/qa_report.md"
+    }
+  ],
+  "qa_status": "pass",
+  "files": [
+    "asset_manifest.md",
+    "ast_outline.md",
+    "commands/beautiful-agent.md",
+    "commands/qa-agent.md",
+    "deck_brief.md",
+    "materials/images/09-image2-workbench.png",
+    "materials/material_plan.md",
+    "materials/posters/10-remotion-entry-loop-poster.png",
+    "materials/remotion/package.json",
+    "materials/remotion/src/index.tsx",
+    "materials/videos/10-remotion-entry-loop.mp4",
+    "outputs/beautiful/render_report.md",
+    "outputs/beautiful/selected/deck-stage.js",
+    "outputs/beautiful/selected/design.md",
+    "outputs/beautiful/selected/index.html",
+    "outputs/beautiful/selected/template.json",
+    "outputs/beautiful/selected_manifest.json",
+    "outputs/presenter/index.html",
+    "outputs/presenter/notes.json",
+    "outputs/presenter/presenter-screenshot.png",
+    "outputs/presenter/presenter_manifest.json",
+    "outputs/presenter/render_report.md",
+    "outputs/qa/final_manifest.json",
+    "outputs/qa/fix_list.md",
+    "outputs/qa/qa_report.md",
+    "renderer_registry.json",
+    "router_plan.json",
+    "run_manifest.json",
+    "slide_plan.json",
+    "speaker_intent.md",
+    "style_brief.md",
+    "video_slots.json"
+  ]
+}

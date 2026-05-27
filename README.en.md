@@ -122,12 +122,20 @@ Some renderer-specific folders may be empty or marked pending depending on the s
 
 The current focus is a stable material → AST contract → preview/full deck → presenter/export → QA workflow. Broader renderer automation, video generation, deployment integrations, and team-package uploading are deferred.
 
+V0.6.2 fixes the default Chinese PPT path as `Humanize PPT → guizang → material QA → presenter → static deploy`.
+
+V0.6.3 fixes the default English PPT gate as `Humanize PPT → theme brief → 5-style gallery → selected style full deck → presenter/deploy`. English decks should not jump straight into one final visual system; they first show at least five visible style candidates, then continue only after a style is selected.
+
 ## Live preview
 
 - Home: https://learnprompt.github.io/humanize-ppt/
 - Skill sharing deck showcase: https://learnprompt.github.io/humanize-ppt/showcase/skill-share/
+- Hermes Agent Mastery presenter: https://learnprompt.github.io/humanize-ppt/showcase/hermes-agent-mastery/presenter/
+- Hermes Agent Mastery deck: https://learnprompt.github.io/humanize-ppt/showcase/hermes-agent-mastery/ppt/
+- Hermes Agent Mastery English presenter: https://learnprompt.github.io/humanize-ppt/showcase/hermes-agent-mastery/en/presenter/
+- Hermes Agent Mastery English deck: https://learnprompt.github.io/humanize-ppt/showcase/hermes-agent-mastery/en/ppt/
 
-Style exploration, presenter mode, and other generated demo modes are still being debugged, so their public entries are hidden for now.
+Style exploration is still treated as a workflow gate rather than a public showcase entry. Presenter mode, the Chinese stable showcase, and the selected English Neo-Grid showcase are exposed as the current reference paths.
 
 ## References
 
@@ -135,6 +143,7 @@ Style exploration, presenter mode, and other generated demo modes are still bein
 - [OPC Workflow](docs/OPC-workflow.md)
 - [Agent Teams](docs/agent-teams.md)
 - [Smoke Test](docs/smoke-test.md)
+- [English Style Gallery](docs/versions/v0.6.3-english-style-gallery.md)
 - [Version History](docs/versions/)
 - [Release Readiness Checklist](docs/plans/2026-05-25-release-readiness-checklist.md)
 
