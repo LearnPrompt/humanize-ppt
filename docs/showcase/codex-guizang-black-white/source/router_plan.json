@@ -1,0 +1,77 @@
+{
+  "version": "0.6.0",
+  "generated_at": "2026-05-31T01:57:42+00:00",
+  "title": "Codex 入门教程：从第一次启动到让它真正帮你交付",
+  "source": "outputs/ppt-run-20260531-091416-humanize-redo/source.md",
+  "primary_renderer": "guizang",
+  "routes": [
+    {
+      "id": "guizang",
+      "stage": "produce",
+      "purpose": "根据Humanize PPT契约生成主deck或候选预览。",
+      "reason": "用户指定 renderer=guizang。",
+      "command_file": "commands/guizang-agent.md",
+      "status": "rendered",
+      "display_name": "Guizang PPT Skill",
+      "skill_name": "guizang-ppt-skill",
+      "expected_inputs": [
+        "deck_brief.md",
+        "ast_outline.md",
+        "slide_plan.json",
+        "speaker_intent.md",
+        "asset_manifest.md"
+      ],
+      "expected_outputs": [
+        "outputs/guizang/index.html",
+        "outputs/guizang/render_report.md"
+      ],
+      "actual_output": "/Users/carl/Documents/Codex/2026-05-31/herems-profile-stepaux-stepflash/outputs/humanize-guizang-black-white-ppt/outputs/guizang/index.html",
+      "render_manifest": "/Users/carl/Documents/Codex/2026-05-31/herems-profile-stepaux-stepflash/outputs/humanize-guizang-black-white-ppt/outputs/guizang/render_manifest.json",
+      "template_slug": "swiss",
+      "layout_count": 10
+    },
+    {
+      "id": "presenter-adapter",
+      "stage": "complete",
+      "purpose": "为最终deck生成独立 presenter shell 和逐页 speaker notes。",
+      "reason": "presenter_adapter=True。",
+      "command_file": "commands/presenter-adapter-agent.md",
+      "status": "rendered",
+      "display_name": "Humanize Presenter Adapter",
+      "skill_name": "humanize-ppt",
+      "expected_inputs": [
+        "outputs/<renderer>/index.html",
+        "slide_plan.json",
+        "speaker_intent.md"
+      ],
+      "expected_outputs": [
+        "outputs/presenter/index.html",
+        "outputs/presenter/presenter_manifest.json",
+        "outputs/presenter/render_report.md"
+      ],
+      "actual_output": "/Users/carl/Documents/Codex/2026-05-31/herems-profile-stepaux-stepflash/outputs/humanize-guizang-black-white-ppt/outputs/presenter/index.html",
+      "manifest": "/Users/carl/Documents/Codex/2026-05-31/herems-profile-stepaux-stepflash/outputs/humanize-guizang-black-white-ppt/outputs/presenter/presenter_manifest.json"
+    },
+    {
+      "id": "qa",
+      "stage": "control",
+      "purpose": "检查契约、路径、人感、AI草稿痕迹和交付完整性。",
+      "reason": "所有Humanize PPT运行必须经过QA。",
+      "command_file": "commands/qa-agent.md",
+      "status": "pass",
+      "display_name": "Humanize PPT QA",
+      "skill_name": "humanize-ppt",
+      "expected_inputs": [
+        "router_plan.json",
+        "run_manifest.json",
+        "outputs/"
+      ],
+      "expected_outputs": [
+        "outputs/qa/qa_report.md",
+        "outputs/qa/fix_list.md",
+        "outputs/qa/final_manifest.json"
+      ],
+      "actual_output": "/Users/carl/Documents/Codex/2026-05-31/herems-profile-stepaux-stepflash/outputs/humanize-guizang-black-white-ppt/outputs/qa/qa_report.md"
+    }
+  ]
+}

@@ -1,0 +1,194 @@
+[
+  {
+    "slide_id": "S01",
+    "role": "hook",
+    "title": "Codex 入门教程：从第一次启动到让它真正帮你交付",
+    "message": "Codex 入门教程，一句话定义。",
+    "visible_content": [
+      "Codex 入门教程，一句话定义。"
+    ],
+    "speaker_intent": "抓住注意力：先把观众从信息疲劳里拉出来。",
+    "asset_need": "无",
+    "recommended_renderer": "guizang"
+  },
+  {
+    "slide_id": "S02",
+    "role": "context",
+    "title": "问题页",
+    "message": "为什么“会写代码”还不等于“能交付”。",
+    "visible_content": [
+      "为什么“会写代码”还不等于“能交付”。"
+    ],
+    "speaker_intent": "建立共同背景：说明为什么现在要听这件事。",
+    "asset_need": "无",
+    "recommended_renderer": "guizang"
+  },
+  {
+    "slide_id": "S03",
+    "role": "tension",
+    "title": "观众状态转移",
+    "message": "这场教程解决哪三个问题。",
+    "visible_content": [
+      "这场教程解决哪三个问题。"
+    ],
+    "speaker_intent": "制造认知张力：指出旧理解和真实问题之间的差距。",
+    "asset_need": "无",
+    "recommended_renderer": "guizang"
+  },
+  {
+    "slide_id": "S04",
+    "role": "method",
+    "title": "纵向脉络",
+    "message": "模型能力 - CLI - Cloud - IDE/App - 集成。",
+    "visible_content": [
+      "模型能力 - CLI - Cloud - IDE/App - 集成。"
+    ],
+    "speaker_intent": "给出方法：把复杂信息变成可执行路径。",
+    "asset_need": "可选：截图、流程图或对比图",
+    "recommended_renderer": "guizang"
+  },
+  {
+    "slide_id": "S05",
+    "role": "proof",
+    "title": "横向地图",
+    "message": "Codex / Claude Code / Cursor / Copilot / Windsurf。",
+    "visible_content": [
+      "Codex / Claude Code / Cursor / Copilot / Windsurf。"
+    ],
+    "speaker_intent": "给出证据：用案例、步骤或指标证明它不是口号。",
+    "asset_need": "可选：截图、流程图或对比图",
+    "recommended_renderer": "guizang"
+  },
+  {
+    "slide_id": "S06",
+    "role": "takeaway",
+    "title": "横纵交汇",
+    "message": "入口选择其实是风险选择。",
+    "visible_content": [
+      "入口选择其实是风险选择。"
+    ],
+    "speaker_intent": "收束行动：让观众带走一句可复述的方法。",
+    "asset_need": "无",
+    "recommended_renderer": "guizang"
+  },
+  {
+    "slide_id": "S07",
+    "role": "takeaway",
+    "title": "四个入口",
+    "message": "CLI、App/Web/Cloud、IDE、集成/自动化。",
+    "visible_content": [
+      "CLI、App/Web/Cloud、IDE、集成/自动化。"
+    ],
+    "speaker_intent": "收束行动：让观众带走一句可复述的方法。",
+    "asset_need": "无",
+    "recommended_renderer": "guizang"
+  },
+  {
+    "slide_id": "S08",
+    "role": "takeaway",
+    "title": "第一次上手",
+    "message": "安装、登录、打开项目、发第一个只读任务。",
+    "visible_content": [
+      "安装、登录、打开项目、发第一个只读任务。"
+    ],
+    "speaker_intent": "收束行动：让观众带走一句可复述的方法。",
+    "asset_need": "无",
+    "recommended_renderer": "guizang"
+  },
+  {
+    "slide_id": "S09",
+    "role": "takeaway",
+    "title": "最小可行任务",
+    "message": "读代码 - 改小 bug - 跑测试 - 解释 diff。",
+    "visible_content": [
+      "读代码 - 改小 bug - 跑测试 - 解释 diff。"
+    ],
+    "speaker_intent": "收束行动：让观众带走一句可复述的方法。",
+    "asset_need": "无",
+    "recommended_renderer": "guizang"
+  },
+  {
+    "slide_id": "S10",
+    "role": "takeaway",
+    "title": "权限与安全",
+    "message": "approval、sandbox、worktree、network、secrets。",
+    "visible_content": [
+      "approval、sandbox、worktree、network、secrets。"
+    ],
+    "speaker_intent": "收束行动：让观众带走一句可复述的方法。",
+    "asset_need": "无",
+    "recommended_renderer": "guizang"
+  },
+  {
+    "slide_id": "S11",
+    "role": "takeaway",
+    "title": "好 prompt 的五件事",
+    "message": "目标、上下文、边界、验证、节奏。",
+    "visible_content": [
+      "目标、上下文、边界、验证、节奏。"
+    ],
+    "speaker_intent": "收束行动：让观众带走一句可复述的方法。",
+    "asset_need": "无",
+    "recommended_renderer": "guizang"
+  },
+  {
+    "slide_id": "S12",
+    "role": "takeaway",
+    "title": "进阶工作流",
+    "message": "AGENTS.md、MCP、Skills、浏览器/截图、长任务、review。",
+    "visible_content": [
+      "AGENTS.md、MCP、Skills、浏览器/截图、长任务、review。"
+    ],
+    "speaker_intent": "收束行动：让观众带走一句可复述的方法。",
+    "asset_need": "无",
+    "recommended_renderer": "guizang"
+  },
+  {
+    "slide_id": "S13",
+    "role": "takeaway",
+    "title": "常见坑",
+    "message": "任务太大、没有测试、不看 diff、让它猜上下文、把发布当预览。",
+    "visible_content": [
+      "任务太大、没有测试、不看 diff、让它猜上下文、把发布当预览。"
+    ],
+    "speaker_intent": "收束行动：让观众带走一句可复述的方法。",
+    "asset_need": "无",
+    "recommended_renderer": "guizang"
+  },
+  {
+    "slide_id": "S14",
+    "role": "takeaway",
+    "title": "新手 30 分钟路线图。",
+    "message": "新手 30 分钟路线图。",
+    "visible_content": [
+      "新手 30 分钟路线图。"
+    ],
+    "speaker_intent": "收束行动：让观众带走一句可复述的方法。",
+    "asset_need": "无",
+    "recommended_renderer": "guizang"
+  },
+  {
+    "slide_id": "S15",
+    "role": "takeaway",
+    "title": "总结",
+    "message": "能验证，才算交付。",
+    "visible_content": [
+      "能验证，才算交付。"
+    ],
+    "speaker_intent": "收束行动：让观众带走一句可复述的方法。",
+    "asset_need": "无",
+    "recommended_renderer": "guizang"
+  },
+  {
+    "slide_id": "S16",
+    "role": "takeaway",
+    "title": "来源页。",
+    "message": "来源页。",
+    "visible_content": [
+      "来源页。"
+    ],
+    "speaker_intent": "收束行动：让观众带走一句可复述的方法。",
+    "asset_need": "无",
+    "recommended_renderer": "guizang"
+  }
+]

@@ -1,0 +1,38 @@
+{
+  "version": "0.6.0",
+  "generated_at": "2026-05-31T01:57:42+00:00",
+  "status": "rendered",
+  "template": "/Users/carl/.agents/skills/guizang-ppt-skill/assets/template-swiss.html",
+  "template_slug": "swiss",
+  "skill_root": "/Users/carl/.agents/skills/guizang-ppt-skill",
+  "output": "/Users/carl/Documents/Codex/2026-05-31/herems-profile-stepaux-stepflash/outputs/humanize-guizang-black-white-ppt/outputs/guizang/index.html",
+  "slide_count": 16,
+  "min_slides": 15,
+  "layout_ids": [
+    "S01",
+    "S03",
+    "S08",
+    "S11",
+    "S14",
+    "S15",
+    "S04",
+    "S05",
+    "S19",
+    "S03",
+    "S08",
+    "S11",
+    "S14",
+    "S15",
+    "S04",
+    "S09"
+  ],
+  "layout_count": 10,
+  "copied_assets": [
+    "/Users/carl/Documents/Codex/2026-05-31/herems-profile-stepaux-stepflash/outputs/humanize-guizang-black-white-ppt/outputs/guizang/assets/motion.min.js"
+  ],
+  "theme_override": {
+    "mode": "black-white experimental",
+    "accent": "#050505",
+    "official_guizang_preset": false
+  }
+}
