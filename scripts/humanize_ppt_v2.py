@@ -6,6 +6,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -1119,6 +1120,415 @@ def write_commands(out, router_plan):
 # See references/guizang-production-brief-orchestrator.md for the boundary contract.
 
 
+# ---------------------------------------------------------------------------
+# QA failure mode catalog (Lane C)
+# ---------------------------------------------------------------------------
+# Single source of truth for the conversational QA loop. The human-readable
+# reference is references/qa-failure-modes.md; ids must match exactly.
+
+REGISTERED_SWISS_LAYOUTS = {f"S{n:02d}" for n in range(1, 23)}  # S01..S22
+
+FAILURE_MODES = {
+    "placeholder-residue": {
+        "scope": ["guizang"],
+        "severity_default": "fail",
+        "description": "Template placeholders like [必填] or SLIDES_HERE leaked into the rendered HTML.",
+        "check": "check_placeholder_residue",
+    },
+    "low-power-default": {
+        "scope": ["guizang"],
+        "severity_default": "fail",
+        "description": "body.low-power is active by default, suppressing animation.",
+        "check": "check_low_power_default",
+    },
+    "webgl-canvas-missing": {
+        "scope": ["guizang-style-a"],
+        "severity_default": "fail",
+        "description": "Dual WebGL canvas (canvas#bg-dark and canvas#bg-light) is absent.",
+        "check": "check_webgl_canvas_missing",
+    },
+    "data-anim-thin": {
+        "scope": ["guizang-style-a"],
+        "severity_default": "fail",
+        "description": "data-anim / data-animate markers are too few to drive a watchable deck.",
+        "check": "check_data_anim_thin",
+    },
+    "swiss-sxx-count-mismatch": {
+        "scope": ["guizang-style-b"],
+        "severity_default": "fail",
+        "description": "data-layout=Sxx marker count does not match slide_plan.json slide count.",
+        "check": "check_swiss_sxx_count_mismatch",
+    },
+    "swiss-sxx-invented-id": {
+        "scope": ["guizang-style-b"],
+        "severity_default": "fail",
+        "description": "A data-layout=Sxx value is not in the registered S01..S22 set.",
+        "check": "check_swiss_sxx_invented_id",
+    },
+    "swiss-low-diversity": {
+        "scope": ["guizang-style-b"],
+        "severity_default": "warn",
+        "description": "Fewer than 60% unique Sxx values for the deck length.",
+        "check": "check_swiss_low_diversity",
+    },
+}
+
+
+def _finding(check_id, severity, evidence, pages=None):
+    return {
+        "id": check_id,
+        "severity": severity,
+        "evidence": evidence,
+        "pages": pages or [],
+    }
+
+
+def check_placeholder_residue(html, plan, ctx):
+    findings = []
+    if "[必填]" in html:
+        findings.append(_finding(
+            "placeholder-residue", "fail",
+            "Rendered HTML still contains [必填] template residue.",
+        ))
+    if "SLIDES_HERE" in html:
+        findings.append(_finding(
+            "placeholder-residue", "fail",
+            "Rendered HTML still contains SLIDES_HERE marker.",
+        ))
+    return findings
+
+
+def check_low_power_default(html, plan, ctx):
+    findings = []
+    body_match = re.search(r"<body\b[^>]*class=[\"']([^\"']*)[\"']", html, flags=re.IGNORECASE)
+    if body_match and "low-power" in (body_match.group(1) or "").split():
+        findings.append(_finding(
+            "low-power-default", "fail",
+            f"body has class='{body_match.group(1)}'; low-power must not be a default.",
+        ))
+    return findings
+
+
+def check_webgl_canvas_missing(html, plan, ctx):
+    findings = []
+    missing = []
+    if 'id="bg-dark"' not in html and "id='bg-dark'" not in html:
+        missing.append("canvas#bg-dark")
+    if 'id="bg-light"' not in html and "id='bg-light'" not in html:
+        missing.append("canvas#bg-light")
+    if missing:
+        findings.append(_finding(
+            "webgl-canvas-missing", "fail",
+            f"Style A requires {', '.join(missing)} for the WebGL hero background.",
+        ))
+    return findings
+
+
+def check_data_anim_thin(html, plan, ctx):
+    findings = []
+    count = len(re.findall(r"\bdata-anim(?:ate)?\b", html))
+    if count < 3:
+        findings.append(_finding(
+            "data-anim-thin", "fail",
+            f"Only {count} data-anim/data-animate markers. Need at least 3 (Ink Classic has 86).",
+        ))
+    elif count < 10:
+        findings.append(_finding(
+            "data-anim-thin", "warn",
+            f"Only {count} data-anim markers. Soft warning; Ink Classic has 86.",
+        ))
+    return findings
+
+
+def check_swiss_sxx_count_mismatch(html, plan, ctx):
+    findings = []
+    markers = re.findall(r'data-layout=[\"\'](S\d{2})[\"\']', html)
+    expected = len(plan)
+    if len(markers) != expected:
+        findings.append(_finding(
+            "swiss-sxx-count-mismatch", "fail",
+            f"Found {len(markers)} data-layout=Sxx markers; slide_plan has {expected} slides.",
+        ))
+    return findings
+
+
+def check_swiss_sxx_invented_id(html, plan, ctx):
+    findings = []
+    markers = re.findall(r'data-layout=[\"\'](S\d{2})[\"\']', html)
+    invented = sorted({m for m in markers if m not in REGISTERED_SWISS_LAYOUTS})
+    if invented:
+        findings.append(_finding(
+            "swiss-sxx-invented-id", "fail",
+            f"Invented non-registered Sxx values: {', '.join(invented)}. Registered set is S01..S22.",
+            pages=[],
+        ))
+    return findings
+
+
+def check_swiss_low_diversity(html, plan, ctx):
+    findings = []
+    markers = re.findall(r'data-layout=[\"\'](S\d{2})[\"\']', html)
+    if not markers:
+        return findings
+    unique = len(set(markers))
+    expected = len(plan)
+    floor = max(3, int(expected * 0.6))
+    if unique < 3:
+        findings.append(_finding(
+            "swiss-low-diversity", "fail",
+            f"Only {unique} unique Sxx values; minimum is 3.",
+        ))
+    elif unique < floor:
+        findings.append(_finding(
+            "swiss-low-diversity", "warn",
+            f"Only {unique} unique Sxx values; soft floor is {floor} (60% of {expected} slides).",
+        ))
+    return findings
+
+
+_CHECK_FUNCTIONS = {
+    "check_placeholder_residue": check_placeholder_residue,
+    "check_low_power_default": check_low_power_default,
+    "check_webgl_canvas_missing": check_webgl_canvas_missing,
+    "check_data_anim_thin": check_data_anim_thin,
+    "check_swiss_sxx_count_mismatch": check_swiss_sxx_count_mismatch,
+    "check_swiss_sxx_invented_id": check_swiss_sxx_invented_id,
+    "check_swiss_low_diversity": check_swiss_low_diversity,
+}
+
+
+def failure_modes_for(renderer, style=None):
+    """Return the failure modes that apply to (renderer, style)."""
+    target = renderer if not style else f"{renderer}-style-{style.lower()}"
+    out = {}
+    for mode_id, meta in FAILURE_MODES.items():
+        if target in meta["scope"] or renderer in meta["scope"]:
+            out[mode_id] = meta
+    return out
+
+
+def run_checks(html, plan, modes):
+    """Run each mode's check and return a list of findings."""
+    ctx = {"html_len": len(html), "slide_count": len(plan)}
+    findings = []
+    for mode_id, meta in modes.items():
+        fn = _CHECK_FUNCTIONS.get(meta["check"])
+        if not fn:
+            continue
+        for f in fn(html, plan, ctx):
+            findings.append(f)
+    return findings
+
+
+# ---------------------------------------------------------------------------
+# QA iteration files
+# ---------------------------------------------------------------------------
+
+
+def _qa_dir(out):
+    d = out / "outputs" / "qa"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def _read_iteration(out):
+    p = _qa_dir(out) / "qa_iteration.json"
+    if p.exists():
+        return json.loads(p.read_text(encoding="utf-8"))
+    return None
+
+
+def _write_iteration(out, data):
+    p = _qa_dir(out) / "qa_iteration.json"
+    p.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _write_qa_report(out, iteration, findings, status, max_iterations):
+    qa = _qa_dir(out)
+    fail_count = sum(1 for f in findings if f["severity"] == "fail")
+    warn_count = sum(1 for f in findings if f["severity"] == "warn")
+    lines = [
+        "# QA Report",
+        "",
+        f"- iteration: {iteration} / {max_iterations}",
+        f"- status: {status}",
+        f"- fail: {fail_count}",
+        f"- warn: {warn_count}",
+        "",
+        "## Findings",
+        "",
+    ]
+    if not findings:
+        lines.append("No findings. Deck is clean.")
+    else:
+        for f in findings:
+            lines.append(f"### `{f['id']}` — {f['severity']}")
+            lines.append("")
+            lines.append(f"- evidence: {f['evidence']}")
+            if f.get("pages"):
+                lines.append(f"- pages: {', '.join(f['pages'])}")
+            lines.append("")
+    (qa / "qa_report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def _write_fix_prompt(out, iteration, unresolved, rendered_path, style):
+    qa = _qa_dir(out)
+    if not unresolved:
+        (qa / "fix_prompt.md").write_text(
+            "# Fix Prompt\n\nNo open findings. Convergence reached.\n",
+            encoding="utf-8",
+        )
+        return
+    lines = [
+        "# Fix Prompt",
+        "",
+        f"> Round {iteration}. Apply the following to the rendered HTML",
+        f"> at `{rendered_path}` via the downstream skill's native re-render.",
+        f"> Do not post-process in Humanize.",
+        "",
+        "## Style",
+        f"- renderer: guizang",
+        f"- style: {style}",
+        "",
+        "## Fix instructions (one per finding)",
+        "",
+    ]
+    fix_specs = {
+        "placeholder-residue": "Substitute all [必填] placeholders and remove the <!-- SLIDES_HERE --> marker. The downstream skill's own substitution pass must run end-to-end.",
+        "low-power-default": "Remove `low-power` from the body class. Animation must play on first load.",
+        "webgl-canvas-missing": "Add both `canvas#bg-dark` and `canvas#bg-light` so the Style A WebGL hero background can render.",
+        "data-anim-thin": "Add more `data-anim` / `data-animate` markers across non-cover pages. Aim for 10+ (Ink Classic has 86).",
+        "swiss-sxx-count-mismatch": "Make the number of `data-layout=\"Sxx\"` markers equal to the slide count in slide_plan.json. Re-emit from the downstream skill.",
+        "swiss-sxx-invented-id": "Replace the invented Sxx values with registered S01..S22 layout IDs from `references/layouts-swiss.md`.",
+        "swiss-low-diversity": "Diversify the Swiss layouts. Pick a different registered Sxx per slide where possible. Floor is 60% unique values.",
+    }
+    for f in unresolved:
+        spec = fix_specs.get(f["id"], f["evidence"])
+        lines.append(f"### `{f['id']}` ({f['severity']})")
+        lines.append("")
+        lines.append(f"- evidence: {f['evidence']}")
+        if f.get("pages"):
+            lines.append(f"- pages: {', '.join(f['pages'])}")
+        lines.append(f"- fix: {spec}")
+        lines.append("")
+    (qa / "fix_prompt.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def run_qa_mode(args):
+    """Post-render QA loop. Reads a rendered HTML, scans for failure modes,
+    writes qa_report.md and fix_prompt.md, tracks iteration.
+    """
+    rendered = Path(args.qa_from).expanduser().resolve()
+    if not rendered.exists():
+        sys.stderr.write(f"--qa-from path not found: {rendered}\n")
+        return 2
+
+    out = Path(args.out).expanduser().resolve()
+    out.mkdir(parents=True, exist_ok=True)
+
+    renderer = args.renderer if args.renderer != "auto" else "guizang"
+    style = (getattr(args, "guizang_style", None) or "A").upper()
+    max_iter = max(1, int(getattr(args, "max_qa_iterations", 3) or 3))
+
+    plan_path = out / "slide_plan.json"
+    plan = []
+    if plan_path.exists():
+        try:
+            plan = json.loads(plan_path.read_text(encoding="utf-8"))
+        except Exception:
+            plan = []
+
+    prev = _read_iteration(out)
+    iteration = (prev["iteration"] + 1) if prev else 1
+
+    if prev and prev.get("status") == "needs-human":
+        # Cap already reached last round. Don't re-loop.
+        sys.stderr.write(
+            f"qa loop already at needs-human (round {prev['iteration']}). "
+            f"Re-render via the downstream skill, then run --qa-from again.\n"
+        )
+        return 0
+
+    if iteration > max_iter:
+        # Should not normally hit here because we set needs-human on the
+        # last real round, but guard anyway.
+        _write_iteration(out, {
+            "iteration": iteration,
+            "status": "needs-human",
+            "max_iterations": max_iter,
+            "renderer": renderer,
+            "style": style,
+            "unresolved": [],
+            "history": (prev or {}).get("history", []),
+        })
+        sys.stderr.write(f"qa cap reached ({max_iter} rounds). Status: needs-human.\n")
+        return 0
+
+    html = rendered.read_text(encoding="utf-8", errors="replace")
+    modes = failure_modes_for(renderer, style=style)
+    findings = run_checks(html, plan, modes)
+    fail_findings = [f for f in findings if f["severity"] == "fail"]
+    warn_findings = [f for f in findings if f["severity"] == "warn"]
+
+    resolved = []
+    unresolved_failures = list(fail_findings)
+    if prev:
+        prev_unresolved_ids = {f["id"] for f in prev.get("unresolved", [])}
+        resolved = [fid for fid in prev_unresolved_ids if fid not in {f["id"] for f in fail_findings}]
+        # If the previous round had un-resolved failures, those carry forward
+        # even if the new check doesn't re-trigger them — treat them as
+        # still-open.
+        carry_over = [f for f in prev.get("unresolved", []) if f["id"] in {f["id"] for f in fail_findings}]
+        unresolved_failures = carry_over + [f for f in fail_findings if f not in carry_over]
+
+    converged = not unresolved_failures
+    is_last = iteration >= max_iter
+    if converged:
+        status = "pass"
+    elif is_last:
+        status = "needs-human"
+    else:
+        status = "iterate"
+
+    _write_qa_report(out, iteration, findings, status, max_iter)
+    _write_fix_prompt(out, iteration, unresolved_failures, rendered, style)
+
+    history = list((prev or {}).get("history", []))
+    history.append({
+        "iteration": iteration,
+        "status": status,
+        "fail_count": len(fail_findings),
+        "warn_count": len(warn_findings),
+        "unresolved_ids": sorted({f["id"] for f in unresolved_failures}),
+        "resolved_ids": sorted(resolved),
+    })
+    _write_iteration(out, {
+        "iteration": iteration,
+        "status": status,
+        "max_iterations": max_iter,
+        "renderer": renderer,
+        "style": style,
+        "unresolved": unresolved_failures,
+        "history": history,
+    })
+
+    print(json.dumps(
+        {
+            "iteration": iteration,
+            "max_iterations": max_iter,
+            "status": status,
+            "fail": len(fail_findings),
+            "warn": len(warn_findings),
+            "qa_report": str(out / "outputs" / "qa" / "qa_report.md"),
+            "fix_prompt": str(out / "outputs" / "qa" / "fix_prompt.md"),
+            "iteration_file": str(out / "outputs" / "qa" / "qa_iteration.json"),
+        },
+        ensure_ascii=False,
+        indent=2,
+    ))
+    return 0
+
+
 def write_guizang_production_brief(out, title, plan, source, language, style="A"):
     """Write only the Guizang production brief. No HTML is produced here.
 
@@ -1476,10 +1886,14 @@ def copy_registry_snapshot(out):
 
 
 def parse_args():
-    ap = argparse.ArgumentParser(description="Humanize PPT V0.5 Presenter / Export Adapter")
-    ap.add_argument("--source", required=True)
-    ap.add_argument("--out", required=True)
-    ap.add_argument("--title", required=True)
+    ap = argparse.ArgumentParser(
+        description="Humanize PPT v0.6.4 — outline director + per-page media decision + brief orchestrator + post-render QA loop"
+    )
+    ap.add_argument("--source", default=None, help="Source markdown / PPTX. Required for brief mode.")
+    ap.add_argument("--out", required=True, help="Output directory.")
+    ap.add_argument("--title", default=None, help="Deck title. Required for brief mode.")
+    ap.add_argument("--qa-from", default=None, help="Path to a rendered HTML deck. Switches to QA mode. Mutually exclusive with --source.")
+    ap.add_argument("--max-qa-iterations", type=int, default=3, help="Max QA rounds before status flips to needs-human. Default 3.")
     ap.add_argument("--renderer", default="auto", choices=["auto", "guizang", "beautiful-html-templates", "html-ppt", "frontend-slides"])
     ap.add_argument("--style-mode", default="stable-first", choices=["stable-first", "preview-first", "presenter-first"])
     ap.add_argument("--selected-template", default=None, help="Beautiful template slug to render as a full deck after preview selection.")
@@ -1492,11 +1906,20 @@ def parse_args():
     ap.add_argument("--no-beautiful-auto-clone", action="store_true", help="Do not auto-clone beautiful-html-templates into ~/.cache/humanize-ppt.")
     ap.add_argument("--presenter", action="store_true")
     ap.add_argument("--no-render", action="store_true", help="Only write contracts, router plan, commands, and manifest.")
+    ap.add_argument("--guizang-style", default=None, choices=["A", "B"], help="Guizang style (A = flexible, B = Swiss locked). Defaults to A.")
     return ap.parse_args()
 
 
 def main():
     args = parse_args()
+
+    if args.qa_from:
+        return run_qa_mode(args)
+
+    if not (args.source and args.title):
+        sys.stderr.write("--source and --title are required for brief mode, or pass --qa-from for QA mode\n")
+        return 2
+
     out = Path(args.out).expanduser().resolve()
     if out.exists():
         shutil.rmtree(out)

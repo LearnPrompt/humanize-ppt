@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>Bad Style A Deck (test fixture)</title>
+</head>
+<body class="low-power dark">
+  <!-- This fixture is INTENTIONALLY bad. It triggers the QA loop's
+       failure modes so we can assert fix_prompt.md and qa_report.md
+       content end-to-end. Do not use as a visual reference. -->
+  <canvas id="bg-dark"></canvas>
+  <!-- canvas#bg-light is missing on purpose. -->
+  <section class="slide hero light" style="background:#fff">
+    <h1>[必填] Deck Title</h1>
+    <p>First page subtitle</p>
+  </section>
+  <section class="slide" data-anim="fade">
+    <h2>S02</h2>
+    <!-- no data-anim here on purpose to keep count low -->
+    <p>[必填] second slide body</p>
+  </section>
+  <section class="slide" data-anim="slide-up">
+    <h2>S03</h2>
+    <p>Body of third slide</p>
+  </section>
+</body>
+</html>
