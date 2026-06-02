@@ -130,6 +130,7 @@ def build_slide_plan(title, text, segments, renderer_hint):
         detail = body.replace(message, "", 1).strip(" 。，,.；;")
         if detail:
             visible.append(detail[:110])
+        media = decide_media(role, title if i == 1 else (item.get("title") or message), message, visible)
         plan.append(
             {
                 "slide_id": f"S{i:02d}",
@@ -138,11 +139,122 @@ def build_slide_plan(title, text, segments, renderer_hint):
                 "message": message[:120],
                 "visible_content": visible[:3],
                 "speaker_intent": intent,
-                "asset_need": "可选：截图、流程图或对比图" if role in {"method", "proof"} else "无",
+                "media": media,
+                "layout_hint": layout_hint_for_role(role),
                 "recommended_renderer": renderer_hint,
             }
         )
     return plan
+
+
+# Per-role media decision. Humanize makes the call; downstream skills
+# produce the actual material in their native format.
+ROLE_MEDIA_POLICY = {
+    "hook": {
+        "image":   {"needed": True,  "kind": "gpt-photo"},
+        "diagram": {"needed": False, "kind": "none"},
+        "video":   {"needed": False, "kind": "none"},
+    },
+    "context": {
+        "image":   {"needed": False, "kind": "none"},
+        "diagram": {"needed": True,  "kind": "svg-html"},
+        "video":   {"needed": False, "kind": "none"},
+    },
+    "tension": {
+        "image":   {"needed": True,  "kind": "svg-html"},
+        "diagram": {"needed": False, "kind": "none"},
+        "video":   {"needed": False, "kind": "none"},
+    },
+    "method": {
+        "image":   {"needed": False, "kind": "none"},
+        "diagram": {"needed": True,  "kind": "svg-html"},
+        "video":   {"needed": True,  "kind": "remotion-clip", "duration_s": 10},
+    },
+    "proof": {
+        "image":   {"needed": True,  "kind": "screenshot"},
+        "diagram": {"needed": True,  "kind": "svg-html"},
+        "video":   {"needed": True,  "kind": "remotion-clip", "duration_s": 8},
+    },
+    "takeaway": {
+        "image":   {"needed": True,  "kind": "svg-html"},
+        "diagram": {"needed": False, "kind": "none"},
+        "video":   {"needed": False, "kind": "none"},
+    },
+}
+
+ROLE_LAYOUT_HINT = {
+    "hook":     "S01-cover-hero",
+    "context":  "S04-context-system",
+    "tension":  "S06-tension-comparison",
+    "method":   "S07-process-21x9",
+    "proof":    "S12-proof-metrics",
+    "takeaway": "S22-takeaway",
+}
+
+
+def layout_hint_for_role(role):
+    return ROLE_LAYOUT_HINT.get(role)
+
+
+def decide_media(role, title, message, visible_content):
+    """Per-page media decision.
+
+    Returns a dict shaped like the `media` field in slide-plan.schema.json.
+    The downstream skill reads this and produces materials in its native
+    format. Humanize never renders them.
+    """
+    base = {
+        "image":   {"needed": False, "kind": "none"},
+        "diagram": {"needed": False, "kind": "none"},
+        "video":   {"needed": False, "kind": "none"},
+    }
+    policy = ROLE_MEDIA_POLICY.get(role)
+    if not policy:
+        return base
+
+    text = " ".join([title or "", message or "", " ".join(visible_content or [])]).lower()
+    for key in ("image", "diagram", "video"):
+        entry = dict(policy.get(key) or {"needed": False, "kind": "none"})
+        if entry.get("needed"):
+            entry["purpose"] = media_purpose(role, key, text)
+            entry["slot"] = media_slot(role, key)
+        base[key] = entry
+    return base
+
+
+def media_purpose(role, kind, text):
+    if kind == "image":
+        if role == "hook":
+            return "Set emotional anchor for the opening page"
+        if role == "tension":
+            return "Show before/after or contradiction visually"
+        if role == "proof":
+            return "Screenshot evidence of the real UI or result"
+        if role == "takeaway":
+            return "Visual summary that reinforces the closing judgment"
+    if kind == "diagram":
+        if role == "context":
+            return "Show the system relationship or scope"
+        if role == "method":
+            return "Diagram the process / decision tree / flow"
+        if role == "proof":
+            return "Diagram the comparison or supporting structure"
+    if kind == "video":
+        if role == "method":
+            return "8-12s process clip that walks through the method"
+        if role == "proof":
+            return "Short before/after or result clip"
+    return ""
+
+
+def media_slot(role, kind):
+    if kind == "image":
+        return f"{role}-image-16x9"
+    if kind == "diagram":
+        return f"{role}-diagram-21x9"
+    if kind == "video":
+        return f"{role}-video-16x9"
+    return f"{role}-{kind}"
 
 
 def write_contracts(out, title, source_path, text, plan, language):
@@ -200,30 +312,43 @@ def write_contracts(out, title, source_path, text, plan, language):
         ),
         encoding="utf-8",
     )
+    asset_rows = []
+    for p in plan:
+        media = p.get("media") or {}
+        for kind, key in (("image", "image"), ("diagram", "diagram"), ("video", "video")):
+            entry = media.get(key) or {}
+            if not entry.get("needed"):
+                continue
+            asset_rows.append(
+                f"| asset-{p['slide_id'].lower()}-{key} | {p['slide_id']} | {entry.get('kind', '?')} | {entry.get('purpose', '')} | pending |"
+            )
     (out / "asset_manifest.md").write_text(
-        "# Asset Manifest\n\n| asset_id | slide_id | type | purpose | status |\n|---|---|---|---|---|\n"
-        + "\n".join(
-            [
-                f"| asset-{p['slide_id'].lower()} | {p['slide_id']} | {p['asset_need']} | support `{p['role']}` | pending |"
-                for p in plan
-                if p["asset_need"] != "无"
-            ]
-        )
+        "# Asset Manifest\n\n"
+        "Each row is a Humanize-owned media decision. The downstream skill "
+        "produces the material in its own native format.\n\n"
+        "| asset_id | slide_id | type | purpose | status |\n"
+        "|---|---|---|---|---|\n"
+        + "\n".join(asset_rows)
         + "\n",
         encoding="utf-8",
     )
-    video_slots = [
-        {
-            "video_id": "V01",
-            "slide_id": p["slide_id"],
-            "purpose": "如需公开视频，可把该页方法/证据做成8-12秒解释片段。",
-            "duration_seconds": 10,
-            "aspect_ratio": "16:9",
-            "fallback_static": f"asset-{p['slide_id'].lower()}",
-        }
-        for p in plan
-        if p["role"] in {"method", "proof"}
-    ]
+    video_slots = []
+    for idx, p in enumerate(plan, 1):
+        video = (p.get("media") or {}).get("video") or {}
+        if not video.get("needed"):
+            continue
+        video_slots.append(
+            {
+                "video_id": f"V{idx:02d}",
+                "slide_id": p["slide_id"],
+                "kind": video.get("kind", "remotion-clip"),
+                "purpose": video.get("purpose", ""),
+                "duration_seconds": int(video.get("duration_s", 10)),
+                "aspect_ratio": "16:9",
+                "slot": video.get("slot", f"{p['role']}-video-16x9"),
+                "fallback_static": f"asset-{p['slide_id'].lower()}-diagram",
+            }
+        )
     (out / "video_slots.json").write_text(json.dumps(video_slots, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
