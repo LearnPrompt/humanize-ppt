@@ -1,11 +1,15 @@
 ---
 name: humanize-ppt
 description: AST-based outline director and per-page media decision maker. Produces production briefs for native downstream PPT skills (guizang / frontend-slides / beautiful-html-templates) and runs a post-render QA loop on the rendered HTML. Use before generating PPT/HTML slides from raw material.
-version: 0.6.4
+version: 0.6.5
 author: LearnPrompt
 license: MIT
+requires-skills:
+  guizang-ppt-skill: "Required when the deck language is Chinese. The brief writer references ~/.agents/skills/guizang-ppt-skill/SKILL.md; without it the next agent cannot render. v0.6.5 brief writer emits a stderr warning if the skill is not detected."
+  frontend-slides: "Required when the deck language is English. Same hand-off pattern as guizang."
+  beautiful-html-templates: "Optional English alternative. Same hand-off pattern."
 metadata:
-  tags: [presentation, ppt, html-slides, humanizer, ast, workflow, brief-orchestrator]
+  tags: [presentation, ppt, html-slides, humanizer, ast, workflow, brief-orchestrator, hv-analysis, 9-styles]
 ---
 
 # Humanize PPT

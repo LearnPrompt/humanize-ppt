@@ -1123,6 +1123,46 @@ def write_commands(out, router_plan):
 # ---------------------------------------------------------------------------
 # QA failure mode catalog (Lane C)
 # ---------------------------------------------------------------------------
+# v0.6.5: install self-check for downstream skills.
+# ---------------------------------------------------------------------------
+
+DOWNSTREAM_SKILL_PATHS = {
+    "guizang-ppt-skill": [
+        Path.home() / ".agents" / "skills" / "guizang-ppt-skill" / "SKILL.md",
+        Path.home() / ".hermes" / "skills" / "guizang-ppt-skill" / "SKILL.md",
+    ],
+    "frontend-slides": [
+        Path.home() / ".agents" / "skills" / "frontend-slides" / "SKILL.md",
+        Path.home() / ".hermes" / "skills" / "frontend-slides" / "SKILL.md",
+    ],
+    "beautiful-html-templates": [
+        Path.home() / ".agents" / "skills" / "beautiful-html-templates" / "SKILL.md",
+        Path.home() / ".hermes" / "skills" / "beautiful-html-templates" / "SKILL.md",
+    ],
+}
+
+
+def check_downstream_install(skill_name, skip=False):
+    """Return (installed: bool, path: Path|None). If not installed and not
+    skipped, print a stderr warning with the install command. Never fatal —
+    the brief is still written and the next agent is told to install.
+    """
+    paths = DOWNSTREAM_SKILL_PATHS.get(skill_name, [])
+    for p in paths:
+        if p.exists():
+            return True, p
+    if not skip:
+        sys.stderr.write(
+            f"\n[humanize-ppt v0.6.5] WARNING: {skill_name} not detected at any known path:\n"
+            f"  - " + "\n  - ".join(str(p) for p in paths) + "\n"
+            f"  The brief still ships, but the next agent must install {skill_name} before rendering.\n"
+            f"  Install: see the skill's GitHub README, or use the agent's skill install command.\n"
+            f"  To suppress this warning, pass --skip-install-check.\n\n"
+        )
+    return False, None
+
+
+# ---------------------------------------------------------------------------
 # Single source of truth for the conversational QA loop. The human-readable
 # reference is references/qa-failure-modes.md; ids must match exactly.
 
@@ -1529,7 +1569,7 @@ def run_qa_mode(args):
     return 0
 
 
-def write_guizang_production_brief(out, title, plan, source, language, style="A"):
+def write_guizang_production_brief(out, title, plan, source, language, style="A", theme=None, accent=None):
     """Write only the Guizang production brief. No HTML is produced here.
 
     The next agent must read `guizang-ppt-skill/SKILL.md` and render natively.
@@ -1540,22 +1580,49 @@ def write_guizang_production_brief(out, title, plan, source, language, style="A"
     if style not in {"A", "B"}:
         style = "A"
 
-    style_table = {
-        "A": {
+    # v0.6.5: 9 combinations = Style A (5 fixed themes) + Style B (4 accent colors).
+    # Style A themes cannot be customized — pick from the 5 presets.
+    # Style B accents are single-color overlays on the Swiss template.
+    style_a_themes = {
+        "ink-classic":      "Ink Classic (墨水经典) — the verified known-good baseline at examples/03-codex-guizang-native-ink-classic/",
+        "indigo-porcelain": "Indigo Porcelain (靛蓝瓷) — blue-grey porcelain palette",
+        "forest-ink":       "Forest Ink (森林墨) — green-on-cream palette",
+        "kraft-paper":      "Kraft Paper (牛皮纸) — warm brown paper palette",
+        "dune":             "Dune (沙丘) — sand-and-shadow palette",
+    }
+    style_b_accents = {
+        "ikb":             "Klein Blue (IKB) — International Klein Blue, the most-cited Swiss reference",
+        "lemon-yellow":    "Lemon Yellow — high-contrast pop accent on Swiss grid",
+        "lemon-green":     "Lemon Green — fresh accent for tech/data topics",
+        "safety-orange":   "Safety Orange — warning-construction energy, for tension / call-to-action slides",
+    }
+
+    if style == "A":
+        theme_key = (theme or "ink-classic").lower()
+        if theme_key not in style_a_themes:
+            theme_key = "ink-classic"
+        style_table = {
             "template": "assets/template.html",
             "layouts": "references/layouts.md",
             "themes": "references/themes.md",
+            "theme_preset": theme_key,
+            "theme_label": style_a_themes[theme_key],
             "validator": "guizang's own Style A visual QA checklist (see references/guizang-material-qa.md)",
             "lock": "(none — Style A is the flexible track)",
-        },
-        "B": {
+        }
+    else:
+        accent_key = (accent or "ikb").lower()
+        if accent_key not in style_b_accents:
+            accent_key = "ikb"
+        style_table = {
             "template": "assets/template-swiss.html",
             "layouts": "references/layouts-swiss.md",
             "themes": "references/themes-swiss.md",
+            "accent": accent_key,
+            "accent_label": style_b_accents[accent_key],
             "validator": "scripts/validate-swiss-deck.mjs",
             "lock": "references/swiss-layout-lock.md",
-        },
-    }[style]
+        }
 
     inputs_block = "\n".join(
         f"- `{name}`"
@@ -1623,6 +1690,8 @@ def write_guizang_production_brief(out, title, plan, source, language, style="A"
 - Source: {source}
 - Language: {language}
 - Style: {style}
+{('- Theme preset: ' + style_table.get('theme_preset', '') + ' (' + style_table.get('theme_label', '') + ')') if style == 'A' else ''}
+{('- Accent color: ' + style_table.get('accent', '') + ' (' + style_table.get('accent_label', '') + ')') if style == 'B' else ''}
 - Slides: {len(plan)}
 
 ## Style files (use the ones for Style {style})
@@ -1632,6 +1701,8 @@ def write_guizang_production_brief(out, title, plan, source, language, style="A"
 - themes: `{style_table['themes']}`
 - lock: {style_table['lock']}
 - validator: `{style_table['validator']}`
+{("- Apply theme preset: `" + style_table.get('theme_preset', '') + "` from references/themes.md") if style == 'A' else ''}
+{("- Apply accent color: `" + style_table.get('accent', '') + "` from references/themes-swiss.md") if style == 'B' else ''}
 
 ## Hard rules
 
@@ -1640,6 +1711,9 @@ def write_guizang_production_brief(out, title, plan, source, language, style="A"
   `{style_table['layouts']}`. Do not invent layout classes.
 - Preserve Guizang's animation hooks (`data-anim` / `data-animate`),
   Motion One loading, and the WebGL dual canvas where Style A applies.
+- This prompt requires `guizang-ppt-skill` to be installed at
+  `~/.agents/skills/guizang-ppt-skill/`. If it is not, the next agent
+  must install it before rendering. The brief still ships.
 - Run the validator above before reporting complete.
 - Do not modify or post-process the rendered HTML in Humanize.
 - The HTML that ends up on disk is produced by `guizang-ppt-skill`,
@@ -1907,6 +1981,28 @@ def parse_args():
     ap.add_argument("--presenter", action="store_true")
     ap.add_argument("--no-render", action="store_true", help="Only write contracts, router plan, commands, and manifest.")
     ap.add_argument("--guizang-style", default=None, choices=["A", "B"], help="Guizang style (A = flexible, B = Swiss locked). Defaults to A.")
+    ap.add_argument(
+        "--guizang-theme",
+        default=None,
+        choices=["ink-classic", "indigo-porcelain", "forest-ink", "kraft-paper", "dune"],
+        help="Style A theme preset. Required when --guizang-style=A. v0.6.5: 5 built-in presets, no custom colors.",
+    )
+    ap.add_argument(
+        "--guizang-accent",
+        default=None,
+        choices=["ikb", "lemon-yellow", "lemon-green", "safety-orange"],
+        help="Style B accent color. Required when --guizang-style=B. v0.6.5: pick 1 of 4.",
+    )
+    ap.add_argument(
+        "--research-md",
+        default=None,
+        help="Path to a pre-existing research document (e.g. hv-analysis output) to use as the brief source instead of --source.",
+    )
+    ap.add_argument(
+        "--skip-install-check",
+        action="store_true",
+        help="Skip the guizang-ppt-skill (or relevant downstream skill) install self-check warning.",
+    )
     return ap.parse_args()
 
 
@@ -1916,8 +2012,11 @@ def main():
     if args.qa_from:
         return run_qa_mode(args)
 
-    if not (args.source and args.title):
-        sys.stderr.write("--source and --title are required for brief mode, or pass --qa-from for QA mode\n")
+    if not (args.title and (args.source or getattr(args, "research_md", None))):
+        sys.stderr.write(
+            "--title plus (--source or --research-md) are required for brief mode, "
+            "or pass --qa-from for QA mode\n"
+        )
         return 2
 
     out = Path(args.out).expanduser().resolve()
@@ -1925,7 +2024,17 @@ def main():
         shutil.rmtree(out)
     out.mkdir(parents=True, exist_ok=True)
 
-    source_path, text, segments = read_source(args.source)
+    # v0.6.5: if --research-md is provided, it takes priority over --source.
+    # The HV research document becomes the authoritative source. The brief
+    # writer does not re-parse raw material.
+    if getattr(args, "research_md", None):
+        research_path = Path(args.research_md).expanduser().resolve()
+        if not research_path.exists():
+            sys.stderr.write(f"--research-md path not found: {research_path}\n")
+            return 2
+        source_path, text, segments = read_source(str(research_path))
+    else:
+        source_path, text, segments = read_source(args.source)
     language = detect_language(text)
     preview_count = resolve_preview_count(language, args.preview_count)
     registry = load_registry()
@@ -1949,7 +2058,38 @@ def main():
     # It writes a production brief; the named skill renders natively.
     if not args.no_render:
         if primary == "guizang":
+            # v0.6.5: 9 combos = Style A (5 themes) + Style B (4 accents).
+            # Mutex: A requires --guizang-theme, B requires --guizang-accent.
             style = getattr(args, "guizang_style", None) or "A"
+            theme = getattr(args, "guizang_theme", None)
+            accent = getattr(args, "guizang_accent", None)
+            if style == "A" and not theme:
+                sys.stderr.write(
+                    "[humanize-ppt v0.6.5] --guizang-style=A requires --guizang-theme. "
+                    "Choose one of: ink-classic, indigo-porcelain, forest-ink, kraft-paper, dune. "
+                    "Defaulting to ink-classic.\n"
+                )
+                theme = "ink-classic"
+            if style == "B" and not accent:
+                sys.stderr.write(
+                    "[humanize-ppt v0.6.5] --guizang-style=B requires --guizang-accent. "
+                    "Choose one of: ikb, lemon-yellow, lemon-green, safety-orange. "
+                    "Defaulting to ikb.\n"
+                )
+                accent = "ikb"
+            if style == "A" and accent:
+                sys.stderr.write(
+                    f"[humanize-ppt v0.6.5] --guizang-style=A ignores --guizang-accent={accent}.\n"
+                )
+            if style == "B" and theme:
+                sys.stderr.write(
+                    f"[humanize-ppt v0.6.5] --guizang-style=B ignores --guizang-theme={theme}.\n"
+                )
+            # v0.6.5: install self-check. Warn-only; the brief still ships.
+            check_downstream_install(
+                "guizang-ppt-skill",
+                skip=getattr(args, "skip_install_check", False),
+            )
             brief_result = write_guizang_production_brief(
                 out,
                 title=args.title,
@@ -1957,12 +2097,22 @@ def main():
                 source=source_path,
                 language=language,
                 style=style,
+                theme=theme,
+                accent=accent,
             )
             for route in router_plan["routes"]:
                 if route["id"] == "guizang":
                     route["status"] = brief_result["status"]
                     route["actual_output"] = brief_result["prompt"]
+                    if style == "A":
+                        route["theme"] = theme
+                    else:
+                        route["accent"] = accent
         elif primary == "frontend-slides":
+            check_downstream_install(
+                "frontend-slides",
+                skip=getattr(args, "skip_install_check", False),
+            )
             brief_result = write_frontend_slides_production_brief(
                 out,
                 title=args.title,
@@ -1975,6 +2125,10 @@ def main():
                     route["status"] = brief_result["status"]
                     route["actual_output"] = brief_result["prompt"]
         elif primary == "beautiful-html-templates":
+            check_downstream_install(
+                "beautiful-html-templates",
+                skip=getattr(args, "skip_install_check", False),
+            )
             brief_result = write_beautiful_html_templates_production_brief(
                 out,
                 title=args.title,
