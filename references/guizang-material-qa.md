@@ -1,5 +1,13 @@
 # Guizang Material QA
 
+> **v0.6.4 caveat:** these rules apply to the rendered HTML, not to the
+> Humanize PPT production brief. The brief tells the next agent to follow
+> `guizang-ppt-skill/SKILL.md`; the material QA is then run by the downstream
+> skill or by Humanize's `--qa-from` loop against the rendered output
+> (`references/qa-failure-modes.md`). Humanize does not produce or
+> post-process the rendered HTML. See
+> `docs/versions/v0.6.4-guizang-production-brief-orchestrator.md`.
+
 Use this reference when Humanize PPT routes a deck to `guizang-ppt-skill`, especially for Chinese Swiss-style decks that need inserted diagrams, screenshots, generated images, or Remotion clips.
 
 ## Position

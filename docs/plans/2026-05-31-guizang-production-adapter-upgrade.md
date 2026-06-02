@@ -1,5 +1,14 @@
 # Guizang Production Adapter Upgrade Brief
 
+> **Superseded by v0.6.4 (2026-06-03).** The "production-adapter" framing in this
+> document — copy Guizang's template, inject custom sections, and call it
+> "Guizang-native" — is no longer the target. v0.6.4 replaces it with a
+> brief-only contract: Humanize writes `guizang-production-prompt.md` and
+> stops. The downstream `guizang-ppt-skill` renders natively. See
+> `docs/versions/v0.6.4-guizang-production-brief-orchestrator.md` and
+> `references/guizang-production-brief-orchestrator.md` for the current
+> contract. This document is kept for historical context.
+
 Date: 2026-05-31
 
 ## Context

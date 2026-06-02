@@ -1,35 +1,32 @@
 {
-  "version": "0.6.3",
+  "version": "0.6.4",
   "renderers": [
     {
       "id": "guizang",
       "display_name": "Guizang PPT Skill",
       "skill_name": "guizang-ppt-skill",
-      "role": "primary-renderer",
+      "role": "primary-renderer-100pct-native",
       "best_for": [
         "中文分享",
         "稳定成稿",
         "中文默认生产路径",
         "杂志风",
         "瑞士风",
-        "截图美化",
-        "配图适配",
-        "presenter后处理",
-        "static deploy"
+        "v0.6.4 由 Humanize 发 brief，guizang-ppt-skill 原生渲染"
       ],
       "inputs": [
         "deck_brief.md",
         "ast_outline.md",
         "slide_plan.json",
         "speaker_intent.md",
-        "asset_manifest.md"
+        "asset_manifest.md",
+        "video_slots.json",
+        "style_brief.md"
       ],
       "outputs": [
-        "outputs/guizang/index.html",
-        "outputs/guizang/render_report.md",
-        "outputs/presenter/index.html",
-        "outputs/export/package/index.html"
+        "guizang-production-prompt.md"
       ],
+      "v0_6_4_note": "Humanize does not write outputs/guizang/index.html. The downstream guizang-ppt-skill renders natively. Post-render QA is run via --qa-from on the downstream's HTML.",
       "local_skill_paths": [
         "~/.agents/skills/guizang-ppt-skill",
         "~/.hermes/skills/guizang-ppt-skill"
@@ -40,29 +37,27 @@
       "id": "beautiful-html-templates",
       "display_name": "Beautiful HTML Templates",
       "skill_name": "beautiful-html-templates",
-      "role": "style-exploration-renderer",
+      "role": "english-native-renderer",
       "best_for": [
         "34套模板",
-        "中文默认3个真实预览",
         "英文默认至少5个真实预览",
         "按occasion和mood选风格",
-        "design.md视觉契约"
+        "design.md视觉契约",
+        "v0.6.4 由 Humanize 发 brief，beautiful-html-templates 原生渲染"
       ],
       "inputs": [
         "deck_brief.md",
         "ast_outline.md",
         "slide_plan.json",
-        "style_brief.md",
-        "asset_manifest.md"
+        "speaker_intent.md",
+        "asset_manifest.md",
+        "video_slots.json",
+        "style_brief.md"
       ],
       "outputs": [
-        "outputs/beautiful/previews/index.html",
-        "outputs/beautiful/previews/01-<slug>/index.html",
-        "outputs/beautiful/preview_manifest.json",
-        "outputs/beautiful/selected/index.html",
-        "outputs/beautiful/selected_manifest.json",
-        "outputs/beautiful/render_report.md"
+        "beautiful-html-templates-production-prompt.md"
       ],
+      "v0_6_4_note": "Humanize does not write outputs/beautiful/previews/* or outputs/beautiful/selected/*. The downstream beautiful-html-templates renders natively.",
       "local_skill_paths": [
         "~/.agents/skills/beautiful-html-templates",
         "~/.hermes/skills/beautiful-html-templates"
@@ -92,6 +87,7 @@
         "outputs/html-ppt/index.html",
         "outputs/html-ppt/render_report.md"
       ],
+      "v0_6_4_note": "html-ppt is a legacy renderer slot. v0.6.4 production paths are guizang (zh) and frontend-slides / beautiful-html-templates (en).",
       "local_skill_paths": [
         "~/.hermes/skills/html-ppt",
         "~/.agents/skills/html-ppt"
@@ -102,26 +98,30 @@
       "id": "frontend-slides",
       "display_name": "Frontend Slides",
       "skill_name": "frontend-slides",
-      "role": "pptx-conversion-and-style-discovery-renderer",
+      "role": "english-native-renderer",
       "best_for": [
         "PPTX转HTML",
         "英文style discovery",
         "show-don't-tell风格预览",
         "viewport fitting",
         "Vercel deploy",
-        "PDF export"
+        "PDF export",
+        "v0.6.4 由 Humanize 发 brief，frontend-slides 原生渲染"
       ],
       "inputs": [
         "deck_brief.md",
+        "ast_outline.md",
         "slide_plan.json",
+        "speaker_intent.md",
         "asset_manifest.md",
+        "video_slots.json",
+        "style_brief.md",
         "source.pptx"
       ],
       "outputs": [
-        "outputs/frontend-slides/index.html",
-        "outputs/frontend-slides/export.pdf",
-        "outputs/frontend-slides/render_report.md"
+        "frontend-slides-production-prompt.md"
       ],
+      "v0_6_4_note": "Humanize does not write outputs/frontend-slides/*. The downstream frontend-slides renders natively.",
       "local_skill_paths": [
         "~/.agents/skills/frontend-slides",
         "~/.hermes/skills/frontend-slides"
@@ -129,67 +129,38 @@
       "command_file": "commands/frontend-slides-agent.md"
     },
     {
-      "id": "presenter-adapter",
-      "display_name": "Humanize Presenter Adapter",
+      "id": "post-render-qa-loop",
+      "display_name": "Humanize PPT Post-Render QA Loop",
       "skill_name": "humanize-ppt",
-      "role": "post-processing-presenter-shell",
+      "role": "post-render-quality-gate",
       "best_for": [
-        "最终deck演讲者视图",
-        "speaker notes",
-        "CURRENT/NEXT提示",
-        "键盘翻页控制"
+        "扫渲染后的 HTML 找 failure modes",
+        "写 fix_prompt.md 给下游 skill 重渲",
+        "3 轮上限，超出 needs-human",
+        "锁定 known-good 视觉基准"
       ],
       "inputs": [
-        "outputs/<renderer>/index.html",
-        "slide_plan.json",
-        "speaker_intent.md"
+        "--qa-from <rendered.html>",
+        "out/slide_plan.json",
+        "out/qa_iteration.json (上一轮)"
       ],
       "outputs": [
-        "outputs/presenter/index.html",
-        "outputs/presenter/presenter_manifest.json",
-        "outputs/presenter/render_report.md"
+        "outputs/qa/qa_report.md",
+        "outputs/qa/fix_prompt.md",
+        "outputs/qa/qa_iteration.json"
       ],
-      "local_skill_paths": [
-        "~/.hermes/skills/humanize-ppt"
-      ],
-      "command_file": "commands/presenter-adapter-agent.md"
-    },
-    {
-      "id": "export-adapter",
-      "display_name": "Humanize Export Adapter",
-      "skill_name": "humanize-ppt",
-      "role": "post-processing-export-package",
-      "best_for": [
-        "可移植HTML包",
-        "PDF导出脚本",
-        "交付清单",
-        "离线归档"
-      ],
-      "inputs": [
-        "outputs/<renderer>/index.html",
-        "run_manifest.json"
-      ],
-      "outputs": [
-        "outputs/export/package/index.html",
-        "outputs/export/export_pdf.sh",
-        "outputs/export/export_manifest.json",
-        "outputs/export/README.md"
-      ],
-      "local_skill_paths": [
-        "~/.hermes/skills/humanize-ppt"
-      ],
-      "command_file": "commands/export-adapter-agent.md"
+      "v0_6_4_note": "New in v0.6.4. The loop is launched via `python3 scripts/humanize_ppt.py --qa-from <rendered.html> --out <previous out> --renderer guizang --guizang-style A --max-qa-iterations 3`.",
+      "command_file": null
     },
     {
       "id": "qa",
-      "display_name": "Humanize PPT QA",
+      "display_name": "Humanize PPT Brief-Mode QA",
       "skill_name": "humanize-ppt",
-      "role": "quality-gate",
+      "role": "brief-mode-quality-gate",
       "best_for": [
         "检查AST是否保留",
         "检查AI草稿痕迹",
         "检查路径",
-        "检查speaker notes",
         "检查交付清单"
       ],
       "inputs": [
@@ -209,3 +180,4 @@
     }
   ]
 }
+
