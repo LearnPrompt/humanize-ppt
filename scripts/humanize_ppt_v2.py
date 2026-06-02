@@ -2003,7 +2003,200 @@ def parse_args():
         action="store_true",
         help="Skip the guizang-ppt-skill (or relevant downstream skill) install self-check warning.",
     )
+    ap.add_argument(
+        "--preview-outline",
+        action="store_true",
+        help="v0.6.6: write outline-preview.md (human-readable AST slice) and stop. Re-run with --confirm-outline after review.",
+    )
+    ap.add_argument(
+        "--confirm-outline",
+        action="store_true",
+        help="v0.6.6: read outline-preview.md (from a prior --preview-outline run) and resume the brief write. Refuses if outline is missing or source mtime is newer.",
+    )
     return ap.parse_args()
+
+
+# ---------------------------------------------------------------------------
+# v0.6.6: --preview-outline / --confirm-outline review-checkpoint pair.
+# Spec: references/preview-outline-spec.md
+# ---------------------------------------------------------------------------
+
+
+def _format_outline_preview(title, plan, source_path, language, style, theme, accent):
+    """Render the human-readable outline-preview.md content."""
+    n = len(plan)
+    role_counts = {}
+    for p in plan:
+        role_counts[p.get("role", "slide")] = role_counts.get(p.get("role", "slide"), 0) + 1
+    arc = " · ".join(f"{k} {v}" for k, v in role_counts.items())
+
+    lines = [
+        "# Outline preview",
+        "",
+        "> AST slice: " + arc,
+        f"> Source: {source_path}",
+        f"> Renderer: guizang · Style: {style}" + (f" · Theme: {theme}" if style == "A" else f" · Accent: {accent}"),
+        f"> Slides: {n}",
+        f"> Title: {title}",
+        "",
+    ]
+    for p in plan:
+        title_chars = len([c for c in p.get("title", "") if "一" <= c <= "鿿"])
+        body_chars = sum(len([c for c in v if "一" <= c <= "鿿"]) for v in p.get("visible_content", []))
+        lines.append(f"## {p.get('slide_id', '?')} · {p.get('role', 'slide')}")
+        lines.append(f"Title ({title_chars} 中文字): {p.get('title', '')}")
+        lines.append(f"Body ({body_chars} 中文字):")
+        for v in p.get("visible_content", []):
+            lines.append(f"  - {v}")
+        if p.get("speaker_intent"):
+            lines.append(f"Speaker intent: {p['speaker_intent']}")
+        lines.append("")
+
+    lines.append("---")
+    lines.append("")
+    lines.append("## Per-page media decisions (Humanize-owned)")
+    lines.append("")
+    for p in plan:
+        m = p.get("media") or {}
+        bits = []
+        for kind in ("image", "diagram", "video"):
+            entry = m.get(kind) or {}
+            if entry.get("needed"):
+                kind_label = entry.get("kind", "?")
+                if kind == "video":
+                    kind_label = f"{kind_label} ({entry.get('duration_s', '?')}s)"
+                bits.append(f"{kind}={kind_label}")
+        if not bits:
+            bits.append("no media")
+        lines.append(f"- {p.get('slide_id', '?')} {p.get('role', '?')}: {', '.join(bits)}")
+
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+    lines.append("## Review checklist")
+    lines.append("")
+    lines.append("- [ ] Title counts fit the layout slot (≤ 15 中文字 for cover/headline)")
+    lines.append("- [ ] All visible_content ≥ 30 中文字 (no empty pages)")
+    lines.append("- [ ] No banned substrings (Khazix, methodology, attribution) in any body")
+    lines.append("- [ ] 7 concepts (Agent / Tool / Function calling / MCP / Skill / Rules / Hook / Subagent) all present if relevant")
+    lines.append("- [ ] Per-page media decisions make sense for the page role")
+    lines.append("")
+    lines.append("When reviewed, re-run with `--confirm-outline` to write the production prompt.")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def run_preview_outline_mode(args):
+    """--preview-outline: write outline-preview.md and stop. No brief, no QA."""
+    out = Path(args.out).expanduser().resolve()
+    out.mkdir(parents=True, exist_ok=True)
+
+    try:
+        if getattr(args, "research_md", None):
+            research_path = Path(args.research_md).expanduser().resolve()
+            if not research_path.exists():
+                sys.stderr.write(f"--research-md path not found: {research_path}\n")
+                return 2
+            source_path, text, segments = read_source(str(research_path))
+        else:
+            if not args.source:
+                sys.stderr.write("--source (or --research-md) is required for --preview-outline\n")
+                return 2
+            source_path = Path(args.source).expanduser().resolve()
+            if not source_path.exists():
+                sys.stderr.write(f"--source path not found: {source_path}\n")
+                return 2
+            source_path, text, segments = read_source(str(source_path))
+    except FileNotFoundError as e:
+        sys.stderr.write(f"Source not found: {e}\n")
+        return 2
+    language = detect_language(text)
+    plan = build_slide_plan(args.title, text, segments, args.renderer)
+
+    style = getattr(args, "guizang_style", None) or "A"
+    theme = getattr(args, "guizang_theme", None)
+    accent = getattr(args, "guizang_accent", None)
+
+    outline_md = _format_outline_preview(
+        title=args.title,
+        plan=plan,
+        source_path=source_path,
+        language=language,
+        style=style,
+        theme=theme,
+        accent=accent,
+    )
+    outline_path = out / "outline-preview.md"
+    outline_path.write_text(outline_md, encoding="utf-8")
+
+    print(json.dumps(
+        {
+            "ok": True,
+            "stopped_at": "preview-outline",
+            "outline_path": str(outline_path),
+            "slide_count": len(plan),
+            "next_step": "Review outline-preview.md. Re-run with --confirm-outline to write the production prompt.",
+        },
+        ensure_ascii=False,
+        indent=2,
+    ))
+    return 0
+
+
+def run_confirm_outline_mode(args):
+    """--confirm-outline: read outline-preview.md and validate freshness.
+
+    Writes preview-confirmed.json with the confirmation timestamp.
+    The brief is then written by re-running without --confirm-outline.
+    """
+    out = Path(args.out).expanduser().resolve()
+    outline_path = out / "outline-preview.md"
+    if not outline_path.exists():
+        sys.stderr.write(
+            f"outline-preview.md not found at {outline_path}. "
+            f"Re-run with --preview-outline first.\n"
+        )
+        return 2
+
+    # Mtime check: source must not be newer than the outline
+    if getattr(args, "research_md", None):
+        source_path = Path(args.research_md).expanduser().resolve()
+    else:
+        source_path = Path(args.source).expanduser().resolve()
+    if not source_path.exists():
+        sys.stderr.write(f"Source not found: {source_path}\n")
+        return 2
+    if source_path.stat().st_mtime > outline_path.stat().st_mtime:
+        sys.stderr.write(
+            f"Source {source_path} was modified after outline-preview.md was written. "
+            f"Re-run with --preview-outline to refresh.\n"
+        )
+        return 2
+
+    confirmed_marker = out / "preview-confirmed.json"
+    confirmed_marker.write_text(json.dumps(
+        {
+            "confirmed_at": now_iso(),
+            "outline_path": str(outline_path),
+            "source_path": str(source_path),
+            "next_step": "Re-run the same command WITHOUT --confirm-outline to write the production prompt.",
+        },
+        ensure_ascii=False,
+        indent=2,
+    ), encoding="utf-8")
+
+    print(json.dumps(
+        {
+            "ok": True,
+            "stopped_at": "confirm-outline",
+            "outline_path": str(outline_path),
+            "confirmed_marker": str(confirmed_marker),
+            "next_step": "Re-run the same command WITHOUT --confirm-outline to write the production prompt.",
+        },
+        ensure_ascii=False,
+        indent=2,
+    ))
+    return 0
 
 
 def main():
@@ -2018,6 +2211,19 @@ def main():
             "or pass --qa-from for QA mode\n"
         )
         return 2
+
+    # v0.6.6: --preview-outline writes outline-preview.md and stops.
+    # The user reviews the outline, then re-runs with --confirm-outline.
+    if getattr(args, "preview_outline", False) and not getattr(args, "confirm_outline", False):
+        return run_preview_outline_mode(args)
+
+    # v0.6.6: --confirm-outline reads outline-preview.md and resumes the
+    # brief write. Refuses if outline is missing or stale.
+    if getattr(args, "confirm_outline", False):
+        if getattr(args, "preview_outline", False):
+            sys.stderr.write("--preview-outline and --confirm-outline are mutually exclusive\n")
+            return 2
+        return run_confirm_outline_mode(args)
 
     out = Path(args.out).expanduser().resolve()
     if out.exists():
@@ -2201,4 +2407,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
