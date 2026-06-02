@@ -32,3 +32,6 @@ def test_smoke_check_runs_without_pytest_dependency(tmp_path):
         "outputs/qa/qa_report.md",
     ]:
         assert (out / relative).exists(), relative
+    # v0.6.4 brief-only contract.
+    assert (out / "guizang-production-prompt.md").exists()
+    assert not (out / "outputs" / "guizang" / "index.html").exists()

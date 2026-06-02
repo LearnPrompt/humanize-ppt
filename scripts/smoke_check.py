@@ -19,6 +19,9 @@ REQUIRED_FILES = [
     "run_manifest.json",
     "outputs/qa/qa_report.md",
 ]
+# v0.6.4: Guizang path now writes a production brief, not a fake HTML deck.
+GUIZANG_BRIEF_FILE = "guizang-production-prompt.md"
+NO_FAKE_GUIZANG_HTML = "outputs/guizang/index.html"
 
 
 def parse_args():
@@ -44,7 +47,8 @@ def main():
         args.title,
         "--renderer",
         "guizang",
-        "--no-render",
+        # v0.6.4: --no-render now also skips the production brief.
+        # Smoke must exercise the brief-only path.
     ]
     result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True)
     if result.returncode != 0:
@@ -57,6 +61,17 @@ def main():
         print("smoke check failed: missing required files", file=sys.stderr)
         for relative in missing:
             print(f"- {relative}", file=sys.stderr)
+        return 1
+
+    # v0.6.4: brief-only contract — prompt file present, no fake Guizang HTML.
+    if not (out / GUIZANG_BRIEF_FILE).exists():
+        print(f"smoke check failed: missing {GUIZANG_BRIEF_FILE}", file=sys.stderr)
+        return 1
+    if (out / NO_FAKE_GUIZANG_HTML).exists():
+        print(
+            f"smoke check failed: {NO_FAKE_GUIZANG_HTML} should not be produced in v0.6.4",
+            file=sys.stderr,
+        )
         return 1
 
     print(f"smoke check passed: {out}")

@@ -989,102 +989,281 @@ def write_commands(out, router_plan):
         (commands / name).write_text(command_text(route, out), encoding="utf-8")
 
 
-def find_guizang_template():
-    candidates = [
-        Path.home() / ".agents/skills/guizang-ppt-skill/assets/template.html",
-        Path.home() / ".hermes/skills/guizang-ppt-skill/assets/template.html",
-    ]
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
-    return None
+# v0.6.4: Humanize PPT no longer imitates the Guizang renderer.
+# It stops at the production brief; guizang-ppt-skill renders natively.
+# See references/guizang-production-brief-orchestrator.md for the boundary contract.
 
 
-def slide_sections(title, plan):
-    sections = []
-    total = len(plan)
-    for idx, p in enumerate(plan, 1):
-        theme = "hero dark" if idx in {1, total} else ("light" if idx % 2 == 0 else "dark")
-        body = "".join(f"<li>{html.escape(x)}</li>" for x in p.get("visible_content", []))
-        if idx == 1:
-            sections.append(
-                f"""<section class="slide {theme}">
-  <div class="kicker">Humanize PPT V0.4 · AST ROUTER</div>
-  <h1 class="h-hero">{html.escape(title)}</h1>
-  <p class="lead">{html.escape(p['message'])}</p>
-  <div class="foot">{idx:02d} / {total:02d} · generated from slide_plan.json</div>
-</section>"""
-            )
-        else:
-            sections.append(
-                f"""<section class="slide {theme}">
-  <div class="grid-2-7-5">
-    <div>
-      <div class="kicker">{html.escape(p['role']).upper()} · {idx:02d} / {total:02d}</div>
-      <h2 class="h-xl">{html.escape(p['title'])}</h2>
-    </div>
-    <div class="callout">
-      <p class="lead">{html.escape(p['message'])}</p>
-      <ul>{body}</ul>
-      <div class="callout-src">Speaker intent: {html.escape(p['speaker_intent'])}</div>
-    </div>
-  </div>
-</section>"""
-            )
-    return "\n\n".join(sections)
+def write_guizang_production_brief(out, title, plan, source, language, style="A"):
+    """Write only the Guizang production brief. No HTML is produced here.
 
+    The next agent must read `guizang-ppt-skill/SKILL.md` and render natively.
+    Humanize never opens the Guizang template, never injects sections, and
+    never post-processes the rendered HTML.
+    """
+    style = (style or "A").upper()
+    if style not in {"A", "B"}:
+        style = "A"
 
-def inject_presenter_bridge(html_doc):
-    """Expose guizang deck navigation to Humanize PPT presenter shells."""
-    if "presenter-goto" in html_doc:
-        return html_doc
-    bridge = """
-window.__goSlide = go;
-addEventListener('message',e=>{
-  const msg=e.data||{};
-  if(!msg || typeof msg!=='object')return;
-  if(msg.type==='presenter-goto' && Number.isFinite(msg.index)){lock=false;go(msg.index);}
-  if(msg.type==='preview-goto' && Number.isFinite(msg.idx)){lock=false;go(msg.idx);}
-  if(msg.type==='presenter-next'){lock=false;go(idx+1);}
-  if(msg.type==='presenter-prev'){lock=false;go(idx-1);}
-  if(msg.type==='presenter-state-request' && parent!==window){
-    parent.postMessage({type:'presenter-state',index:idx,total},'*');
-  }
-});
+    style_table = {
+        "A": {
+            "template": "assets/template.html",
+            "layouts": "references/layouts.md",
+            "themes": "references/themes.md",
+            "validator": "guizang's own Style A visual QA checklist (see references/guizang-material-qa.md)",
+            "lock": "(none — Style A is the flexible track)",
+        },
+        "B": {
+            "template": "assets/template-swiss.html",
+            "layouts": "references/layouts-swiss.md",
+            "themes": "references/themes-swiss.md",
+            "validator": "scripts/validate-swiss-deck.mjs",
+            "lock": "references/swiss-layout-lock.md",
+        },
+    }[style]
+
+    inputs_block = "\n".join(
+        f"- `{name}`"
+        for name in [
+            "deck_brief.md",
+            "ast_outline.md",
+            "slide_plan.json",
+            "speaker_intent.md",
+            "asset_manifest.md",
+            "video_slots.json",
+            "style_brief.md",
+        ]
+    )
+
+    media_lines = []
+    for p in plan:
+        slide_id = p.get("slide_id", "")
+        media = p.get("media") or {}
+        image = media.get("image") or {}
+        diagram = media.get("diagram") or {}
+        video = media.get("video") or {}
+        bits = []
+        if image.get("needed"):
+            bits.append(f"image={image.get('kind', 'unspecified')}")
+        if diagram.get("needed"):
+            bits.append(f"diagram={diagram.get('kind', 'svg-html')}")
+        if video.get("needed"):
+            bits.append(f"video={video.get('kind', 'remotion-clip')} ({video.get('duration_s', '?')}s)")
+        if not bits:
+            bits.append("no media")
+        media_lines.append(f"- {slide_id} {p.get('title', '')} — {', '.join(bits)}")
+
+    media_block = "\n".join(media_lines) if media_lines else "- (no slide-level media decisions in this plan)"
+
+    style_a_qa = """\
+- no `[必填]` template residue
+- no `<!-- SLIDES_HERE -->` marker residue
+- `canvas#bg-dark` exists
+- `canvas#bg-light` exists
+- `body.low-power` is not active by default
+- `.slide.hero.light,.slide.hero.dark { background: transparent }` is applied so the WebGL hero canvas is visible
+- meaningful `data-anim` / `data-animate` markers are present
+- at least 3 `data-anim` occurrences per non-cover page (Ink Classic checkpoint has 86)"""
+
+    style_b_qa = """\
+- `scripts/validate-swiss-deck.mjs` exits with code 0
+- every slide has a registered `data-layout="Sxx"` marker
+- `data-layout` count equals slide count
+- at least 6 unique Swiss layouts for a 7-8 page deck (higher for longer decks)
+- no invented, non-registered layout IDs
+- no inserted SVG/image/video frame clips, overlaps, or hugs the slide edge
+- inserted materials do not repeat the slide title"""
+
+    prompt = f"""# Guizang Production Prompt
+
+> Humanize PPT stops here. The next agent must follow
+> `~/.agents/skills/guizang-ppt-skill/SKILL.md` end to end.
+> Do not reimplement Guizang inside Humanize. Do not import the
+> Guizang template into Humanize. Do not post-process the rendered HTML
+> with Humanize-owned bridges — Guizang owns its own navigation.
+
+## Deck
+
+- Title: {title}
+- Source: {source}
+- Language: {language}
+- Style: {style}
+- Slides: {len(plan)}
+
+## Style files (use the ones for Style {style})
+
+- template: `{style_table['template']}`
+- layouts: `{style_table['layouts']}`
+- themes: `{style_table['themes']}`
+- lock: {style_table['lock']}
+- validator: `{style_table['validator']}`
+
+## Hard rules
+
+- Read `guizang-ppt-skill/SKILL.md` before any rendering. Do not skip it.
+- Pick every page's layout from the registered set in
+  `{style_table['layouts']}`. Do not invent layout classes.
+- Preserve Guizang's animation hooks (`data-anim` / `data-animate`),
+  Motion One loading, and the WebGL dual canvas where Style A applies.
+- Run the validator above before reporting complete.
+- Do not modify or post-process the rendered HTML in Humanize.
+- The HTML that ends up on disk is produced by `guizang-ppt-skill`,
+  not by Humanize.
+
+## Inputs already produced by Humanize
+
+{inputs_block}
+
+## Per-page media decisions (Humanize-owned)
+
+{media_block}
+
+## Known-good checkpoint (read-only reference)
+
+- `examples/03-codex-guizang-native-ink-classic/index.html`
+  (Style A, Ink Classic, 10 slides, hero WebGL background, 86 `data-anim`
+  occurrences). Open it to see the bar for Style A quality.
+
+## Style {style} QA gates (must all pass)
+
+{style_a_qa if style == 'A' else style_b_qa}
+
+## Hand-off
+
+The next agent writes its output to its own convention
+(e.g. `outputs/guizang-rendered/index.html`). Do not write to
+`outputs/guizang/` — that is reserved for legacy Humanize adapter paths
+and is no longer used in v0.6.4.
 """
-    marker = "\n\n/* =============== ESC 索引视图 =============== */"
-    if "function go(n)" in html_doc and marker in html_doc:
-        html_doc = html_doc.replace(marker, "\n" + bridge + marker, 1)
-    initial = """const initialSlideParam = new URLSearchParams(location.search).get('slide');
-const initialSlide = initialSlideParam ? Number(initialSlideParam) - 1 : 0;
-go(Number.isFinite(initialSlide) ? initialSlide : 0);"""
-    if "\ngo(0);\n</script>" in html_doc and "initialSlideParam" not in html_doc:
-        html_doc = html_doc.replace("\ngo(0);\n</script>", "\n" + initial + "\n</script>", 1)
-    return html_doc
+
+    (out / "guizang-production-prompt.md").write_text(prompt, encoding="utf-8")
+    return {
+        "status": "brief-written",
+        "prompt": str(out / "guizang-production-prompt.md"),
+        "style": style,
+        "slides": len(plan),
+    }
 
 
-def write_guizang_output(out, title, plan):
-    target = out / "outputs" / "guizang"
-    target.mkdir(parents=True, exist_ok=True)
-    template_path = find_guizang_template()
-    sections = slide_sections(title, plan)
-    if template_path:
-        template = template_path.read_text(encoding="utf-8", errors="replace")
-        html_doc = template.replace("[必填] 替换为 PPT 标题 · Deck Title", f"{title} · Humanize PPT V0.4")
-        html_doc = html_doc.replace("<!-- SLIDES_HERE -->", sections)
-        html_doc = inject_presenter_bridge(html_doc)
-        report = f"# Guizang Render Report\n\n- status: rendered\n- template: {template_path}\n- output: {target / 'index.html'}\n- slides: {len(plan)}\n"
-    else:
-        html_doc = fallback_deck(title, plan)
-        report = "# Guizang Render Report\n\n- status: rendered-with-fallback\n- template: not found\n"
-    (target / "index.html").write_text(html_doc, encoding="utf-8")
-    (target / "render_report.md").write_text(report, encoding="utf-8")
-    return target / "index.html"
+def write_frontend_slides_production_brief(out, title, plan, source, language):
+    """Write only the frontend-slides production brief. No HTML is produced.
+
+    Skeleton: the next agent must follow
+    `~/.agents/skills/frontend-slides/SKILL.md` and use its own native
+    pipeline (PPTX → HTML conversion, viewport-safe HTML deck, deploy).
+    Humanize never opens the frontend-slides template.
+    """
+    inputs_block = "\n".join(
+        f"- `{name}`"
+        for name in [
+            "deck_brief.md",
+            "ast_outline.md",
+            "slide_plan.json",
+            "speaker_intent.md",
+            "asset_manifest.md",
+            "video_slots.json",
+            "style_brief.md",
+        ]
+    )
+
+    prompt = f"""# Frontend Slides Production Prompt
+
+> Humanize PPT stops here. The next agent must follow
+> `~/.agents/skills/frontend-slides/SKILL.md` end to end.
+> Do not reimplement the renderer inside Humanize.
+
+## Deck
+
+- Title: {title}
+- Source: {source}
+- Language: {language}
+- Slides: {len(plan)}
+
+## Hard rules
+
+- Read `frontend-slides/SKILL.md` first. Use its native PPTX→HTML
+  conversion, viewport-safe deck, and Vercel deploy path.
+- Use the registered layouts / templates that skill ships with. Do not
+  invent layout classes.
+- Do not post-process the rendered HTML in Humanize. Frontend-slides
+  owns its own navigation, presenter shell, and deploy step.
+
+## Inputs already produced by Humanize
+
+{inputs_block}
+
+## Hand-off
+
+The next agent writes its output to its own convention
+(e.g. `outputs/frontend-slides-rendered/index.html`).
+"""
+
+    (out / "frontend-slides-production-prompt.md").write_text(prompt, encoding="utf-8")
+    return {
+        "status": "brief-written",
+        "prompt": str(out / "frontend-slides-production-prompt.md"),
+        "slides": len(plan),
+    }
 
 
-def fallback_deck(title, plan):
-    sections = slide_sections(title, plan)
-    return f"""<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{html.escape(title)}</title><style>body{{margin:0;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;background:#111;color:#f6f1e8;overflow:hidden}}.slide{{display:none;width:100vw;height:100vh;padding:8vh 8vw;box-sizing:border-box}}.slide:first-of-type{{display:block}}.h-hero,.h-xl{{font-size:clamp(44px,7vw,108px);line-height:1.02;margin:0 0 4vh}}.lead{{font-size:clamp(22px,2.4vw,38px);line-height:1.35}}.kicker,.foot,.callout-src{{color:#d7b56d;letter-spacing:.08em}}.grid-2-7-5{{display:grid;grid-template-columns:7fr 5fr;gap:5vw}}li{{font-size:clamp(18px,1.5vw,26px);line-height:1.55;margin:.5em 0}}</style></head><body>{sections}<script>const s=[...document.querySelectorAll('.slide')];let i=0;function show(n){{i=Math.max(0,Math.min(s.length-1,n));window.__currentSlideIndex=i;s.forEach((x,k)=>x.style.display=k===i?'block':'none');if(parent!==window)parent.postMessage({{type:'presenter-state',index:i,total:s.length}},'*')}}window.__goSlide=show;addEventListener('message',e=>{{const m=e.data||{{}};if(m.type==='presenter-goto'&&Number.isFinite(m.index))show(m.index);if(m.type==='preview-goto'&&Number.isFinite(m.idx))show(m.idx);if(m.type==='presenter-state-request')show(i)}});document.addEventListener('keydown',e=>{{if(e.key==='ArrowRight'||e.key===' ')show(i+1);if(e.key==='ArrowLeft')show(i-1)}});const start=Number(new URLSearchParams(location.search).get('slide')||1)-1;show(Number.isFinite(start)?start:0)</script></body></html>"""
+def write_beautiful_html_templates_production_brief(out, title, plan, source, language):
+    """Write only the beautiful-html-templates production brief. No HTML produced.
+
+    Skeleton: the next agent must follow
+    `~/.agents/skills/beautiful-html-templates/SKILL.md` and use its own
+    native template selection + full-deck rendering.
+    Humanize never copies templates or injects sections.
+    """
+    inputs_block = "\n".join(
+        f"- `{name}`"
+        for name in [
+            "deck_brief.md",
+            "ast_outline.md",
+            "slide_plan.json",
+            "speaker_intent.md",
+            "asset_manifest.md",
+            "video_slots.json",
+            "style_brief.md",
+        ]
+    )
+
+    prompt = f"""# Beautiful HTML Templates Production Prompt
+
+> Humanize PPT stops here. The next agent must follow
+> `~/.agents/skills/beautiful-html-templates/SKILL.md` end to end.
+> Do not reimplement the renderer inside Humanize.
+
+## Deck
+
+- Title: {title}
+- Source: {source}
+- Language: {language}
+- Slides: {len(plan)}
+
+## Hard rules
+
+- Read `beautiful-html-templates/SKILL.md` first. Use its native
+  template selection, preview gallery, and selected-template full-deck
+  generation.
+- Do not copy templates or inject custom sections into Humanize.
+  Beautiful owns the rendered HTML end-to-end.
+
+## Inputs already produced by Humanize
+
+{inputs_block}
+
+## Hand-off
+
+The next agent writes its output to its own convention
+(e.g. `outputs/beautiful-rendered/index.html`).
+"""
+
+    (out / "beautiful-html-templates-production-prompt.md").write_text(prompt, encoding="utf-8")
+    return {
+        "status": "brief-written",
+        "prompt": str(out / "beautiful-html-templates-production-prompt.md"),
+        "slides": len(plan),
+    }
 
 
 def write_qa(out, plan, render_issues=None):
@@ -1218,60 +1397,51 @@ def main():
 
     rendered = None
     render_issues = []
-    if not args.no_render and primary == "guizang":
-        rendered = write_guizang_output(out, args.title, plan)
-        for route in router_plan["routes"]:
-            if route["id"] == "guizang":
-                route["status"] = "rendered"
-                route["actual_output"] = str(rendered)
-        (out / "router_plan.json").write_text(json.dumps(router_plan, ensure_ascii=False, indent=2), encoding="utf-8")
-    elif not args.no_render and primary == "beautiful-html-templates":
-        repo = find_beautiful_repo(args.beautiful_repo, auto_clone=not args.no_beautiful_auto_clone)
-        if args.selected_template:
-            beautiful_result = write_beautiful_selected_deck(
+    # v0.6.4: Humanize PPT no longer imitates any downstream renderer.
+    # It writes a production brief; the named skill renders natively.
+    if not args.no_render:
+        if primary == "guizang":
+            style = getattr(args, "guizang_style", None) or "A"
+            brief_result = write_guizang_production_brief(
                 out,
                 title=args.title,
                 plan=plan,
-                repo_path=repo,
-                selected_template=args.selected_template,
-            )
-            if beautiful_result.get("status") == "rendered":
-                rendered = beautiful_result.get("deck")
-            else:
-                render_issues.append(f"beautiful-html-templates selected deck: {beautiful_result.get('status')} — {beautiful_result.get('message')}")
-            for route in router_plan["routes"]:
-                if route["id"] == "beautiful-html-templates":
-                    route["status"] = beautiful_result.get("status")
-                    route["actual_output"] = beautiful_result.get("deck")
-                    route["selected_template"] = args.selected_template
-                    route["selected_manifest"] = beautiful_result.get("manifest")
-        else:
-            beautiful_result = write_beautiful_previews(
-                out,
-                title=args.title,
-                text=text,
-                plan=plan,
-                repo_path=repo,
+                source=source_path,
                 language=language,
-                occasion=args.occasion,
-                mood=args.mood,
-                count=preview_count,
+                style=style,
             )
-            if beautiful_result.get("status") == "rendered":
-                rendered = beautiful_result.get("gallery")
-            else:
-                render_issues.append(f"beautiful-html-templates render: {beautiful_result.get('status')} — {beautiful_result.get('message')}")
+            for route in router_plan["routes"]:
+                if route["id"] == "guizang":
+                    route["status"] = brief_result["status"]
+                    route["actual_output"] = brief_result["prompt"]
+        elif primary == "frontend-slides":
+            brief_result = write_frontend_slides_production_brief(
+                out,
+                title=args.title,
+                plan=plan,
+                source=source_path,
+                language=language,
+            )
+            for route in router_plan["routes"]:
+                if route["id"] == "frontend-slides":
+                    route["status"] = brief_result["status"]
+                    route["actual_output"] = brief_result["prompt"]
+        elif primary == "beautiful-html-templates":
+            brief_result = write_beautiful_html_templates_production_brief(
+                out,
+                title=args.title,
+                plan=plan,
+                source=source_path,
+                language=language,
+            )
             for route in router_plan["routes"]:
                 if route["id"] == "beautiful-html-templates":
-                    route["status"] = beautiful_result.get("status")
-                    route["actual_output"] = beautiful_result.get("gallery")
-                    route["preview_manifest"] = beautiful_result.get("manifest")
-                    route["selected_templates"] = [item.get("slug") for item in beautiful_result.get("previews", [])]
-        (out / "router_plan.json").write_text(json.dumps(router_plan, ensure_ascii=False, indent=2), encoding="utf-8")
+                    route["status"] = brief_result["status"]
+                    route["actual_output"] = brief_result["prompt"]
+                    route["style_gate"] = "theme-first"
+                    route["preview_count"] = preview_count
 
-    final_deck = Path(rendered) if rendered else None
-    if primary == "beautiful-html-templates" and not args.selected_template:
-        final_deck = None
+    final_deck = None  # v0.6.4: Humanize does not own a rendered deck anymore.
 
     if args.presenter_adapter:
         if final_deck and final_deck.exists():
