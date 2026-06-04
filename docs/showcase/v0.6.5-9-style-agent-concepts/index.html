@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Humanize PPT v0.6.5 · 9 风格 QA 验证</title>
+  <style>
+    :root {
+      --ink: #1a1a1a;
+      --paper: #fafaf8;
+      --muted: #666;
+      --line: #e5e5e3;
+      --accent: #0066cc;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 48px 32px 64px;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+      line-height: 1.55;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+    h1 { font-size: 32px; margin: 0 0 4px; font-weight: 700; }
+    .meta { color: var(--muted); margin-bottom: 8px; font-size: 14px; }
+    .lede { font-size: 15px; color: var(--muted); margin-bottom: 32px; max-width: 720px; }
+    .nav { display: flex; gap: 16px; margin-bottom: 32px; font-size: 14px; }
+    .nav a { color: var(--accent); text-decoration: none; }
+    .nav a:hover { text-decoration: underline; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    @media (max-width: 900px) {
+      .grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 560px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: transform .15s, box-shadow .15s;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0,0,0,.08);
+    }
+    .card-cover {
+      aspect-ratio: 16/9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      padding: 16px;
+      text-align: center;
+    }
+    .card-body { padding: 14px 16px 16px; }
+    .style { font-weight: 600; font-size: 15px; }
+    .style-sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .palette {
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      color: #444;
+      font-size: 12px;
+      margin-top: 8px;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .swatch {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      border: 1px solid var(--line);
+    }
+    .open {
+      display: inline-block;
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .open:hover { text-decoration: underline; }
+    .legend {
+      margin-top: 48px;
+      padding: 20px 24px;
+      background: #f3f3f1;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #555;
+    }
+    .legend code {
+      background: #fff;
+      padding: 1px 5px;
+      border-radius: 3px;
+      border: 1px solid var(--line);
+      font-size: 12px;
+    }
+    .footer {
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid var(--line);
+      font-size: 12px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+<h1>Humanize PPT v0.6.5</h1>
+<div class="meta">9 风格 QA 验证 · 10 分钟入门 Agent 的 7 个核心概念 · 9 / 9 pass · 2026-06-04</div>
+<p class="lede">
+9 份 deck 用同一份 <code>source-clean.md</code> (AST 切片 8 页) 走完 Humanize PPT 完整 brief-only 链路。
+Brief writer 写了 per-page media 决定 (image / diagram / video)，subagent 调 guizang-ppt-skill 原生渲染，
+v0.6.4 <code>--qa-from</code> 循环 9/9 pass。
+</p>
+
+<div class="nav">
+  <a href="../v0.6.5-9-style-qa.md">📄 完整验收文档 (markdown)</a>
+  <a href="https://github.com/LearnPrompt/humanize-ppt/tree/v0.6.5-brief-orchestrator/docs/showcase/v0.6.5-9-style-agent-concepts">📂 源码</a>
+</div>
+
+<div class="grid">
+
+  <div class="card">
+    <div class="card-cover" style="background:#f1efea;color:#0a0a0b;">Agent 7 概念</div>
+    <div class="card-body">
+      <div class="style">A · ink-classic</div>
+      <div class="style-sub">墨水经典 · Style A 基准主题</div>
+      <div class="palette">
+        <span class="swatch" style="background:#0a0a0b"></span><span class="swatch" style="background:#f1efea"></span>
+        <span>ink / paper</span>
+      </div>
+      <a class="open" href="decks/A-ink-classic.html">open deck →</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-cover" style="background:#f1f3f5;color:#0a1f3d;">Agent 7 概念</div>
+    <div class="card-body">
+      <div class="style">A · indigo-porcelain</div>
+      <div class="style-sub">靛蓝瓷 · 蓝灰瓷感</div>
+      <div class="palette">
+        <span class="swatch" style="background:#0a1f3d"></span><span class="swatch" style="background:#f1f3f5"></span>
+        <span>ink / paper</span>
+      </div>
+      <a class="open" href="decks/A-indigo-porcelain.html">open deck →</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-cover" style="background:#f5f1e8;color:#1a2e1f;">Agent 7 概念</div>
+    <div class="card-body">
+      <div class="style">A · forest-ink</div>
+      <div class="style-sub">森林墨 · 绿底墨字</div>
+      <div class="palette">
+        <span class="swatch" style="background:#1a2e1f"></span><span class="swatch" style="background:#f5f1e8"></span>
+        <span>ink / paper</span>
+      </div>
+      <a class="open" href="decks/A-forest-ink.html">open deck →</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-cover" style="background:#eedfc7;color:#2a1e13;">Agent 7 概念</div>
+    <div class="card-body">
+      <div class="style">A · kraft-paper</div>
+      <div class="style-sub">牛皮纸 · 暖棕纸感</div>
+      <div class="palette">
+        <span class="swatch" style="background:#2a1e13"></span><span class="swatch" style="background:#eedfc7"></span>
+        <span>ink / paper</span>
+      </div>
+      <a class="open" href="decks/A-kraft-paper.html">open deck →</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-cover" style="background:#f0e6d2;color:#1f1a14;">Agent 7 概念</div>
+    <div class="card-body">
+      <div class="style">A · dune</div>
+      <div class="style-sub">沙丘 · 沙影底调</div>
+      <div class="palette">
+        <span class="swatch" style="background:#1f1a14"></span><span class="swatch" style="background:#f0e6d2"></span>
+        <span>ink / paper</span>
+      </div>
+      <a class="open" href="decks/A-dune.html">open deck →</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-cover" style="background:#fafaf8;color:#0a0a0a;border-left:6px solid #002FA7;display:flex;flex-direction:column;gap:6px;">
+      <span>Agent</span><span>7 概念</span>
+    </div>
+    <div class="card-body">
+      <div class="style">B · ikb</div>
+      <div class="style-sub">Klein Blue · 瑞士锁版</div>
+      <div class="palette">
+        <span class="swatch" style="background:#0a0a0a"></span><span class="swatch" style="background:#fafaf8"></span><span class="swatch" style="background:#002FA7"></span>
+        <span>ink / paper / accent</span>
+      </div>
+      <a class="open" href="decks/B-ikb.html">open deck →</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-cover" style="background:#fafaf8;color:#0a0a0a;border-left:6px solid #FFD500;display:flex;flex-direction:column;gap:6px;">
+      <span>Agent</span><span>7 概念</span>
+    </div>
+    <div class="card-body">
+      <div class="style">B · lemon-yellow</div>
+      <div class="style-sub">柠檬黄 · 高对比点缀</div>
+      <div class="palette">
+        <span class="swatch" style="background:#0a0a0a"></span><span class="swatch" style="background:#fafaf8"></span><span class="swatch" style="background:#FFD500"></span>
+        <span>ink / paper / accent</span>
+      </div>
+      <a class="open" href="decks/B-lemon-yellow.html">open deck →</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-cover" style="background:#fafaf8;color:#0a0a0a;border-left:6px solid #C5E803;display:flex;flex-direction:column;gap:6px;">
+      <span>Agent</span><span>7 概念</span>
+    </div>
+    <div class="card-body">
+      <div class="style">B · lemon-green</div>
+      <div class="style-sub">柠檬绿 · 清新数据感</div>
+      <div class="palette">
+        <span class="swatch" style="background:#0a0a0a"></span><span class="swatch" style="background:#fafaf8"></span><span class="swatch" style="background:#C5E803"></span>
+        <span>ink / paper / accent</span>
+      </div>
+      <a class="open" href="decks/B-lemon-green.html">open deck →</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-cover" style="background:#fafaf8;color:#0a0a0a;border-left:6px solid #FF6B35;display:flex;flex-direction:column;gap:6px;">
+      <span>Agent</span><span>7 概念</span>
+    </div>
+    <div class="card-body">
+      <div class="style">B · safety-orange</div>
+      <div class="style-sub">警告橙 · 警示 / 行动</div>
+      <div class="palette">
+        <span class="swatch" style="background:#0a0a0a"></span><span class="swatch" style="background:#fafaf8"></span><span class="swatch" style="background:#FF6B35"></span>
+        <span>ink / paper / accent</span>
+      </div>
+      <a class="open" href="decks/B-safety-orange.html">open deck →</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="legend">
+  <strong>已知缺口（v0.6.5 边界）</strong>：9 份 deck 里的 per-page media 决定（image / diagram / video）已经在
+  <code>slide_plan.json</code> 记下，但实际 GPT 图 / Remotion 视频 / SVG 图没生成——
+  本次 demo 只渲染了 guizang 原生模板 + 文字 + WebGL 背景 + <code>data-anim</code> 标记。
+  Media 生成是 v0.6.6+ 的下一步（升级 brief writer 的 <code>media</code> schema 加 <code>asset_path</code> + <code>prompt_hint</code>）。
+  详见 <a href="../v0.6.5-9-style-qa.md">验收文档 §5</a>。
+</div>
+
+<div class="footer">
+  Built with Humanize PPT v0.6.6 (<code>--preview-outline</code>) on top of guizang-ppt-skill.
+  4 commits ahead of main on branch <code>v0.6.5-brief-orchestrator</code>.
+</div>
+
+</div>
+</body>
+</html>
