@@ -52,15 +52,33 @@
     }
     .card-cover {
       aspect-ratio: 16/9;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 48px;
-      font-weight: 800;
-      letter-spacing: -0.02em;
-      padding: 16px;
-      text-align: center;
+      overflow: hidden;
+      background: #f5f5f3;
     }
+    .card-cover img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: top;
+      display: block;
+    }
+    .card-thumbs {
+      display: flex;
+      gap: 4px;
+      padding: 0 16px;
+      margin-top: -8px;
+    }
+    .card-thumbs a {
+      flex: 1;
+      font-size: 11px;
+      color: #888;
+      text-align: center;
+      text-decoration: none;
+      padding: 4px 0;
+      border-top: 1px solid var(--line);
+      margin-top: 4px;
+    }
+    .card-thumbs a:hover { color: var(--accent); }
     .card-body { padding: 14px 16px 16px; }
     .style { font-weight: 600; font-size: 15px; }
     .style-sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
@@ -131,7 +149,7 @@ v0.6.4 <code>--qa-from</code> 循环 9/9 pass。
 <div class="grid">
 
   <div class="card">
-    <div class="card-cover" style="background:#f1efea;color:#0a0a0b;">Agent 7 概念</div>
+    <div class="card-cover"><img src="screenshots/A-ink-classic-cover.png" alt="A-ink-classic cover" loading="lazy"></div>
     <div class="card-body">
       <div class="style">A · ink-classic</div>
       <div class="style-sub">墨水经典 · Style A 基准主题</div>
@@ -140,11 +158,12 @@ v0.6.4 <code>--qa-from</code> 循环 9/9 pass。
         <span>ink / paper</span>
       </div>
       <a class="open" href="decks/A-ink-classic.html">open deck →</a>
+      <div class="card-thumbs"><a href="screenshots/A-ink-classic-table.png">table</a><a href="screenshots/A-ink-classic-takeaway.png">takeaway</a></div>
     </div>
   </div>
 
   <div class="card">
-    <div class="card-cover" style="background:#f1f3f5;color:#0a1f3d;">Agent 7 概念</div>
+    <div class="card-cover"><img src="screenshots/A-indigo-porcelain-cover.png" alt="A-indigo-porcelain cover" loading="lazy"></div>
     <div class="card-body">
       <div class="style">A · indigo-porcelain</div>
       <div class="style-sub">靛蓝瓷 · 蓝灰瓷感</div>
@@ -153,11 +172,12 @@ v0.6.4 <code>--qa-from</code> 循环 9/9 pass。
         <span>ink / paper</span>
       </div>
       <a class="open" href="decks/A-indigo-porcelain.html">open deck →</a>
+      <div class="card-thumbs"><a href="screenshots/A-indigo-porcelain-table.png">table</a><a href="screenshots/A-indigo-porcelain-takeaway.png">takeaway</a></div>
     </div>
   </div>
 
   <div class="card">
-    <div class="card-cover" style="background:#f5f1e8;color:#1a2e1f;">Agent 7 概念</div>
+    <div class="card-cover"><img src="screenshots/A-forest-ink-cover.png" alt="A-forest-ink cover" loading="lazy"></div>
     <div class="card-body">
       <div class="style">A · forest-ink</div>
       <div class="style-sub">森林墨 · 绿底墨字</div>
@@ -166,11 +186,12 @@ v0.6.4 <code>--qa-from</code> 循环 9/9 pass。
         <span>ink / paper</span>
       </div>
       <a class="open" href="decks/A-forest-ink.html">open deck →</a>
+      <div class="card-thumbs"><a href="screenshots/A-forest-ink-table.png">table</a><a href="screenshots/A-forest-ink-takeaway.png">takeaway</a></div>
     </div>
   </div>
 
   <div class="card">
-    <div class="card-cover" style="background:#eedfc7;color:#2a1e13;">Agent 7 概念</div>
+    <div class="card-cover"><img src="screenshots/A-kraft-paper-cover.png" alt="A-kraft-paper cover" loading="lazy"></div>
     <div class="card-body">
       <div class="style">A · kraft-paper</div>
       <div class="style-sub">牛皮纸 · 暖棕纸感</div>
@@ -179,11 +200,12 @@ v0.6.4 <code>--qa-from</code> 循环 9/9 pass。
         <span>ink / paper</span>
       </div>
       <a class="open" href="decks/A-kraft-paper.html">open deck →</a>
+      <div class="card-thumbs"><a href="screenshots/A-kraft-paper-table.png">table</a><a href="screenshots/A-kraft-paper-takeaway.png">takeaway</a></div>
     </div>
   </div>
 
   <div class="card">
-    <div class="card-cover" style="background:#f0e6d2;color:#1f1a14;">Agent 7 概念</div>
+    <div class="card-cover"><img src="screenshots/A-dune-cover.png" alt="A-dune cover" loading="lazy"></div>
     <div class="card-body">
       <div class="style">A · dune</div>
       <div class="style-sub">沙丘 · 沙影底调</div>
@@ -192,13 +214,12 @@ v0.6.4 <code>--qa-from</code> 循环 9/9 pass。
         <span>ink / paper</span>
       </div>
       <a class="open" href="decks/A-dune.html">open deck →</a>
+      <div class="card-thumbs"><a href="screenshots/A-dune-table.png">table</a><a href="screenshots/A-dune-takeaway.png">takeaway</a></div>
     </div>
   </div>
 
   <div class="card">
-    <div class="card-cover" style="background:#fafaf8;color:#0a0a0a;border-left:6px solid #002FA7;display:flex;flex-direction:column;gap:6px;">
-      <span>Agent</span><span>7 概念</span>
-    </div>
+    <div class="card-cover"><img src="screenshots/B-ikb-cover.png" alt="B-ikb cover" loading="lazy"></div>
     <div class="card-body">
       <div class="style">B · ikb</div>
       <div class="style-sub">Klein Blue · 瑞士锁版</div>
@@ -207,13 +228,12 @@ v0.6.4 <code>--qa-from</code> 循环 9/9 pass。
         <span>ink / paper / accent</span>
       </div>
       <a class="open" href="decks/B-ikb.html">open deck →</a>
+      <div class="card-thumbs"><a href="screenshots/B-ikb-table.png">table</a><a href="screenshots/B-ikb-takeaway.png">takeaway</a></div>
     </div>
   </div>
 
   <div class="card">
-    <div class="card-cover" style="background:#fafaf8;color:#0a0a0a;border-left:6px solid #FFD500;display:flex;flex-direction:column;gap:6px;">
-      <span>Agent</span><span>7 概念</span>
-    </div>
+    <div class="card-cover"><img src="screenshots/B-lemon-yellow-cover.png" alt="B-lemon-yellow cover" loading="lazy"></div>
     <div class="card-body">
       <div class="style">B · lemon-yellow</div>
       <div class="style-sub">柠檬黄 · 高对比点缀</div>
@@ -222,13 +242,12 @@ v0.6.4 <code>--qa-from</code> 循环 9/9 pass。
         <span>ink / paper / accent</span>
       </div>
       <a class="open" href="decks/B-lemon-yellow.html">open deck →</a>
+      <div class="card-thumbs"><a href="screenshots/B-lemon-yellow-table.png">table</a><a href="screenshots/B-lemon-yellow-takeaway.png">takeaway</a></div>
     </div>
   </div>
 
   <div class="card">
-    <div class="card-cover" style="background:#fafaf8;color:#0a0a0a;border-left:6px solid #C5E803;display:flex;flex-direction:column;gap:6px;">
-      <span>Agent</span><span>7 概念</span>
-    </div>
+    <div class="card-cover"><img src="screenshots/B-lemon-green-cover.png" alt="B-lemon-green cover" loading="lazy"></div>
     <div class="card-body">
       <div class="style">B · lemon-green</div>
       <div class="style-sub">柠檬绿 · 清新数据感</div>
@@ -237,13 +256,12 @@ v0.6.4 <code>--qa-from</code> 循环 9/9 pass。
         <span>ink / paper / accent</span>
       </div>
       <a class="open" href="decks/B-lemon-green.html">open deck →</a>
+      <div class="card-thumbs"><a href="screenshots/B-lemon-green-table.png">table</a><a href="screenshots/B-lemon-green-takeaway.png">takeaway</a></div>
     </div>
   </div>
 
   <div class="card">
-    <div class="card-cover" style="background:#fafaf8;color:#0a0a0a;border-left:6px solid #FF6B35;display:flex;flex-direction:column;gap:6px;">
-      <span>Agent</span><span>7 概念</span>
-    </div>
+    <div class="card-cover"><img src="screenshots/B-safety-orange-cover.png" alt="B-safety-orange cover" loading="lazy"></div>
     <div class="card-body">
       <div class="style">B · safety-orange</div>
       <div class="style-sub">警告橙 · 警示 / 行动</div>
@@ -252,6 +270,7 @@ v0.6.4 <code>--qa-from</code> 循环 9/9 pass。
         <span>ink / paper / accent</span>
       </div>
       <a class="open" href="decks/B-safety-orange.html">open deck →</a>
+      <div class="card-thumbs"><a href="screenshots/B-safety-orange-table.png">table</a><a href="screenshots/B-safety-orange-takeaway.png">takeaway</a></div>
     </div>
   </div>
 
