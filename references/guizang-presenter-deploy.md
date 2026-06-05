@@ -1,5 +1,12 @@
 # Guizang presenter deploy path
 
+> **v0.6.4 caveat:** these rules apply to the rendered HTML, not to the
+> Humanize PPT production brief. The brief (`guizang-production-prompt.md`)
+> tells the next agent to follow `guizang-ppt-skill/SKILL.md`; the presenter
+> shell, deploy packaging, and post-processing are all downstream-skill
+> responsibilities. Humanize does not produce or post-process the rendered
+> HTML. See `docs/versions/v0.6.4-guizang-production-brief-orchestrator.md`.
+
 Use this when the task is a Chinese PPT and the user wants a complete, presentable artifact rather than only an outline or draft deck.
 
 ## Default path

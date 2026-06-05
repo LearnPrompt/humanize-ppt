@@ -6,12 +6,13 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 SKILL_ROOT = Path(__file__).resolve().parents[1]
 REGISTRY_PATH = SKILL_ROOT / "registry" / "renderer_registry.json"
-VERSION = "0.6.3"
+VERSION = "0.6.5"
 BEAUTIFUL_REPO_URL = "https://github.com/zarazhangrui/beautiful-html-templates.git"
 DEFAULT_ZH_PREVIEW_COUNT = 3
 DEFAULT_EN_PREVIEW_COUNT = 5
@@ -130,6 +131,7 @@ def build_slide_plan(title, text, segments, renderer_hint):
         detail = body.replace(message, "", 1).strip(" 。，,.；;")
         if detail:
             visible.append(detail[:110])
+        media = decide_media(role, title if i == 1 else (item.get("title") or message), message, visible)
         plan.append(
             {
                 "slide_id": f"S{i:02d}",
@@ -138,11 +140,122 @@ def build_slide_plan(title, text, segments, renderer_hint):
                 "message": message[:120],
                 "visible_content": visible[:3],
                 "speaker_intent": intent,
-                "asset_need": "可选：截图、流程图或对比图" if role in {"method", "proof"} else "无",
+                "media": media,
+                "layout_hint": layout_hint_for_role(role),
                 "recommended_renderer": renderer_hint,
             }
         )
     return plan
+
+
+# Per-role media decision. Humanize makes the call; downstream skills
+# produce the actual material in their native format.
+ROLE_MEDIA_POLICY = {
+    "hook": {
+        "image":   {"needed": True,  "kind": "gpt-photo"},
+        "diagram": {"needed": False, "kind": "none"},
+        "video":   {"needed": False, "kind": "none"},
+    },
+    "context": {
+        "image":   {"needed": False, "kind": "none"},
+        "diagram": {"needed": True,  "kind": "svg-html"},
+        "video":   {"needed": False, "kind": "none"},
+    },
+    "tension": {
+        "image":   {"needed": True,  "kind": "svg-html"},
+        "diagram": {"needed": False, "kind": "none"},
+        "video":   {"needed": False, "kind": "none"},
+    },
+    "method": {
+        "image":   {"needed": False, "kind": "none"},
+        "diagram": {"needed": True,  "kind": "svg-html"},
+        "video":   {"needed": True,  "kind": "remotion-clip", "duration_s": 10},
+    },
+    "proof": {
+        "image":   {"needed": True,  "kind": "screenshot"},
+        "diagram": {"needed": True,  "kind": "svg-html"},
+        "video":   {"needed": True,  "kind": "remotion-clip", "duration_s": 8},
+    },
+    "takeaway": {
+        "image":   {"needed": True,  "kind": "svg-html"},
+        "diagram": {"needed": False, "kind": "none"},
+        "video":   {"needed": False, "kind": "none"},
+    },
+}
+
+ROLE_LAYOUT_HINT = {
+    "hook":     "S01-cover-hero",
+    "context":  "S04-context-system",
+    "tension":  "S06-tension-comparison",
+    "method":   "S07-process-21x9",
+    "proof":    "S12-proof-metrics",
+    "takeaway": "S22-takeaway",
+}
+
+
+def layout_hint_for_role(role):
+    return ROLE_LAYOUT_HINT.get(role)
+
+
+def decide_media(role, title, message, visible_content):
+    """Per-page media decision.
+
+    Returns a dict shaped like the `media` field in slide-plan.schema.json.
+    The downstream skill reads this and produces materials in its native
+    format. Humanize never renders them.
+    """
+    base = {
+        "image":   {"needed": False, "kind": "none"},
+        "diagram": {"needed": False, "kind": "none"},
+        "video":   {"needed": False, "kind": "none"},
+    }
+    policy = ROLE_MEDIA_POLICY.get(role)
+    if not policy:
+        return base
+
+    text = " ".join([title or "", message or "", " ".join(visible_content or [])]).lower()
+    for key in ("image", "diagram", "video"):
+        entry = dict(policy.get(key) or {"needed": False, "kind": "none"})
+        if entry.get("needed"):
+            entry["purpose"] = media_purpose(role, key, text)
+            entry["slot"] = media_slot(role, key)
+        base[key] = entry
+    return base
+
+
+def media_purpose(role, kind, text):
+    if kind == "image":
+        if role == "hook":
+            return "Set emotional anchor for the opening page"
+        if role == "tension":
+            return "Show before/after or contradiction visually"
+        if role == "proof":
+            return "Screenshot evidence of the real UI or result"
+        if role == "takeaway":
+            return "Visual summary that reinforces the closing judgment"
+    if kind == "diagram":
+        if role == "context":
+            return "Show the system relationship or scope"
+        if role == "method":
+            return "Diagram the process / decision tree / flow"
+        if role == "proof":
+            return "Diagram the comparison or supporting structure"
+    if kind == "video":
+        if role == "method":
+            return "8-12s process clip that walks through the method"
+        if role == "proof":
+            return "Short before/after or result clip"
+    return ""
+
+
+def media_slot(role, kind):
+    if kind == "image":
+        return f"{role}-image-16x9"
+    if kind == "diagram":
+        return f"{role}-diagram-21x9"
+    if kind == "video":
+        return f"{role}-video-16x9"
+    return f"{role}-{kind}"
 
 
 def write_contracts(out, title, source_path, text, plan, language):
@@ -200,30 +313,43 @@ def write_contracts(out, title, source_path, text, plan, language):
         ),
         encoding="utf-8",
     )
+    asset_rows = []
+    for p in plan:
+        media = p.get("media") or {}
+        for kind, key in (("image", "image"), ("diagram", "diagram"), ("video", "video")):
+            entry = media.get(key) or {}
+            if not entry.get("needed"):
+                continue
+            asset_rows.append(
+                f"| asset-{p['slide_id'].lower()}-{key} | {p['slide_id']} | {entry.get('kind', '?')} | {entry.get('purpose', '')} | pending |"
+            )
     (out / "asset_manifest.md").write_text(
-        "# Asset Manifest\n\n| asset_id | slide_id | type | purpose | status |\n|---|---|---|---|---|\n"
-        + "\n".join(
-            [
-                f"| asset-{p['slide_id'].lower()} | {p['slide_id']} | {p['asset_need']} | support `{p['role']}` | pending |"
-                for p in plan
-                if p["asset_need"] != "无"
-            ]
-        )
+        "# Asset Manifest\n\n"
+        "Each row is a Humanize-owned media decision. The downstream skill "
+        "produces the material in its own native format.\n\n"
+        "| asset_id | slide_id | type | purpose | status |\n"
+        "|---|---|---|---|---|\n"
+        + "\n".join(asset_rows)
         + "\n",
         encoding="utf-8",
     )
-    video_slots = [
-        {
-            "video_id": "V01",
-            "slide_id": p["slide_id"],
-            "purpose": "如需公开视频，可把该页方法/证据做成8-12秒解释片段。",
-            "duration_seconds": 10,
-            "aspect_ratio": "16:9",
-            "fallback_static": f"asset-{p['slide_id'].lower()}",
-        }
-        for p in plan
-        if p["role"] in {"method", "proof"}
-    ]
+    video_slots = []
+    for idx, p in enumerate(plan, 1):
+        video = (p.get("media") or {}).get("video") or {}
+        if not video.get("needed"):
+            continue
+        video_slots.append(
+            {
+                "video_id": f"V{idx:02d}",
+                "slide_id": p["slide_id"],
+                "kind": video.get("kind", "remotion-clip"),
+                "purpose": video.get("purpose", ""),
+                "duration_seconds": int(video.get("duration_s", 10)),
+                "aspect_ratio": "16:9",
+                "slot": video.get("slot", f"{p['role']}-video-16x9"),
+                "fallback_static": f"asset-{p['slide_id'].lower()}-diagram",
+            }
+        )
     (out / "video_slots.json").write_text(json.dumps(video_slots, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
@@ -989,102 +1115,764 @@ def write_commands(out, router_plan):
         (commands / name).write_text(command_text(route, out), encoding="utf-8")
 
 
-def find_guizang_template():
-    candidates = [
-        Path.home() / ".agents/skills/guizang-ppt-skill/assets/template.html",
-        Path.home() / ".hermes/skills/guizang-ppt-skill/assets/template.html",
-    ]
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
+# v0.6.4: Humanize PPT no longer imitates the Guizang renderer.
+# It stops at the production brief; guizang-ppt-skill renders natively.
+# See references/guizang-production-brief-orchestrator.md for the boundary contract.
+
+
+# ---------------------------------------------------------------------------
+# QA failure mode catalog (Lane C)
+# ---------------------------------------------------------------------------
+# v0.6.5: install self-check for downstream skills.
+# ---------------------------------------------------------------------------
+
+DOWNSTREAM_SKILL_PATHS = {
+    "guizang-ppt-skill": [
+        Path.home() / ".agents" / "skills" / "guizang-ppt-skill" / "SKILL.md",
+        Path.home() / ".hermes" / "skills" / "guizang-ppt-skill" / "SKILL.md",
+    ],
+    "frontend-slides": [
+        Path.home() / ".agents" / "skills" / "frontend-slides" / "SKILL.md",
+        Path.home() / ".hermes" / "skills" / "frontend-slides" / "SKILL.md",
+    ],
+    "beautiful-html-templates": [
+        Path.home() / ".agents" / "skills" / "beautiful-html-templates" / "SKILL.md",
+        Path.home() / ".hermes" / "skills" / "beautiful-html-templates" / "SKILL.md",
+    ],
+}
+
+
+def check_downstream_install(skill_name, skip=False):
+    """Return (installed: bool, path: Path|None). If not installed and not
+    skipped, print a stderr warning with the install command. Never fatal —
+    the brief is still written and the next agent is told to install.
+    """
+    paths = DOWNSTREAM_SKILL_PATHS.get(skill_name, [])
+    for p in paths:
+        if p.exists():
+            return True, p
+    if not skip:
+        sys.stderr.write(
+            f"\n[humanize-ppt v0.6.5] WARNING: {skill_name} not detected at any known path:\n"
+            f"  - " + "\n  - ".join(str(p) for p in paths) + "\n"
+            f"  The brief still ships, but the next agent must install {skill_name} before rendering.\n"
+            f"  Install: see the skill's GitHub README, or use the agent's skill install command.\n"
+            f"  To suppress this warning, pass --skip-install-check.\n\n"
+        )
+    return False, None
+
+
+# ---------------------------------------------------------------------------
+# Single source of truth for the conversational QA loop. The human-readable
+# reference is references/qa-failure-modes.md; ids must match exactly.
+
+REGISTERED_SWISS_LAYOUTS = {f"S{n:02d}" for n in range(1, 23)}  # S01..S22
+
+FAILURE_MODES = {
+    "placeholder-residue": {
+        "scope": ["guizang"],
+        "severity_default": "fail",
+        "description": "Template placeholders like [必填] or SLIDES_HERE leaked into the rendered HTML.",
+        "check": "check_placeholder_residue",
+    },
+    "low-power-default": {
+        "scope": ["guizang"],
+        "severity_default": "fail",
+        "description": "body.low-power is active by default, suppressing animation.",
+        "check": "check_low_power_default",
+    },
+    "webgl-canvas-missing": {
+        "scope": ["guizang-style-a"],
+        "severity_default": "fail",
+        "description": "Dual WebGL canvas (canvas#bg-dark and canvas#bg-light) is absent.",
+        "check": "check_webgl_canvas_missing",
+    },
+    "data-anim-thin": {
+        "scope": ["guizang-style-a"],
+        "severity_default": "fail",
+        "description": "data-anim / data-animate markers are too few to drive a watchable deck.",
+        "check": "check_data_anim_thin",
+    },
+    "swiss-sxx-count-mismatch": {
+        "scope": ["guizang-style-b"],
+        "severity_default": "fail",
+        "description": "data-layout=Sxx marker count does not match slide_plan.json slide count.",
+        "check": "check_swiss_sxx_count_mismatch",
+    },
+    "swiss-sxx-invented-id": {
+        "scope": ["guizang-style-b"],
+        "severity_default": "fail",
+        "description": "A data-layout=Sxx value is not in the registered S01..S22 set.",
+        "check": "check_swiss_sxx_invented_id",
+    },
+    "swiss-low-diversity": {
+        "scope": ["guizang-style-b"],
+        "severity_default": "warn",
+        "description": "Fewer than 60% unique Sxx values for the deck length.",
+        "check": "check_swiss_low_diversity",
+    },
+}
+
+
+def _finding(check_id, severity, evidence, pages=None):
+    return {
+        "id": check_id,
+        "severity": severity,
+        "evidence": evidence,
+        "pages": pages or [],
+    }
+
+
+def check_placeholder_residue(html, plan, ctx):
+    findings = []
+    if "[必填]" in html:
+        findings.append(_finding(
+            "placeholder-residue", "fail",
+            "Rendered HTML still contains [必填] template residue.",
+        ))
+    if "SLIDES_HERE" in html:
+        findings.append(_finding(
+            "placeholder-residue", "fail",
+            "Rendered HTML still contains SLIDES_HERE marker.",
+        ))
+    return findings
+
+
+def check_low_power_default(html, plan, ctx):
+    findings = []
+    body_match = re.search(r"<body\b[^>]*class=[\"']([^\"']*)[\"']", html, flags=re.IGNORECASE)
+    if body_match and "low-power" in (body_match.group(1) or "").split():
+        findings.append(_finding(
+            "low-power-default", "fail",
+            f"body has class='{body_match.group(1)}'; low-power must not be a default.",
+        ))
+    return findings
+
+
+def check_webgl_canvas_missing(html, plan, ctx):
+    findings = []
+    missing = []
+    if 'id="bg-dark"' not in html and "id='bg-dark'" not in html:
+        missing.append("canvas#bg-dark")
+    if 'id="bg-light"' not in html and "id='bg-light'" not in html:
+        missing.append("canvas#bg-light")
+    if missing:
+        findings.append(_finding(
+            "webgl-canvas-missing", "fail",
+            f"Style A requires {', '.join(missing)} for the WebGL hero background.",
+        ))
+    return findings
+
+
+def check_data_anim_thin(html, plan, ctx):
+    findings = []
+    count = len(re.findall(r"\bdata-anim(?:ate)?\b", html))
+    if count < 3:
+        findings.append(_finding(
+            "data-anim-thin", "fail",
+            f"Only {count} data-anim/data-animate markers. Need at least 3 (Ink Classic has 86).",
+        ))
+    elif count < 10:
+        findings.append(_finding(
+            "data-anim-thin", "warn",
+            f"Only {count} data-anim markers. Soft warning; Ink Classic has 86.",
+        ))
+    return findings
+
+
+def check_swiss_sxx_count_mismatch(html, plan, ctx):
+    findings = []
+    markers = re.findall(r'data-layout=[\"\'](S\d{2})[\"\']', html)
+    expected = len(plan)
+    if len(markers) != expected:
+        findings.append(_finding(
+            "swiss-sxx-count-mismatch", "fail",
+            f"Found {len(markers)} data-layout=Sxx markers; slide_plan has {expected} slides.",
+        ))
+    return findings
+
+
+def check_swiss_sxx_invented_id(html, plan, ctx):
+    findings = []
+    markers = re.findall(r'data-layout=[\"\'](S\d{2})[\"\']', html)
+    invented = sorted({m for m in markers if m not in REGISTERED_SWISS_LAYOUTS})
+    if invented:
+        findings.append(_finding(
+            "swiss-sxx-invented-id", "fail",
+            f"Invented non-registered Sxx values: {', '.join(invented)}. Registered set is S01..S22.",
+            pages=[],
+        ))
+    return findings
+
+
+def check_swiss_low_diversity(html, plan, ctx):
+    findings = []
+    markers = re.findall(r'data-layout=[\"\'](S\d{2})[\"\']', html)
+    if not markers:
+        return findings
+    unique = len(set(markers))
+    expected = len(plan)
+    floor = max(3, int(expected * 0.6))
+    if unique < 3:
+        findings.append(_finding(
+            "swiss-low-diversity", "fail",
+            f"Only {unique} unique Sxx values; minimum is 3.",
+        ))
+    elif unique < floor:
+        findings.append(_finding(
+            "swiss-low-diversity", "warn",
+            f"Only {unique} unique Sxx values; soft floor is {floor} (60% of {expected} slides).",
+        ))
+    return findings
+
+
+_CHECK_FUNCTIONS = {
+    "check_placeholder_residue": check_placeholder_residue,
+    "check_low_power_default": check_low_power_default,
+    "check_webgl_canvas_missing": check_webgl_canvas_missing,
+    "check_data_anim_thin": check_data_anim_thin,
+    "check_swiss_sxx_count_mismatch": check_swiss_sxx_count_mismatch,
+    "check_swiss_sxx_invented_id": check_swiss_sxx_invented_id,
+    "check_swiss_low_diversity": check_swiss_low_diversity,
+}
+
+
+def failure_modes_for(renderer, style=None):
+    """Return the failure modes that apply to (renderer, style)."""
+    target = renderer if not style else f"{renderer}-style-{style.lower()}"
+    out = {}
+    for mode_id, meta in FAILURE_MODES.items():
+        if target in meta["scope"] or renderer in meta["scope"]:
+            out[mode_id] = meta
+    return out
+
+
+def run_checks(html, plan, modes):
+    """Run each mode's check and return a list of findings."""
+    ctx = {"html_len": len(html), "slide_count": len(plan)}
+    findings = []
+    for mode_id, meta in modes.items():
+        fn = _CHECK_FUNCTIONS.get(meta["check"])
+        if not fn:
+            continue
+        for f in fn(html, plan, ctx):
+            findings.append(f)
+    return findings
+
+
+# ---------------------------------------------------------------------------
+# QA iteration files
+# ---------------------------------------------------------------------------
+
+
+def _qa_dir(out):
+    d = out / "outputs" / "qa"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def _read_iteration(out):
+    p = _qa_dir(out) / "qa_iteration.json"
+    if p.exists():
+        return json.loads(p.read_text(encoding="utf-8"))
     return None
 
 
-def slide_sections(title, plan):
-    sections = []
-    total = len(plan)
-    for idx, p in enumerate(plan, 1):
-        theme = "hero dark" if idx in {1, total} else ("light" if idx % 2 == 0 else "dark")
-        body = "".join(f"<li>{html.escape(x)}</li>" for x in p.get("visible_content", []))
-        if idx == 1:
-            sections.append(
-                f"""<section class="slide {theme}">
-  <div class="kicker">Humanize PPT V0.4 · AST ROUTER</div>
-  <h1 class="h-hero">{html.escape(title)}</h1>
-  <p class="lead">{html.escape(p['message'])}</p>
-  <div class="foot">{idx:02d} / {total:02d} · generated from slide_plan.json</div>
-</section>"""
-            )
-        else:
-            sections.append(
-                f"""<section class="slide {theme}">
-  <div class="grid-2-7-5">
-    <div>
-      <div class="kicker">{html.escape(p['role']).upper()} · {idx:02d} / {total:02d}</div>
-      <h2 class="h-xl">{html.escape(p['title'])}</h2>
-    </div>
-    <div class="callout">
-      <p class="lead">{html.escape(p['message'])}</p>
-      <ul>{body}</ul>
-      <div class="callout-src">Speaker intent: {html.escape(p['speaker_intent'])}</div>
-    </div>
-  </div>
-</section>"""
-            )
-    return "\n\n".join(sections)
+def _write_iteration(out, data):
+    p = _qa_dir(out) / "qa_iteration.json"
+    p.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def inject_presenter_bridge(html_doc):
-    """Expose guizang deck navigation to Humanize PPT presenter shells."""
-    if "presenter-goto" in html_doc:
-        return html_doc
-    bridge = """
-window.__goSlide = go;
-addEventListener('message',e=>{
-  const msg=e.data||{};
-  if(!msg || typeof msg!=='object')return;
-  if(msg.type==='presenter-goto' && Number.isFinite(msg.index)){lock=false;go(msg.index);}
-  if(msg.type==='preview-goto' && Number.isFinite(msg.idx)){lock=false;go(msg.idx);}
-  if(msg.type==='presenter-next'){lock=false;go(idx+1);}
-  if(msg.type==='presenter-prev'){lock=false;go(idx-1);}
-  if(msg.type==='presenter-state-request' && parent!==window){
-    parent.postMessage({type:'presenter-state',index:idx,total},'*');
-  }
-});
-"""
-    marker = "\n\n/* =============== ESC 索引视图 =============== */"
-    if "function go(n)" in html_doc and marker in html_doc:
-        html_doc = html_doc.replace(marker, "\n" + bridge + marker, 1)
-    initial = """const initialSlideParam = new URLSearchParams(location.search).get('slide');
-const initialSlide = initialSlideParam ? Number(initialSlideParam) - 1 : 0;
-go(Number.isFinite(initialSlide) ? initialSlide : 0);"""
-    if "\ngo(0);\n</script>" in html_doc and "initialSlideParam" not in html_doc:
-        html_doc = html_doc.replace("\ngo(0);\n</script>", "\n" + initial + "\n</script>", 1)
-    return html_doc
-
-
-def write_guizang_output(out, title, plan):
-    target = out / "outputs" / "guizang"
-    target.mkdir(parents=True, exist_ok=True)
-    template_path = find_guizang_template()
-    sections = slide_sections(title, plan)
-    if template_path:
-        template = template_path.read_text(encoding="utf-8", errors="replace")
-        html_doc = template.replace("[必填] 替换为 PPT 标题 · Deck Title", f"{title} · Humanize PPT V0.4")
-        html_doc = html_doc.replace("<!-- SLIDES_HERE -->", sections)
-        html_doc = inject_presenter_bridge(html_doc)
-        report = f"# Guizang Render Report\n\n- status: rendered\n- template: {template_path}\n- output: {target / 'index.html'}\n- slides: {len(plan)}\n"
+def _write_qa_report(out, iteration, findings, status, max_iterations):
+    qa = _qa_dir(out)
+    fail_count = sum(1 for f in findings if f["severity"] == "fail")
+    warn_count = sum(1 for f in findings if f["severity"] == "warn")
+    lines = [
+        "# QA Report",
+        "",
+        f"- iteration: {iteration} / {max_iterations}",
+        f"- status: {status}",
+        f"- fail: {fail_count}",
+        f"- warn: {warn_count}",
+        "",
+        "## Findings",
+        "",
+    ]
+    if not findings:
+        lines.append("No findings. Deck is clean.")
     else:
-        html_doc = fallback_deck(title, plan)
-        report = "# Guizang Render Report\n\n- status: rendered-with-fallback\n- template: not found\n"
-    (target / "index.html").write_text(html_doc, encoding="utf-8")
-    (target / "render_report.md").write_text(report, encoding="utf-8")
-    return target / "index.html"
+        for f in findings:
+            lines.append(f"### `{f['id']}` — {f['severity']}")
+            lines.append("")
+            lines.append(f"- evidence: {f['evidence']}")
+            if f.get("pages"):
+                lines.append(f"- pages: {', '.join(f['pages'])}")
+            lines.append("")
+    (qa / "qa_report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def fallback_deck(title, plan):
-    sections = slide_sections(title, plan)
-    return f"""<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{html.escape(title)}</title><style>body{{margin:0;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;background:#111;color:#f6f1e8;overflow:hidden}}.slide{{display:none;width:100vw;height:100vh;padding:8vh 8vw;box-sizing:border-box}}.slide:first-of-type{{display:block}}.h-hero,.h-xl{{font-size:clamp(44px,7vw,108px);line-height:1.02;margin:0 0 4vh}}.lead{{font-size:clamp(22px,2.4vw,38px);line-height:1.35}}.kicker,.foot,.callout-src{{color:#d7b56d;letter-spacing:.08em}}.grid-2-7-5{{display:grid;grid-template-columns:7fr 5fr;gap:5vw}}li{{font-size:clamp(18px,1.5vw,26px);line-height:1.55;margin:.5em 0}}</style></head><body>{sections}<script>const s=[...document.querySelectorAll('.slide')];let i=0;function show(n){{i=Math.max(0,Math.min(s.length-1,n));window.__currentSlideIndex=i;s.forEach((x,k)=>x.style.display=k===i?'block':'none');if(parent!==window)parent.postMessage({{type:'presenter-state',index:i,total:s.length}},'*')}}window.__goSlide=show;addEventListener('message',e=>{{const m=e.data||{{}};if(m.type==='presenter-goto'&&Number.isFinite(m.index))show(m.index);if(m.type==='preview-goto'&&Number.isFinite(m.idx))show(m.idx);if(m.type==='presenter-state-request')show(i)}});document.addEventListener('keydown',e=>{{if(e.key==='ArrowRight'||e.key===' ')show(i+1);if(e.key==='ArrowLeft')show(i-1)}});const start=Number(new URLSearchParams(location.search).get('slide')||1)-1;show(Number.isFinite(start)?start:0)</script></body></html>"""
+def _write_fix_prompt(out, iteration, unresolved, rendered_path, style):
+    qa = _qa_dir(out)
+    if not unresolved:
+        (qa / "fix_prompt.md").write_text(
+            "# Fix Prompt\n\nNo open findings. Convergence reached.\n",
+            encoding="utf-8",
+        )
+        return
+    lines = [
+        "# Fix Prompt",
+        "",
+        f"> Round {iteration}. Apply the following to the rendered HTML",
+        f"> at `{rendered_path}` via the downstream skill's native re-render.",
+        f"> Do not post-process in Humanize.",
+        "",
+        "## Style",
+        f"- renderer: guizang",
+        f"- style: {style}",
+        "",
+        "## Fix instructions (one per finding)",
+        "",
+    ]
+    fix_specs = {
+        "placeholder-residue": "Substitute all [必填] placeholders and remove the <!-- SLIDES_HERE --> marker. The downstream skill's own substitution pass must run end-to-end.",
+        "low-power-default": "Remove `low-power` from the body class. Animation must play on first load.",
+        "webgl-canvas-missing": "Add both `canvas#bg-dark` and `canvas#bg-light` so the Style A WebGL hero background can render.",
+        "data-anim-thin": "Add more `data-anim` / `data-animate` markers across non-cover pages. Aim for 10+ (Ink Classic has 86).",
+        "swiss-sxx-count-mismatch": "Make the number of `data-layout=\"Sxx\"` markers equal to the slide count in slide_plan.json. Re-emit from the downstream skill.",
+        "swiss-sxx-invented-id": "Replace the invented Sxx values with registered S01..S22 layout IDs from `references/layouts-swiss.md`.",
+        "swiss-low-diversity": "Diversify the Swiss layouts. Pick a different registered Sxx per slide where possible. Floor is 60% unique values.",
+    }
+    for f in unresolved:
+        spec = fix_specs.get(f["id"], f["evidence"])
+        lines.append(f"### `{f['id']}` ({f['severity']})")
+        lines.append("")
+        lines.append(f"- evidence: {f['evidence']}")
+        if f.get("pages"):
+            lines.append(f"- pages: {', '.join(f['pages'])}")
+        lines.append(f"- fix: {spec}")
+        lines.append("")
+    (qa / "fix_prompt.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def run_qa_mode(args):
+    """Post-render QA loop. Reads a rendered HTML, scans for failure modes,
+    writes qa_report.md and fix_prompt.md, tracks iteration.
+    """
+    rendered = Path(args.qa_from).expanduser().resolve()
+    if not rendered.exists():
+        sys.stderr.write(f"--qa-from path not found: {rendered}\n")
+        return 2
+
+    out = Path(args.out).expanduser().resolve()
+    out.mkdir(parents=True, exist_ok=True)
+
+    renderer = args.renderer if args.renderer != "auto" else "guizang"
+    style = (getattr(args, "guizang_style", None) or "A").upper()
+    max_iter = max(1, int(getattr(args, "max_qa_iterations", 3) or 3))
+
+    plan_path = out / "slide_plan.json"
+    plan = []
+    if plan_path.exists():
+        try:
+            plan = json.loads(plan_path.read_text(encoding="utf-8"))
+        except Exception:
+            plan = []
+
+    prev = _read_iteration(out)
+    iteration = (prev["iteration"] + 1) if prev else 1
+
+    if prev and prev.get("status") == "needs-human":
+        # Cap already reached last round. Don't re-loop.
+        sys.stderr.write(
+            f"qa loop already at needs-human (round {prev['iteration']}). "
+            f"Re-render via the downstream skill, then run --qa-from again.\n"
+        )
+        return 0
+
+    if iteration > max_iter:
+        # Should not normally hit here because we set needs-human on the
+        # last real round, but guard anyway.
+        _write_iteration(out, {
+            "iteration": iteration,
+            "status": "needs-human",
+            "max_iterations": max_iter,
+            "renderer": renderer,
+            "style": style,
+            "unresolved": [],
+            "history": (prev or {}).get("history", []),
+        })
+        sys.stderr.write(f"qa cap reached ({max_iter} rounds). Status: needs-human.\n")
+        return 0
+
+    html = rendered.read_text(encoding="utf-8", errors="replace")
+    modes = failure_modes_for(renderer, style=style)
+    findings = run_checks(html, plan, modes)
+    fail_findings = [f for f in findings if f["severity"] == "fail"]
+    warn_findings = [f for f in findings if f["severity"] == "warn"]
+
+    resolved = []
+    unresolved_failures = list(fail_findings)
+    if prev:
+        prev_unresolved_ids = {f["id"] for f in prev.get("unresolved", [])}
+        resolved = [fid for fid in prev_unresolved_ids if fid not in {f["id"] for f in fail_findings}]
+        # If the previous round had un-resolved failures, those carry forward
+        # even if the new check doesn't re-trigger them — treat them as
+        # still-open.
+        carry_over = [f for f in prev.get("unresolved", []) if f["id"] in {f["id"] for f in fail_findings}]
+        unresolved_failures = carry_over + [f for f in fail_findings if f not in carry_over]
+
+    converged = not unresolved_failures
+    is_last = iteration >= max_iter
+    if converged:
+        status = "pass"
+    elif is_last:
+        status = "needs-human"
+    else:
+        status = "iterate"
+
+    _write_qa_report(out, iteration, findings, status, max_iter)
+    _write_fix_prompt(out, iteration, unresolved_failures, rendered, style)
+
+    history = list((prev or {}).get("history", []))
+    history.append({
+        "iteration": iteration,
+        "status": status,
+        "fail_count": len(fail_findings),
+        "warn_count": len(warn_findings),
+        "unresolved_ids": sorted({f["id"] for f in unresolved_failures}),
+        "resolved_ids": sorted(resolved),
+    })
+    _write_iteration(out, {
+        "iteration": iteration,
+        "status": status,
+        "max_iterations": max_iter,
+        "renderer": renderer,
+        "style": style,
+        "unresolved": unresolved_failures,
+        "history": history,
+    })
+
+    print(json.dumps(
+        {
+            "iteration": iteration,
+            "max_iterations": max_iter,
+            "status": status,
+            "fail": len(fail_findings),
+            "warn": len(warn_findings),
+            "qa_report": str(out / "outputs" / "qa" / "qa_report.md"),
+            "fix_prompt": str(out / "outputs" / "qa" / "fix_prompt.md"),
+            "iteration_file": str(out / "outputs" / "qa" / "qa_iteration.json"),
+        },
+        ensure_ascii=False,
+        indent=2,
+    ))
+    return 0
+
+
+def write_guizang_production_brief(out, title, plan, source, language, style="A", theme=None, accent=None):
+    """Write only the Guizang production brief. No HTML is produced here.
+
+    The next agent must read `guizang-ppt-skill/SKILL.md` and render natively.
+    Humanize never opens the Guizang template, never injects sections, and
+    never post-processes the rendered HTML.
+    """
+    style = (style or "A").upper()
+    if style not in {"A", "B"}:
+        style = "A"
+
+    # v0.6.5: 9 combinations = Style A (5 fixed themes) + Style B (4 accent colors).
+    # Style A themes cannot be customized — pick from the 5 presets.
+    # Style B accents are single-color overlays on the Swiss template.
+    style_a_themes = {
+        "ink-classic":      "Ink Classic (墨水经典) — the verified known-good baseline at examples/03-codex-guizang-native-ink-classic/",
+        "indigo-porcelain": "Indigo Porcelain (靛蓝瓷) — blue-grey porcelain palette",
+        "forest-ink":       "Forest Ink (森林墨) — green-on-cream palette",
+        "kraft-paper":      "Kraft Paper (牛皮纸) — warm brown paper palette",
+        "dune":             "Dune (沙丘) — sand-and-shadow palette",
+    }
+    style_b_accents = {
+        "ikb":             "Klein Blue (IKB) — International Klein Blue, the most-cited Swiss reference",
+        "lemon-yellow":    "Lemon Yellow — high-contrast pop accent on Swiss grid",
+        "lemon-green":     "Lemon Green — fresh accent for tech/data topics",
+        "safety-orange":   "Safety Orange — warning-construction energy, for tension / call-to-action slides",
+    }
+
+    if style == "A":
+        theme_key = (theme or "ink-classic").lower()
+        if theme_key not in style_a_themes:
+            theme_key = "ink-classic"
+        style_table = {
+            "template": "assets/template.html",
+            "layouts": "references/layouts.md",
+            "themes": "references/themes.md",
+            "theme_preset": theme_key,
+            "theme_label": style_a_themes[theme_key],
+            "validator": "guizang's own Style A visual QA checklist (see references/guizang-material-qa.md)",
+            "lock": "(none — Style A is the flexible track)",
+        }
+    else:
+        accent_key = (accent or "ikb").lower()
+        if accent_key not in style_b_accents:
+            accent_key = "ikb"
+        style_table = {
+            "template": "assets/template-swiss.html",
+            "layouts": "references/layouts-swiss.md",
+            "themes": "references/themes-swiss.md",
+            "accent": accent_key,
+            "accent_label": style_b_accents[accent_key],
+            "validator": "scripts/validate-swiss-deck.mjs",
+            "lock": "references/swiss-layout-lock.md",
+        }
+
+    inputs_block = "\n".join(
+        f"- `{name}`"
+        for name in [
+            "deck_brief.md",
+            "ast_outline.md",
+            "slide_plan.json",
+            "speaker_intent.md",
+            "asset_manifest.md",
+            "video_slots.json",
+            "style_brief.md",
+        ]
+    )
+
+    media_lines = []
+    for p in plan:
+        slide_id = p.get("slide_id", "")
+        media = p.get("media") or {}
+        image = media.get("image") or {}
+        diagram = media.get("diagram") or {}
+        video = media.get("video") or {}
+        bits = []
+        if image.get("needed"):
+            bits.append(f"image={image.get('kind', 'unspecified')}")
+        if diagram.get("needed"):
+            bits.append(f"diagram={diagram.get('kind', 'svg-html')}")
+        if video.get("needed"):
+            bits.append(f"video={video.get('kind', 'remotion-clip')} ({video.get('duration_s', '?')}s)")
+        if not bits:
+            bits.append("no media")
+        media_lines.append(f"- {slide_id} {p.get('title', '')} — {', '.join(bits)}")
+
+    media_block = "\n".join(media_lines) if media_lines else "- (no slide-level media decisions in this plan)"
+
+    style_a_qa = """\
+- no `[必填]` template residue
+- no `<!-- SLIDES_HERE -->` marker residue
+- `canvas#bg-dark` exists
+- `canvas#bg-light` exists
+- `body.low-power` is not active by default
+- `.slide.hero.light,.slide.hero.dark { background: transparent }` is applied so the WebGL hero canvas is visible
+- meaningful `data-anim` / `data-animate` markers are present
+- at least 3 `data-anim` occurrences per non-cover page (Ink Classic checkpoint has 86)"""
+
+    style_b_qa = """\
+- `scripts/validate-swiss-deck.mjs` exits with code 0
+- every slide has a registered `data-layout="Sxx"` marker
+- `data-layout` count equals slide count
+- at least 6 unique Swiss layouts for a 7-8 page deck (higher for longer decks)
+- no invented, non-registered layout IDs
+- no inserted SVG/image/video frame clips, overlaps, or hugs the slide edge
+- inserted materials do not repeat the slide title"""
+
+    prompt = f"""# Guizang Production Prompt
+
+> Humanize PPT stops here. The next agent must follow
+> `~/.agents/skills/guizang-ppt-skill/SKILL.md` end to end.
+> Do not reimplement Guizang inside Humanize. Do not import the
+> Guizang template into Humanize. Do not post-process the rendered HTML
+> with Humanize-owned bridges — Guizang owns its own navigation.
+
+## Deck
+
+- Title: {title}
+- Source: {source}
+- Language: {language}
+- Style: {style}
+{('- Theme preset: ' + style_table.get('theme_preset', '') + ' (' + style_table.get('theme_label', '') + ')') if style == 'A' else ''}
+{('- Accent color: ' + style_table.get('accent', '') + ' (' + style_table.get('accent_label', '') + ')') if style == 'B' else ''}
+- Slides: {len(plan)}
+
+## Style files (use the ones for Style {style})
+
+- template: `{style_table['template']}`
+- layouts: `{style_table['layouts']}`
+- themes: `{style_table['themes']}`
+- lock: {style_table['lock']}
+- validator: `{style_table['validator']}`
+{("- Apply theme preset: `" + style_table.get('theme_preset', '') + "` from references/themes.md") if style == 'A' else ''}
+{("- Apply accent color: `" + style_table.get('accent', '') + "` from references/themes-swiss.md") if style == 'B' else ''}
+
+## Hard rules
+
+- Read `guizang-ppt-skill/SKILL.md` before any rendering. Do not skip it.
+- Pick every page's layout from the registered set in
+  `{style_table['layouts']}`. Do not invent layout classes.
+- Preserve Guizang's animation hooks (`data-anim` / `data-animate`),
+  Motion One loading, and the WebGL dual canvas where Style A applies.
+- This prompt requires `guizang-ppt-skill` to be installed at
+  `~/.agents/skills/guizang-ppt-skill/`. If it is not, the next agent
+  must install it before rendering. The brief still ships.
+- Run the validator above before reporting complete.
+- Do not modify or post-process the rendered HTML in Humanize.
+- The HTML that ends up on disk is produced by `guizang-ppt-skill`,
+  not by Humanize.
+
+## Inputs already produced by Humanize
+
+{inputs_block}
+
+## Per-page media decisions (Humanize-owned)
+
+{media_block}
+
+## Known-good checkpoint (read-only reference)
+
+- `examples/03-codex-guizang-native-ink-classic/index.html`
+  (Style A, Ink Classic, 10 slides, hero WebGL background, 86 `data-anim`
+  occurrences). Open it to see the bar for Style A quality.
+
+## Style {style} QA gates (must all pass)
+
+{style_a_qa if style == 'A' else style_b_qa}
+
+## Hand-off
+
+The next agent writes its output to its own convention
+(e.g. `outputs/guizang-rendered/index.html`). Do not write to
+`outputs/guizang/` — that is reserved for legacy Humanize adapter paths
+and is no longer used in v0.6.4.
+"""
+
+    (out / "guizang-production-prompt.md").write_text(prompt, encoding="utf-8")
+    return {
+        "status": "brief-written",
+        "prompt": str(out / "guizang-production-prompt.md"),
+        "style": style,
+        "slides": len(plan),
+    }
+
+
+def write_frontend_slides_production_brief(out, title, plan, source, language):
+    """Write only the frontend-slides production brief. No HTML is produced.
+
+    Skeleton: the next agent must follow
+    `~/.agents/skills/frontend-slides/SKILL.md` and use its own native
+    pipeline (PPTX → HTML conversion, viewport-safe HTML deck, deploy).
+    Humanize never opens the frontend-slides template.
+    """
+    inputs_block = "\n".join(
+        f"- `{name}`"
+        for name in [
+            "deck_brief.md",
+            "ast_outline.md",
+            "slide_plan.json",
+            "speaker_intent.md",
+            "asset_manifest.md",
+            "video_slots.json",
+            "style_brief.md",
+        ]
+    )
+
+    prompt = f"""# Frontend Slides Production Prompt
+
+> Humanize PPT stops here. The next agent must follow
+> `~/.agents/skills/frontend-slides/SKILL.md` end to end.
+> Do not reimplement the renderer inside Humanize.
+
+## Deck
+
+- Title: {title}
+- Source: {source}
+- Language: {language}
+- Slides: {len(plan)}
+
+## Hard rules
+
+- Read `frontend-slides/SKILL.md` first. Use its native PPTX→HTML
+  conversion, viewport-safe deck, and Vercel deploy path.
+- Use the registered layouts / templates that skill ships with. Do not
+  invent layout classes.
+- Do not post-process the rendered HTML in Humanize. Frontend-slides
+  owns its own navigation, presenter shell, and deploy step.
+
+## Inputs already produced by Humanize
+
+{inputs_block}
+
+## Hand-off
+
+The next agent writes its output to its own convention
+(e.g. `outputs/frontend-slides-rendered/index.html`).
+"""
+
+    (out / "frontend-slides-production-prompt.md").write_text(prompt, encoding="utf-8")
+    return {
+        "status": "brief-written",
+        "prompt": str(out / "frontend-slides-production-prompt.md"),
+        "slides": len(plan),
+    }
+
+
+def write_beautiful_html_templates_production_brief(out, title, plan, source, language):
+    """Write only the beautiful-html-templates production brief. No HTML produced.
+
+    Skeleton: the next agent must follow
+    `~/.agents/skills/beautiful-html-templates/SKILL.md` and use its own
+    native template selection + full-deck rendering.
+    Humanize never copies templates or injects sections.
+    """
+    inputs_block = "\n".join(
+        f"- `{name}`"
+        for name in [
+            "deck_brief.md",
+            "ast_outline.md",
+            "slide_plan.json",
+            "speaker_intent.md",
+            "asset_manifest.md",
+            "video_slots.json",
+            "style_brief.md",
+        ]
+    )
+
+    prompt = f"""# Beautiful HTML Templates Production Prompt
+
+> Humanize PPT stops here. The next agent must follow
+> `~/.agents/skills/beautiful-html-templates/SKILL.md` end to end.
+> Do not reimplement the renderer inside Humanize.
+
+## Deck
+
+- Title: {title}
+- Source: {source}
+- Language: {language}
+- Slides: {len(plan)}
+
+## Hard rules
+
+- Read `beautiful-html-templates/SKILL.md` first. Use its native
+  template selection, preview gallery, and selected-template full-deck
+  generation.
+- Do not copy templates or inject custom sections into Humanize.
+  Beautiful owns the rendered HTML end-to-end.
+
+## Inputs already produced by Humanize
+
+{inputs_block}
+
+## Hand-off
+
+The next agent writes its output to its own convention
+(e.g. `outputs/beautiful-rendered/index.html`).
+"""
+
+    (out / "beautiful-html-templates-production-prompt.md").write_text(prompt, encoding="utf-8")
+    return {
+        "status": "brief-written",
+        "prompt": str(out / "beautiful-html-templates-production-prompt.md"),
+        "slides": len(plan),
+    }
 
 
 def write_qa(out, plan, render_issues=None):
@@ -1172,10 +1960,14 @@ def copy_registry_snapshot(out):
 
 
 def parse_args():
-    ap = argparse.ArgumentParser(description="Humanize PPT V0.5 Presenter / Export Adapter")
-    ap.add_argument("--source", required=True)
-    ap.add_argument("--out", required=True)
-    ap.add_argument("--title", required=True)
+    ap = argparse.ArgumentParser(
+        description="Humanize PPT v0.6.4 — outline director + per-page media decision + brief orchestrator + post-render QA loop"
+    )
+    ap.add_argument("--source", default=None, help="Source markdown / PPTX. Required for brief mode.")
+    ap.add_argument("--out", required=True, help="Output directory.")
+    ap.add_argument("--title", default=None, help="Deck title. Required for brief mode.")
+    ap.add_argument("--qa-from", default=None, help="Path to a rendered HTML deck. Switches to QA mode. Mutually exclusive with --source.")
+    ap.add_argument("--max-qa-iterations", type=int, default=3, help="Max QA rounds before status flips to needs-human. Default 3.")
     ap.add_argument("--renderer", default="auto", choices=["auto", "guizang", "beautiful-html-templates", "html-ppt", "frontend-slides"])
     ap.add_argument("--style-mode", default="stable-first", choices=["stable-first", "preview-first", "presenter-first"])
     ap.add_argument("--selected-template", default=None, help="Beautiful template slug to render as a full deck after preview selection.")
@@ -1188,17 +1980,267 @@ def parse_args():
     ap.add_argument("--no-beautiful-auto-clone", action="store_true", help="Do not auto-clone beautiful-html-templates into ~/.cache/humanize-ppt.")
     ap.add_argument("--presenter", action="store_true")
     ap.add_argument("--no-render", action="store_true", help="Only write contracts, router plan, commands, and manifest.")
+    ap.add_argument("--guizang-style", default=None, choices=["A", "B"], help="Guizang style (A = flexible, B = Swiss locked). Defaults to A.")
+    ap.add_argument(
+        "--guizang-theme",
+        default=None,
+        choices=["ink-classic", "indigo-porcelain", "forest-ink", "kraft-paper", "dune"],
+        help="Style A theme preset. Required when --guizang-style=A. v0.6.5: 5 built-in presets, no custom colors.",
+    )
+    ap.add_argument(
+        "--guizang-accent",
+        default=None,
+        choices=["ikb", "lemon-yellow", "lemon-green", "safety-orange"],
+        help="Style B accent color. Required when --guizang-style=B. v0.6.5: pick 1 of 4.",
+    )
+    ap.add_argument(
+        "--research-md",
+        default=None,
+        help="Path to a pre-existing research document (e.g. hv-analysis output) to use as the brief source instead of --source.",
+    )
+    ap.add_argument(
+        "--skip-install-check",
+        action="store_true",
+        help="Skip the guizang-ppt-skill (or relevant downstream skill) install self-check warning.",
+    )
+    ap.add_argument(
+        "--preview-outline",
+        action="store_true",
+        help="v0.6.6: write outline-preview.md (human-readable AST slice) and stop. Re-run with --confirm-outline after review.",
+    )
+    ap.add_argument(
+        "--confirm-outline",
+        action="store_true",
+        help="v0.6.6: read outline-preview.md (from a prior --preview-outline run) and resume the brief write. Refuses if outline is missing or source mtime is newer.",
+    )
     return ap.parse_args()
+
+
+# ---------------------------------------------------------------------------
+# v0.6.6: --preview-outline / --confirm-outline review-checkpoint pair.
+# Spec: references/preview-outline-spec.md
+# ---------------------------------------------------------------------------
+
+
+def _format_outline_preview(title, plan, source_path, language, style, theme, accent):
+    """Render the human-readable outline-preview.md content."""
+    n = len(plan)
+    role_counts = {}
+    for p in plan:
+        role_counts[p.get("role", "slide")] = role_counts.get(p.get("role", "slide"), 0) + 1
+    arc = " · ".join(f"{k} {v}" for k, v in role_counts.items())
+
+    lines = [
+        "# Outline preview",
+        "",
+        "> AST slice: " + arc,
+        f"> Source: {source_path}",
+        f"> Renderer: guizang · Style: {style}" + (f" · Theme: {theme}" if style == "A" else f" · Accent: {accent}"),
+        f"> Slides: {n}",
+        f"> Title: {title}",
+        "",
+    ]
+    for p in plan:
+        title_chars = len([c for c in p.get("title", "") if "一" <= c <= "鿿"])
+        body_chars = sum(len([c for c in v if "一" <= c <= "鿿"]) for v in p.get("visible_content", []))
+        lines.append(f"## {p.get('slide_id', '?')} · {p.get('role', 'slide')}")
+        lines.append(f"Title ({title_chars} 中文字): {p.get('title', '')}")
+        lines.append(f"Body ({body_chars} 中文字):")
+        for v in p.get("visible_content", []):
+            lines.append(f"  - {v}")
+        if p.get("speaker_intent"):
+            lines.append(f"Speaker intent: {p['speaker_intent']}")
+        lines.append("")
+
+    lines.append("---")
+    lines.append("")
+    lines.append("## Per-page media decisions (Humanize-owned)")
+    lines.append("")
+    for p in plan:
+        m = p.get("media") or {}
+        bits = []
+        for kind in ("image", "diagram", "video"):
+            entry = m.get(kind) or {}
+            if entry.get("needed"):
+                kind_label = entry.get("kind", "?")
+                if kind == "video":
+                    kind_label = f"{kind_label} ({entry.get('duration_s', '?')}s)"
+                bits.append(f"{kind}={kind_label}")
+        if not bits:
+            bits.append("no media")
+        lines.append(f"- {p.get('slide_id', '?')} {p.get('role', '?')}: {', '.join(bits)}")
+
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+    lines.append("## Review checklist")
+    lines.append("")
+    lines.append("- [ ] Title counts fit the layout slot (≤ 15 中文字 for cover/headline)")
+    lines.append("- [ ] All visible_content ≥ 30 中文字 (no empty pages)")
+    lines.append("- [ ] No banned substrings (Khazix, methodology, attribution) in any body")
+    lines.append("- [ ] 7 concepts (Agent / Tool / Function calling / MCP / Skill / Rules / Hook / Subagent) all present if relevant")
+    lines.append("- [ ] Per-page media decisions make sense for the page role")
+    lines.append("")
+    lines.append("When reviewed, re-run with `--confirm-outline` to write the production prompt.")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def run_preview_outline_mode(args):
+    """--preview-outline: write outline-preview.md and stop. No brief, no QA."""
+    out = Path(args.out).expanduser().resolve()
+    out.mkdir(parents=True, exist_ok=True)
+
+    try:
+        if getattr(args, "research_md", None):
+            research_path = Path(args.research_md).expanduser().resolve()
+            if not research_path.exists():
+                sys.stderr.write(f"--research-md path not found: {research_path}\n")
+                return 2
+            source_path, text, segments = read_source(str(research_path))
+        else:
+            if not args.source:
+                sys.stderr.write("--source (or --research-md) is required for --preview-outline\n")
+                return 2
+            source_path = Path(args.source).expanduser().resolve()
+            if not source_path.exists():
+                sys.stderr.write(f"--source path not found: {source_path}\n")
+                return 2
+            source_path, text, segments = read_source(str(source_path))
+    except FileNotFoundError as e:
+        sys.stderr.write(f"Source not found: {e}\n")
+        return 2
+    language = detect_language(text)
+    plan = build_slide_plan(args.title, text, segments, args.renderer)
+
+    style = getattr(args, "guizang_style", None) or "A"
+    theme = getattr(args, "guizang_theme", None)
+    accent = getattr(args, "guizang_accent", None)
+
+    outline_md = _format_outline_preview(
+        title=args.title,
+        plan=plan,
+        source_path=source_path,
+        language=language,
+        style=style,
+        theme=theme,
+        accent=accent,
+    )
+    outline_path = out / "outline-preview.md"
+    outline_path.write_text(outline_md, encoding="utf-8")
+
+    print(json.dumps(
+        {
+            "ok": True,
+            "stopped_at": "preview-outline",
+            "outline_path": str(outline_path),
+            "slide_count": len(plan),
+            "next_step": "Review outline-preview.md. Re-run with --confirm-outline to write the production prompt.",
+        },
+        ensure_ascii=False,
+        indent=2,
+    ))
+    return 0
+
+
+def run_confirm_outline_mode(args):
+    """--confirm-outline: read outline-preview.md and validate freshness.
+
+    Writes preview-confirmed.json with the confirmation timestamp.
+    The brief is then written by re-running without --confirm-outline.
+    """
+    out = Path(args.out).expanduser().resolve()
+    outline_path = out / "outline-preview.md"
+    if not outline_path.exists():
+        sys.stderr.write(
+            f"outline-preview.md not found at {outline_path}. "
+            f"Re-run with --preview-outline first.\n"
+        )
+        return 2
+
+    # Mtime check: source must not be newer than the outline
+    if getattr(args, "research_md", None):
+        source_path = Path(args.research_md).expanduser().resolve()
+    else:
+        source_path = Path(args.source).expanduser().resolve()
+    if not source_path.exists():
+        sys.stderr.write(f"Source not found: {source_path}\n")
+        return 2
+    if source_path.stat().st_mtime > outline_path.stat().st_mtime:
+        sys.stderr.write(
+            f"Source {source_path} was modified after outline-preview.md was written. "
+            f"Re-run with --preview-outline to refresh.\n"
+        )
+        return 2
+
+    confirmed_marker = out / "preview-confirmed.json"
+    confirmed_marker.write_text(json.dumps(
+        {
+            "confirmed_at": now_iso(),
+            "outline_path": str(outline_path),
+            "source_path": str(source_path),
+            "next_step": "Re-run the same command WITHOUT --confirm-outline to write the production prompt.",
+        },
+        ensure_ascii=False,
+        indent=2,
+    ), encoding="utf-8")
+
+    print(json.dumps(
+        {
+            "ok": True,
+            "stopped_at": "confirm-outline",
+            "outline_path": str(outline_path),
+            "confirmed_marker": str(confirmed_marker),
+            "next_step": "Re-run the same command WITHOUT --confirm-outline to write the production prompt.",
+        },
+        ensure_ascii=False,
+        indent=2,
+    ))
+    return 0
 
 
 def main():
     args = parse_args()
+
+    if args.qa_from:
+        return run_qa_mode(args)
+
+    if not (args.title and (args.source or getattr(args, "research_md", None))):
+        sys.stderr.write(
+            "--title plus (--source or --research-md) are required for brief mode, "
+            "or pass --qa-from for QA mode\n"
+        )
+        return 2
+
+    # v0.6.6: --preview-outline writes outline-preview.md and stops.
+    # The user reviews the outline, then re-runs with --confirm-outline.
+    if getattr(args, "preview_outline", False) and not getattr(args, "confirm_outline", False):
+        return run_preview_outline_mode(args)
+
+    # v0.6.6: --confirm-outline reads outline-preview.md and resumes the
+    # brief write. Refuses if outline is missing or stale.
+    if getattr(args, "confirm_outline", False):
+        if getattr(args, "preview_outline", False):
+            sys.stderr.write("--preview-outline and --confirm-outline are mutually exclusive\n")
+            return 2
+        return run_confirm_outline_mode(args)
+
     out = Path(args.out).expanduser().resolve()
     if out.exists():
         shutil.rmtree(out)
     out.mkdir(parents=True, exist_ok=True)
 
-    source_path, text, segments = read_source(args.source)
+    # v0.6.5: if --research-md is provided, it takes priority over --source.
+    # The HV research document becomes the authoritative source. The brief
+    # writer does not re-parse raw material.
+    if getattr(args, "research_md", None):
+        research_path = Path(args.research_md).expanduser().resolve()
+        if not research_path.exists():
+            sys.stderr.write(f"--research-md path not found: {research_path}\n")
+            return 2
+        source_path, text, segments = read_source(str(research_path))
+    else:
+        source_path, text, segments = read_source(args.source)
     language = detect_language(text)
     preview_count = resolve_preview_count(language, args.preview_count)
     registry = load_registry()
@@ -1218,60 +2260,96 @@ def main():
 
     rendered = None
     render_issues = []
-    if not args.no_render and primary == "guizang":
-        rendered = write_guizang_output(out, args.title, plan)
-        for route in router_plan["routes"]:
-            if route["id"] == "guizang":
-                route["status"] = "rendered"
-                route["actual_output"] = str(rendered)
-        (out / "router_plan.json").write_text(json.dumps(router_plan, ensure_ascii=False, indent=2), encoding="utf-8")
-    elif not args.no_render and primary == "beautiful-html-templates":
-        repo = find_beautiful_repo(args.beautiful_repo, auto_clone=not args.no_beautiful_auto_clone)
-        if args.selected_template:
-            beautiful_result = write_beautiful_selected_deck(
-                out,
-                title=args.title,
-                plan=plan,
-                repo_path=repo,
-                selected_template=args.selected_template,
+    # v0.6.4: Humanize PPT no longer imitates any downstream renderer.
+    # It writes a production brief; the named skill renders natively.
+    if not args.no_render:
+        if primary == "guizang":
+            # v0.6.5: 9 combos = Style A (5 themes) + Style B (4 accents).
+            # Mutex: A requires --guizang-theme, B requires --guizang-accent.
+            style = getattr(args, "guizang_style", None) or "A"
+            theme = getattr(args, "guizang_theme", None)
+            accent = getattr(args, "guizang_accent", None)
+            if style == "A" and not theme:
+                sys.stderr.write(
+                    "[humanize-ppt v0.6.5] --guizang-style=A requires --guizang-theme. "
+                    "Choose one of: ink-classic, indigo-porcelain, forest-ink, kraft-paper, dune. "
+                    "Defaulting to ink-classic.\n"
+                )
+                theme = "ink-classic"
+            if style == "B" and not accent:
+                sys.stderr.write(
+                    "[humanize-ppt v0.6.5] --guizang-style=B requires --guizang-accent. "
+                    "Choose one of: ikb, lemon-yellow, lemon-green, safety-orange. "
+                    "Defaulting to ikb.\n"
+                )
+                accent = "ikb"
+            if style == "A" and accent:
+                sys.stderr.write(
+                    f"[humanize-ppt v0.6.5] --guizang-style=A ignores --guizang-accent={accent}.\n"
+                )
+            if style == "B" and theme:
+                sys.stderr.write(
+                    f"[humanize-ppt v0.6.5] --guizang-style=B ignores --guizang-theme={theme}.\n"
+                )
+            # v0.6.5: install self-check. Warn-only; the brief still ships.
+            check_downstream_install(
+                "guizang-ppt-skill",
+                skip=getattr(args, "skip_install_check", False),
             )
-            if beautiful_result.get("status") == "rendered":
-                rendered = beautiful_result.get("deck")
-            else:
-                render_issues.append(f"beautiful-html-templates selected deck: {beautiful_result.get('status')} — {beautiful_result.get('message')}")
-            for route in router_plan["routes"]:
-                if route["id"] == "beautiful-html-templates":
-                    route["status"] = beautiful_result.get("status")
-                    route["actual_output"] = beautiful_result.get("deck")
-                    route["selected_template"] = args.selected_template
-                    route["selected_manifest"] = beautiful_result.get("manifest")
-        else:
-            beautiful_result = write_beautiful_previews(
+            brief_result = write_guizang_production_brief(
                 out,
                 title=args.title,
-                text=text,
                 plan=plan,
-                repo_path=repo,
+                source=source_path,
                 language=language,
-                occasion=args.occasion,
-                mood=args.mood,
-                count=preview_count,
+                style=style,
+                theme=theme,
+                accent=accent,
             )
-            if beautiful_result.get("status") == "rendered":
-                rendered = beautiful_result.get("gallery")
-            else:
-                render_issues.append(f"beautiful-html-templates render: {beautiful_result.get('status')} — {beautiful_result.get('message')}")
+            for route in router_plan["routes"]:
+                if route["id"] == "guizang":
+                    route["status"] = brief_result["status"]
+                    route["actual_output"] = brief_result["prompt"]
+                    if style == "A":
+                        route["theme"] = theme
+                    else:
+                        route["accent"] = accent
+        elif primary == "frontend-slides":
+            check_downstream_install(
+                "frontend-slides",
+                skip=getattr(args, "skip_install_check", False),
+            )
+            brief_result = write_frontend_slides_production_brief(
+                out,
+                title=args.title,
+                plan=plan,
+                source=source_path,
+                language=language,
+            )
+            for route in router_plan["routes"]:
+                if route["id"] == "frontend-slides":
+                    route["status"] = brief_result["status"]
+                    route["actual_output"] = brief_result["prompt"]
+        elif primary == "beautiful-html-templates":
+            check_downstream_install(
+                "beautiful-html-templates",
+                skip=getattr(args, "skip_install_check", False),
+            )
+            brief_result = write_beautiful_html_templates_production_brief(
+                out,
+                title=args.title,
+                plan=plan,
+                source=source_path,
+                language=language,
+            )
             for route in router_plan["routes"]:
                 if route["id"] == "beautiful-html-templates":
-                    route["status"] = beautiful_result.get("status")
-                    route["actual_output"] = beautiful_result.get("gallery")
-                    route["preview_manifest"] = beautiful_result.get("manifest")
-                    route["selected_templates"] = [item.get("slug") for item in beautiful_result.get("previews", [])]
-        (out / "router_plan.json").write_text(json.dumps(router_plan, ensure_ascii=False, indent=2), encoding="utf-8")
+                    route["status"] = brief_result["status"]
+                    route["actual_output"] = brief_result["prompt"]
+                    route["style_gate"] = "theme-first"
+                    route["preview_count"] = preview_count
 
-    final_deck = Path(rendered) if rendered else None
-    if primary == "beautiful-html-templates" and not args.selected_template:
-        final_deck = None
+    final_deck = None  # v0.6.4: Humanize does not own a rendered deck anymore.
 
     if args.presenter_adapter:
         if final_deck and final_deck.exists():
@@ -1329,4 +2407,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

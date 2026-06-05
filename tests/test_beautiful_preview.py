@@ -26,22 +26,6 @@ def test_zh_default_route_uses_guizang_with_presenter_adapter():
     assert routes[0]["reason"] == "中文内容且未指定风格探索，优先走guizang稳定路径。"
 
 
-def test_inject_presenter_bridge_adds_guizang_deck_control():
-    html = """<script>
-function go(n){idx=n}
-
-/* =============== ESC 索引视图 =============== */
-go(0);
-</script>"""
-
-    bridged = hp.inject_presenter_bridge(html)
-
-    assert "window.__goSlide = go" in bridged
-    assert "presenter-goto" in bridged
-    assert "preview-goto" in bridged
-    assert "initialSlideParam" in bridged
-
-
 def make_repo(tmp_path):
     repo = tmp_path / "beautiful"
     (repo / "runtime").mkdir(parents=True)

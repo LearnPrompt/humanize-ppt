@@ -1,14 +1,14 @@
-<div align="center">
+<div align=”center”>
 
 # Humanize PPT
 
-## 面向 Agent 的 PPT 工作流导演
+## 面向 Agent 的 PPT 简报编排器（v0.6.4）
 
-**先把资料变成人愿意听的 AST 大纲，再交给下游 PPT Skill 做风格探索、页面生成、演讲模式和部署。**
+**先把资料变成人愿意听的 AST 大纲 + 逐页素材决定，再交给下游 PPT Skill 100% 原生渲染，最后用 QA 循环盯住渲染结果。Humanize 自己不渲染。**
 
 [在线预览](https://learnprompt.github.io/humanize-ppt/) · [Release](https://github.com/LearnPrompt/humanize-ppt/releases) · [MIT License](LICENSE)
 
-[English](README.en.md) · [AST理论](docs/AST-theory.md) · [OPC工作流](docs/OPC-workflow.md)
+[English](README.en.md) · [AST理论](docs/AST-theory.md) · [v0.6.4 版本说明](docs/versions/v0.6.4-guizang-production-brief-orchestrator.md)
 
 </div>
 
@@ -16,30 +16,34 @@
 
 ## 效果展示
 
-Humanize PPT 不直接抢模板库的工作。它负责把资料整理成清晰的 AST 大纲，再把生产任务路由给适合的 PPT Skill。当前稳定样例包含中文 `guizang-ppt-skill` 路径和英文 `beautiful-html-templates / frontend-slides` 路径。
+Humanize PPT 不抢模板库的工作。它是**简报编排器**：把资料整理成 AST 大纲 + 逐页素材决定（要不要图、要不要 SVG 示意图、要不要 Remotion 视频），写一份 `*-production-prompt.md` 给下游 Skill 100% 原生渲染，最后用 QA 循环盯住渲染结果。Humanize 自己不出 HTML。
 
-| 中文 guizang-ppt-skill 稳定样例 | English beautiful-html-templates / frontend-slides 样例 |
-| --- | --- |
-| [![中文 guizang 稳定样例](docs/showcase/hermes-agent-mastery/presenter/presenter-screenshot.png)](https://learnprompt.github.io/humanize-ppt/showcase/hermes-agent-mastery/presenter/) | [![English Neo-Grid 样例](docs/showcase/hermes-agent-mastery/en/presenter/presenter-screenshot.png)](https://learnprompt.github.io/humanize-ppt/showcase/hermes-agent-mastery/en/presenter/) |
-| 打开[中文演讲模式](https://learnprompt.github.io/humanize-ppt/showcase/hermes-agent-mastery/presenter/)或[中文 PPT](https://learnprompt.github.io/humanize-ppt/showcase/hermes-agent-mastery/ppt/) | 打开[English presenter](https://learnprompt.github.io/humanize-ppt/showcase/hermes-agent-mastery/en/presenter/)或[English deck](https://learnprompt.github.io/humanize-ppt/showcase/hermes-agent-mastery/en/ppt/) |
+`examples/03-codex-guizang-native-ink-classic/` 是一份**已知合格的 Guizang Style A / Ink Classic 原生成品**（10 页、86 个 `data-anim`、WebGL hero 背景）。它不是 Humanize 的产物——是 `guizang-ppt-skill` 跑出来的，作为 v0.6.4 QA 循环的视觉基准。
 
-也可以查看已经发布的 [Skill 分享 PPT](https://learnprompt.github.io/humanize-ppt/showcase/skill-share/)。
+> 这一页 deck 是 guizang-ppt-skill 原生产物，Humanize 只负责出 brief 和 QA。
 
 ## 30 秒开始：让 Agent 安装并使用
 
 如果你正在使用 Codex、Claude Code、Hermes 或其他支持 Skill 的 Agent，把这段话发给它：
 
 ```text
-请安装并使用 Humanize PPT Skill：
+请安装并使用 Humanize PPT Skill（v0.6.4+）：
 https://github.com/LearnPrompt/humanize-ppt
 
-我要做一份 PPT。请先用 Humanize PPT 把资料整理成 AST 大纲，
-再根据语言和场景选择下游 PPT Skill。
-请确认 humanize-ppt、guizang-ppt-skill、beautiful-html-templates 和 frontend-slides 都可用。
-中文内容优先走 guizang-ppt-skill 稳定成稿；
-英文内容先用 beautiful-html-templates / frontend-slides 给我至少 5 个风格候选，等我选定后再生成完整 deck。
-如果需要视频或动态素材，请确认 Remotion 相关能力可用。
-最后请补 presenter / export / QA 修复与调优，并把输出路径告诉我。
+我要做一份 PPT。请按下面三步走，不要让 Humanize 自己渲染任何 HTML：
+
+1. 用 Humanize PPT 生成 AST 大纲 + 逐页素材决定（要不要图、SVG、Remotion 视频）。
+   它会输出 <renderer>-production-prompt.md。
+2. 拿这份 prompt，调下游 skill 原生渲染：
+   - 中文：guizang-ppt-skill，按 prompt 里指定的 Style (A/B) 渲染
+   - 英文：frontend-slides 或 beautiful-html-templates，原生模板选择 + 完整 deck
+3. 渲染完后，再用 Humanize PPT 跑 QA 循环：
+   python3 scripts/humanize_ppt.py --qa-from <rendered.html> --out <之前的 out 目录> --renderer guizang --guizang-style A --max-qa-iterations 3
+   最多 3 轮，converge 就好，仍有问题就改 prompt 让下游 skill 重新渲染。
+4. QA 通过后，让下游 skill 自己出 speaker notes / presenter shell / 部署。
+
+请确认 humanize-ppt、guizang-ppt-skill（或 frontend-slides / beautiful-html-templates）都可用。
+Humanize 不再模仿任何下游 skill——它只发 brief 和盯 QA。
 ```
 
 如果你的 Agent 需要明确安装命令，可以让它执行：
@@ -50,83 +54,84 @@ npx skills add https://github.com/LearnPrompt/humanize-ppt.git -g -y
 
 ## 怎么跟 Agent 交流
 
-你不需要一开始就写 CLI 参数。更自然的方式是按阶段给 Agent 下任务：
+v0.6.4 的对话模型是”Humanize 发 brief → 下游 skill 原生渲染 → Humanize 盯 QA”。你按这个循环给 Agent 下任务：
 
 ```text
-我有一份关于「AI 工具更新」的资料，请用 Humanize PPT 先生成 PPT 大纲和风格预览。
-目标观众是产品团队，重点不是功能清单，而是让他们理解这些工具会改变工作流。
+我有一份关于「AI 工具更新」的资料，请用 Humanize PPT 出 AST 大纲 + 逐页素材决定，
+目标是让产品团队理解这些工具会改变工作流。
 ```
 
 ```text
-我选第 2 个风格。请继续生成完整 PPT，并补演讲模式。
-如果需要素材，请先告诉我哪些页适合做 GPT 图片、SVG 图或 Remotion 短视频。
+brief 看起来 OK。请按 prompt 调 guizang-ppt-skill 原生渲染中文 deck（Style A）。
+渲染完用 Humanize PPT --qa-from 跑 QA，最长 3 轮。
+如果某一页 Hero 背景看不见（WebGL 被遮），就把 fix_prompt.md 转给 guizang-ppt-skill 让它改。
 ```
 
 ```text
-请做 QA 修复/调优：检查标题是否重复、素材文字是否裁切、页面是否太空、视频是否能播放。
-把问题列出来，能修的直接修，最后给我本地路径和可上线路径。
+QA converged 之后，让 guizang-ppt-skill 自己出 speaker notes + presenter shell，
+然后部署到 GitHub Pages 给我 URL。
 ```
 
 ## CLI 复现方式
 
-如果你想绕过 Agent、直接在本地复现，可以运行：
+### Brief 模式（默认）
 
 ```bash
 python3 scripts/humanize_ppt.py \
   --source examples/01-ai-tool-update/source.md \
-  --out .humanize-ppt-runs/ai-tool-update-preview \
-  --title "AI 工具更新，不只是功能清单" \
-  --style-mode preview-first
+  --out .humanize-ppt-runs/ai-tool-update-v0.6.4 \
+  --title “AI 工具更新，不只是功能清单” \
+  --renderer guizang \
+  --guizang-style A
 ```
 
-查看结果：
+跑完会得到 `guizang-production-prompt.md`，**不会**有任何 `outputs/guizang/index.html` 之类的 HTML 产物。下一手交给 `guizang-ppt-skill` 渲染。
 
-```bash
-open .humanize-ppt-runs/ai-tool-update-preview/outputs/beautiful/previews/index.html
-open .humanize-ppt-runs/ai-tool-update-preview/outputs/qa/qa_report.md
-```
-
-如果已经选中一个 Beautiful 模板，可以继续生成完整 deck，并补齐 presenter/export：
+### QA 模式（拿到渲染产物后）
 
 ```bash
 python3 scripts/humanize_ppt.py \
-  --source examples/01-ai-tool-update/source.md \
-  --out .humanize-ppt-runs/ai-tool-update-complete \
-  --title "AI 工具更新，不只是功能清单" \
-  --selected-template <slug> \
-  --presenter-adapter \
-  --export-adapter
+  --qa-from .humanize-ppt-runs/ai-tool-update-v0.6.4/rendered/index.html \
+  --out .humanize-ppt-runs/ai-tool-update-v0.6.4 \
+  --renderer guizang \
+  --guizang-style A \
+  --max-qa-iterations 3
 ```
+
+跑完会得到 `outputs/qa/qa_report.md` / `fix_prompt.md` / `qa_iteration.json`。第 3 轮仍 fail → `needs-human`。
 
 ## 能力
 
-- **生成 AST 大纲**：把资料转成观众、状态转移、页面意图和讲述节奏。
-- **路由下游 Skill**：根据语言和风格需求，把任务交给 guizang-ppt-skill、beautiful-html-templates、frontend-slides、presenter/export 等路径。
-- **先预览再成稿**：英文路径默认先出至少 5 个风格候选，选中后再生成完整 deck。
-- **补齐交付闭环**：生成 presenter、导出包、QA 修复/调优记录和可上线静态路径。
+- **AST 大纲**：把资料转成观众、状态转移、页面意图和讲述节奏。
+- **逐页素材决定**：每页要不要图、要不要 SVG/HTML 示意图、要不要 Remotion 视频——Humanize 决定，下游 skill 原生产出。
+- **生产简报**：写一份 `<renderer>-production-prompt.md` 给下游 skill 100% 原生渲染，不模仿、不 post-process。
+- **QA 循环**：拿到渲染 HTML 后扫描失败模式（`references/qa-failure-modes.md`），写 fix prompt 给下游 skill 重渲，最多 3 轮。
 
 ## 适合 / 不适合
 
 适合：
 
-- 你有资料、主题或大纲，但还缺一个可讲、可渲染、可 QA 调优的 PPT 大纲和成品路径。
-- 你希望中文 PPT 默认走稳定 guizang-ppt-skill 成稿路径。
-- 你希望英文 PPT 先做多风格探索，再选择一个方向继续生产。
-- 你希望把资料交给 Agent 生成大纲、演讲模式和稳定复现的中英文 PPT 路径。
+- 你有资料、主题或大纲，需要 AST 大纲 + 逐页素材决定 + 简报交付给原生下游 skill。
+- 你希望中文 PPT 默认走 `guizang-ppt-skill` 原生成，Humanize 帮你盯 QA 循环。
+- 你希望英文 PPT 走 `frontend-slides` / `beautiful-html-templates` 原生模板。
+- 你希望每次下游 skill 更新都不用改 Humanize——它只发 brief 不抄模板。
 
 不适合：
 
 - 你只想找一个单页模板库。
-- 你希望它直接替代所有 HTML PPT / Remotion / 图片生成 Skill。
-- 你还没有明确主题、观众或交付场景。
+- 你希望 Humanize 自己渲染 HTML（这是 v0.6.4 故意不做的事；下游 skill 才是渲染器）。
+- 你还没明确主题、观众或交付场景。
 
 ## 工作流路径
 
-中文默认路径已经固定为：`Humanize PPT → guizang-ppt-skill → material QA 修复/调优 → presenter → static deploy`。当内容是中文且没有显式要求多风格探索时，优先把 guizang-ppt-skill 当作稳定成稿路径；成稿后再补素材 QA 调优、演讲模式和部署包。
+v0.6.4 把工作流分成四段 O / P / Q / C：
 
-英文默认路径已经固定为：`Humanize PPT → beautiful-html-templates / frontend-slides → style selection → full deck → presenter/deploy`。英文路径不直接跳到单一成稿风格；先基于主题生成至少 5 个可见候选，选中后再走完整 deck、演讲模式和部署。
+- **O — Outline + Per-Page Media Direction**（Humanize）：raw material → AST 大纲 + 每页要不要图 / 视频
+- **P — Native Renderer Invocation**（下游 skill 100%）：中文 guizang-ppt-skill、英文 frontend-slides / beautiful-html-templates
+- **Q — Conversational QA Loop**（Humanize `--qa-from`）：扫失败模式 → 写 fix_prompt.md → 等下游 skill 重渲 → 收敛，最多 3 轮
+- **C — Complete**（下游 skill 原生）：speaker notes / presenter shell / 静态部署，**不属于 Humanize**
 
-Humanize PPT 当前重点是稳定“资料 → AST 大纲 → 风格预览/完整 deck → presenter/export → QA 修复/调优”的工作流。视频或动态素材可以作为页面材料进入流程；需要时请让 Agent 先确认 Remotion 相关能力已经安装并可运行。
+Humanize PPT 当前重点是稳定”资料 → AST + 简报 → 下游 skill 原生 → QA 循环 → 部署”的工作流。视频或动态素材在 `slide_plan.json` 的 `media.video` 字段里有决定，下游 skill 按 prompt 原生产出 Remotion / 静态占位。
 
 ## 为什么是 AST
 
@@ -157,37 +162,37 @@ slide_plan.json
 router_plan.json
 run_manifest.json
 outputs/qa/qa_report.md
+guizang-production-prompt.md    ← v0.6.4 新增：必须存在
+outputs/guizang/index.html       ← v0.6.4 新增：必须不存在
 ```
 
 完整说明见：[docs/smoke-test.md](docs/smoke-test.md)。
 
 ## 输出结构
 
-一次运行会生成：
+一次 brief 模式运行会生成：
 
 ```text
 out/
   deck_brief.md
   ast_outline.md
-  slide_plan.json
+  slide_plan.json            ← 每页带 media: {image, diagram, video} + layout_hint
   speaker_intent.md
-  asset_manifest.md
-  video_slots.json
+  asset_manifest.md          ← 从 media 字段生成
+  video_slots.json           ← 从 media.video 生成
   style_brief.md
   renderer_registry.json
   router_plan.json
   run_manifest.json
+  guizang-production-prompt.md       ← v0.6.4 主交付物
   commands/
-    *.md
+    guizang-agent.md
   outputs/
-    beautiful/
-    guizang/
-    presenter/
-    export/
     qa/
+      qa_report.md           ← 第一道关
 ```
 
-根据是否选择模板、是否启用 presenter/export，部分输出目录可能为空或标记为待处理。
+QA 模式（`--qa-from`）会向 `outputs/qa/` 追加 `fix_prompt.md` 和 `qa_iteration.json`，最多 3 轮。
 
 ## 当前能力边界
 
@@ -195,17 +200,18 @@ out/
 - 历史版本说明：`docs/versions/`
 - 版本计划与审查：`docs/plans/`
 - 脱敏样例：`examples/`
+- v0.6.4 已知合格品：`examples/03-codex-guizang-native-ink-classic/`
 
 ## Reference
 
 Humanize PPT 的设计参考了这些项目和操作规章：
 
-- [op7418/guizang-ppt-skill](https://github.com/op7418/guizang-ppt-skill)：中文稳定成稿、Swiss 风格约束、素材 QA。
+- [op7418/guizang-ppt-skill](https://github.com/op7418/guizang-ppt-skill)：中文稳定成稿、Swiss 风格约束、素材 QA。**Humanize 100% 调用它原生渲染，自己不抄模板。**
 - [zarazhangrui/beautiful-html-templates](https://github.com/zarazhangrui/beautiful-html-templates)：英文路径的多风格候选和 selected-template full deck。
 - [zarazhangrui/frontend-slides](https://github.com/zarazhangrui/frontend-slides)：英文 slide workflow、viewport-safe HTML deck、PPTX/发布方向。
-- [huggingface/smolagents](https://github.com/huggingface/smolagents)：code-first Agent 工作流参考，帮助定义“Agent 读契约、执行工具、写回结果”的协作方式。
+- [huggingface/smolagents](https://github.com/huggingface/smolagents)：code-first Agent 工作流参考，帮助定义”Agent 读契约、执行工具、写回结果”的协作方式。
 - [AST 理论](docs/AST-theory.md)、[OPC 工作流](docs/OPC-workflow.md)：Humanize PPT 自己的大纲方法、路由规则和执行边界。
-- [Guizang material QA](references/guizang-material-qa.md)、[Guizang presenter deploy](references/guizang-presenter-deploy.md)、[English style gallery](docs/versions/v0.6.3-english-style-gallery.md)：当前中文和英文稳定路径的操作规章。
+- [v0.6.4 版本说明](docs/versions/v0.6.4-guizang-production-brief-orchestrator.md)、[brief 规约](references/guizang-production-brief-orchestrator.md)、[QA 失败模式](references/qa-failure-modes.md)：v0.6.4 简报编排 + QA 循环的契约。
 
 ## License
 
