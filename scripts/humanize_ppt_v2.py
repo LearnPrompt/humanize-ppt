@@ -1818,6 +1818,49 @@ The next agent writes its output to its own convention
 (e.g. `outputs/guizang-rendered/index.html`). Do not write to
 `outputs/guizang/` — that is reserved for legacy Humanize adapter paths
 and is no longer used in v0.6.4.
+
+## Next agent's setup checklist (one-conversation flow)
+
+The next agent (running this brief) must do this BEFORE rendering:
+
+1. **Verify the downstream skill is installed**:
+   ```bash
+   test -f ~/.agents/skills/guizang-ppt-skill/SKILL.md && echo "installed" || echo "missing"
+   ```
+
+2. **If missing, install it** (one of these depending on the agent's skill-installer capability):
+   ```bash
+   # Option A: clone the public repo into ~/.agents/skills/
+   git clone https://github.com/op7418/guizang-ppt-skill.git ~/.agents/skills/guizang-ppt-skill
+   # Option B: use the agent's built-in skill installer (e.g. npx skills add)
+   npx skills add https://github.com/op7418/guizang-ppt-skill.git -g -y
+   ```
+
+3. **Re-verify**:
+   ```bash
+   test -f ~/.agents/skills/guizang-ppt-skill/SKILL.md && echo "ready" || {{ echo "still missing, abort"; exit 1; }}
+   ```
+
+4. **Generate the media files** (if not already done in a previous round):
+   ```bash
+   # For each slide with media.asset_path in this brief, generate the file
+   # at that path. Use the asset_path + prompt_hint as the spec.
+   for f in assets/s*-image.png assets/s*-diagram.svg assets/s*-video.mp4; do
+     test -f "$f" || {{ echo "missing: $f"; exit 1; }}
+   done
+   ```
+
+5. **Then render the deck**:
+   ```bash
+   python3 scripts/humanize_ppt.py \\
+     --qa-from <rendered.html> \\
+     --out <out> \\
+     --renderer guizang --guizang-style <A|B> --guizang-theme|accent <name> \\
+     --max-qa-iterations 3
+   ```
+
+The downstream skill owns the actual render. This Humanize brief is the
+contract; the next agent runs the contract end-to-end.
 """
 
     (out / "guizang-production-prompt.md").write_text(prompt, encoding="utf-8")
@@ -1880,6 +1923,14 @@ def write_frontend_slides_production_brief(out, title, plan, source, language):
 
 The next agent writes its output to its own convention
 (e.g. `outputs/frontend-slides-rendered/index.html`).
+
+## Next agent's setup checklist (one-conversation flow)
+
+1. Verify the downstream skill is installed:
+   `test -f ~/.agents/skills/frontend-slides/SKILL.md && echo "installed"`
+2. If missing, install:
+   `git clone https://github.com/zarazhangrui/frontend-slides.git ~/.agents/skills/frontend-slides`
+3. Then render the deck following the next agent's own convention.
 """
 
     (out / "frontend-slides-production-prompt.md").write_text(prompt, encoding="utf-8")
@@ -1940,6 +1991,14 @@ def write_beautiful_html_templates_production_brief(out, title, plan, source, la
 
 The next agent writes its output to its own convention
 (e.g. `outputs/beautiful-rendered/index.html`).
+
+## Next agent's setup checklist (one-conversation flow)
+
+1. Verify the downstream skill is installed:
+   `test -f ~/.agents/skills/beautiful-html-templates/SKILL.md && echo "installed"`
+2. If missing, install:
+   `git clone https://github.com/zarazhangrui/beautiful-html-templates.git ~/.agents/skills/beautiful-html-templates`
+3. Then render the deck following the next agent's own convention.
 """
 
     (out / "beautiful-html-templates-production-prompt.md").write_text(prompt, encoding="utf-8")

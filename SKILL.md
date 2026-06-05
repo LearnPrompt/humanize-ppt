@@ -141,6 +141,46 @@ C — Complete / Control
 - `docs/smoke-test.md` — No-dependency smoke check for validating the stable entrypoint on machines without pytest.
 - `docs/plans/2026-05-25-release-readiness-checklist.md` — V0.6 release-readiness checklist and release-note draft.
 
+## Quick start for agents (one-conversation flow)
+
+v0.6.7 makes "install humanize-ppt + downstream skill + render" doable in **one agent session**. The brief itself contains the install commands the next agent needs:
+
+```text
+1. Verify humanize-ppt and downstream skill:
+   test -f ~/.agents/skills/humanize-ppt/SKILL.md || echo "install humanize-ppt first"
+   test -f ~/.agents/skills/guizang-ppt-skill/SKILL.md || { echo "missing guizang"; exit 1; }
+
+2. Run Humanize PPT in brief mode:
+   python3 ~/.agents/skills/humanize-ppt/scripts/humanize_ppt.py \
+     --research-md <source.md> \
+     --out <out> \
+     --renderer guizang \
+     --guizang-style A --guizang-theme ink-classic \
+     --preview-outline    # human review checkpoint
+   # review outline-preview.md, then:
+   python3 ~/.agents/skills/humanize-ppt/scripts/humanize_ppt.py \
+     --research-md <source.md> \
+     --out <out> \
+     --renderer guizang \
+     --guizang-style A --guizang-theme ink-classic \
+     --confirm-outline    # writes the production brief
+
+3. Render via downstream skill, then QA:
+   # (the brief contains step-by-step commands for the next agent;
+   #  it includes the install command if guizang is missing)
+   python3 ~/.agents/skills/humanize-ppt/scripts/humanize_ppt.py \
+     --qa-from <rendered.html> \
+     --out <out> \
+     --renderer guizang \
+     --guizang-style A \
+     --max-qa-iterations 3
+```
+
+The brief itself contains a "Next agent's setup checklist" section with
+5 explicit steps (verify, install-if-missing, re-verify, generate-media,
+render). See `references/guizang-production-brief-orchestrator.md` for the
+full contract.
+
 ## Local demo
 
 The recommended stable entrypoint is `scripts/humanize_ppt.py`. Versioned scripts remain available for compatibility.
