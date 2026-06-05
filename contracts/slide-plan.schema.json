@@ -40,7 +40,7 @@
       },
       "media": {
         "type": "object",
-        "description": "Per-page media decision. Humanize decides what materials the page needs; the downstream skill produces them in its native format.",
+        "description": "v0.6.7: per-page media decision with machine-actionable fields. Humanize decides what materials the page needs AND where they should land. The downstream media subagent reads asset_path + prompt_hint and produces the file. Without asset_path, the media slot is a label, not a task (v0.6.5 gap).",
         "required": ["image", "diagram", "video"],
         "properties": {
           "image": {
@@ -52,7 +52,20 @@
                 "enum": ["gpt-photo", "svg-html", "screenshot", "none"]
               },
               "purpose": {"type": "string"},
-              "slot": {"type": "string"}
+              "slot": {"type": "string"},
+              "asset_path": {
+                "type": ["string", "null"],
+                "description": "v0.6.7: where the downstream media subagent should write the file, e.g. 'assets/s01-hero-gpt-photo.png'. null means 'no asset needed'."
+              },
+              "prompt_hint": {
+                "type": "string",
+                "description": "v0.6.7: human-readable prompt for the image model. e.g. 'AI Agent 概念入门 封面图，10 分钟课程'."
+              },
+              "aspect_ratio": {
+                "type": "string",
+                "enum": ["16:9", "21:9", "4:3", "1:1", "9:16"]
+              },
+              "max_size_kb": {"type": "number"}
             }
           },
           "diagram": {
@@ -64,7 +77,15 @@
                 "enum": ["svg-html", "html-table", "none"]
               },
               "purpose": {"type": "string"},
-              "slot": {"type": "string"}
+              "slot": {"type": "string"},
+              "asset_path": {
+                "type": ["string", "null"],
+                "description": "v0.6.7: where the SVG/HTML file should land. e.g. 'assets/s05-context-diagram.svg'."
+              },
+              "prompt_hint": {
+                "type": "string",
+                "description": "v0.6.7: what the diagram should depict, in plain language. The downstream subagent renders it as inline SVG or HTML."
+              }
             }
           },
           "video": {
@@ -77,7 +98,15 @@
               },
               "purpose": {"type": "string"},
               "slot": {"type": "string"},
-              "duration_s": {"type": "number"}
+              "duration_s": {"type": "number"},
+              "asset_path": {
+                "type": ["string", "null"],
+                "description": "v0.6.7: where the rendered video file should land. e.g. 'assets/s04-method-remotion.mp4'."
+              },
+              "prompt_hint": {
+                "type": "string",
+                "description": "v0.6.7: what the video should depict / what motion should it have."
+              }
             }
           }
         }

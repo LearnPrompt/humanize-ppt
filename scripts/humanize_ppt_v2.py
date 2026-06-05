@@ -131,7 +131,13 @@ def build_slide_plan(title, text, segments, renderer_hint):
         detail = body.replace(message, "", 1).strip(" 。，,.；;")
         if detail:
             visible.append(detail[:110])
-        media = decide_media(role, title if i == 1 else (item.get("title") or message), message, visible)
+        media = decide_media(
+            role,
+            title if i == 1 else (item.get("title") or message),
+            message,
+            visible,
+            slide_id=f"S{i:02d}",
+        )
         plan.append(
             {
                 "slide_id": f"S{i:02d}",
@@ -197,12 +203,20 @@ def layout_hint_for_role(role):
     return ROLE_LAYOUT_HINT.get(role)
 
 
-def decide_media(role, title, message, visible_content):
+def decide_media(role, title, message, visible_content, slide_id=None):
     """Per-page media decision.
 
     Returns a dict shaped like the `media` field in slide-plan.schema.json.
     The downstream skill reads this and produces materials in its native
     format. Humanize never renders them.
+
+    v0.6.7: when slide_id is provided, machine-actionable fields are
+    populated so a downstream media subagent can find the target file
+    and know what to generate:
+      - asset_path: where the file should land
+      - prompt_hint: what the image / diagram / video should depict
+      - aspect_ratio: image / video aspect
+      - max_size_kb: image size budget
     """
     base = {
         "image":   {"needed": False, "kind": "none"},
@@ -219,8 +233,29 @@ def decide_media(role, title, message, visible_content):
         if entry.get("needed"):
             entry["purpose"] = media_purpose(role, key, text)
             entry["slot"] = media_slot(role, key)
+            # v0.6.7: machine-actionable fields for the media subagent
+            if slide_id:
+                sid_lower = slide_id.lower()
+                ext = media_extension(entry.get("kind", ""))
+                entry["asset_path"] = f"assets/{sid_lower}-{key}.{ext}"
+            entry["prompt_hint"] = media_prompt_hint(role, key, title, message, text)
+            if key in ("image", "video"):
+                entry.setdefault("aspect_ratio", "16:9")
+                if key == "image":
+                    entry.setdefault("max_size_kb", 200)
         base[key] = entry
     return base
+
+
+def media_extension(kind):
+    return {
+        "gpt-photo": "png",
+        "svg-html": "svg",
+        "screenshot": "png",
+        "html-table": "html",
+        "remotion-clip": "mp4",
+        "hyperframes": "mp4",
+    }.get(kind, "bin")
 
 
 def media_purpose(role, kind, text):
@@ -246,6 +281,37 @@ def media_purpose(role, kind, text):
         if role == "proof":
             return "Short before/after or result clip"
     return ""
+
+
+def media_prompt_hint(role, kind, title, message, text):
+    """v0.6.7: human-readable prompt for the image / diagram / video model.
+
+    Combines the slide's title + message into a single prompt the
+    downstream subagent can hand to GPT-Image / SVG writer / Remotion.
+    """
+    parts = []
+    if title:
+        parts.append(f"Slide title: {title}")
+    if message:
+        parts.append(f"Slide message: {message}")
+    role_hint = {
+        "hook":     "Open the deck. Set emotional anchor.",
+        "context":  "Establish common ground. Show system / scope.",
+        "tension":  "Highlight the gap or contradiction.",
+        "method":   "Walk through the process / decision tree.",
+        "proof":    "Show evidence: real UI, screenshots, before/after.",
+        "takeaway": "Close the deck. Reinforce the judgment.",
+    }.get(role, "")
+    if role_hint:
+        parts.append(f"Page role: {role_hint}")
+    kind_hint = {
+        "image":   "Image: must be visually anchored, no Chinese text in the image (Chinese labels go in the slide layout).",
+        "diagram": "Diagram: render as inline SVG or HTML table, deterministic, no text overflow.",
+        "video":   "Short loop clip (8-12s), deterministic motion, no narration.",
+    }.get(kind, "")
+    if kind_hint:
+        parts.append(f"Asset guidance: {kind_hint}")
+    return " | ".join(parts)
 
 
 def media_slot(role, kind):
@@ -1654,6 +1720,15 @@ def write_guizang_production_brief(out, title, plan, source, language, style="A"
         if not bits:
             bits.append("no media")
         media_lines.append(f"- {slide_id} {p.get('title', '')} — {', '.join(bits)}")
+        # v0.6.7: machine-actionable fields for the media subagent
+        # (asset_path + prompt_hint). Without these, the slots are
+        # labels not tasks (v0.6.5 gap).
+        for kind, key in (("image", "image"), ("diagram", "diagram"), ("video", "video")):
+            entry = (p.get("media") or {}).get(key) or {}
+            if entry.get("needed") and entry.get("asset_path"):
+                media_lines.append(f"  - {key}.asset_path: `{entry['asset_path']}`")
+                if entry.get("prompt_hint"):
+                    media_lines.append(f"  - {key}.prompt_hint: {entry['prompt_hint']}")
 
     media_block = "\n".join(media_lines) if media_lines else "- (no slide-level media decisions in this plan)"
 
@@ -2068,6 +2143,16 @@ def _format_outline_preview(title, plan, source_path, language, style, theme, ac
                 bits.append(f"{kind}={kind_label}")
         if not bits:
             bits.append("no media")
+        lines.append(f"- {p.get('slide_id', '?')} {p.get('role', '?')}: {', '.join(bits)}")
+        # v0.6.7: surface asset_path + prompt_hint in outline so the
+        # human reviewer can spot the media targets before the brief
+        # is finalized.
+        for kind in ("image", "diagram", "video"):
+            entry = m.get(kind) or {}
+            if entry.get("needed") and entry.get("asset_path"):
+                lines.append(f"  - {kind}.asset_path: `{entry['asset_path']}`")
+                if entry.get("prompt_hint"):
+                    lines.append(f"  - {kind}.prompt_hint: {entry['prompt_hint']}")
         lines.append(f"- {p.get('slide_id', '?')} {p.get('role', '?')}: {', '.join(bits)}")
 
     lines.append("")
