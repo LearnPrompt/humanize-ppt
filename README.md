@@ -65,7 +65,14 @@ Humanize 不再模仿任何下游 skill——它只发 brief 和盯 QA。
 如果你的 Agent 需要明确安装命令，可以让它执行：
 
 ```bash
-npx skills add https://github.com/LearnPrompt/humanize-ppt.git -g -y
+npx skills add LearnPrompt/humanize-ppt -g
+```
+
+Claude Code 用户也可以走 plugin marketplace（自动更新）：
+
+```text
+/plugin marketplace add LearnPrompt/humanize-ppt
+/plugin install humanize-ppt
 ```
 
 ## 怎么跟 Agent 交流

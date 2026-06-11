@@ -1,0 +1,16 @@
+{
+  "name": "humanize-ppt",
+  "owner": { "name": "LearnPrompt", "url": "https://github.com/LearnPrompt" },
+  "metadata": { "description": "Marketplace hosting the Humanize PPT brief-orchestrator plugin." },
+  "plugins": [
+    {
+      "name": "humanize-ppt",
+      "description": "面向 Agent 的 PPT 简报编排器:把资料变成 AST 大纲+逐页素材决定,交给下游 PPT Skill(guizang/frontend-slides)100%原生渲染,再用 QA 循环盯住渲染结果。Humanize 自己不渲染。PPT is an audience-state changer, not an information container.",
+      "version": "0.6.5",
+      "author": { "name": "LearnPrompt", "url": "https://github.com/LearnPrompt" },
+      "source": "./",
+      "category": "productivity",
+      "homepage": "https://github.com/LearnPrompt/humanize-ppt"
+    }
+  ]
+}
