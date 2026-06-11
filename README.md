@@ -1,14 +1,19 @@
+<sub>🌐 <b>中文</b> · <a href="README.en.md">English</a></sub>
+
 <div align="center">
 
 # Humanize PPT
 
-## 面向 Agent 的 PPT 简报编排器（v0.6.4）
+> *「PPT 不只是信息容器，而是观众状态改变器。」*
 
-**先把资料变成人愿意听的 AST 大纲 + 逐页素材决定，再交给下游 PPT Skill 100% 原生渲染，最后用 QA 循环盯住渲染结果。Humanize 自己不渲染。**
+[![Agent Skills](https://img.shields.io/badge/Agent%20Skills-humanize--ppt-blueviolet)](SKILL.md)
+[![skills.sh](https://skills.sh/b/LearnPrompt/humanize-ppt)](https://skills.sh/LearnPrompt/humanize-ppt)
+[![Release](https://img.shields.io/github/v/release/LearnPrompt/humanize-ppt)](https://github.com/LearnPrompt/humanize-ppt/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-[在线预览](https://learnprompt.github.io/humanize-ppt/) · [Release](https://github.com/LearnPrompt/humanize-ppt/releases) · [MIT License](LICENSE)
+**面向 Agent 的 PPT 简报编排器：先把资料变成人愿意听的 AST 大纲 + 逐页素材决定，交给下游 PPT Skill 100% 原生渲染，再用 QA 循环盯住渲染结果。Humanize 自己不渲染。**
 
-[English](README.en.md) · [AST理论](docs/AST-theory.md) · [v0.6.4 版本说明](docs/versions/v0.6.4-guizang-production-brief-orchestrator.md)
+[看效果](#效果展示) · [30秒上手](#30-秒开始让-agent-安装并使用) · [触发方式](#触发方式) · [它和同类有什么不同](#它和同类有什么不同) · [安全边界](#安全边界) · [在线预览](https://learnprompt.github.io/humanize-ppt/) · [AST理论](docs/AST-theory.md)
 
 </div>
 
@@ -18,7 +23,7 @@
 
 Humanize PPT 不抢模板库的工作。它是**简报编排器**：把资料整理成 AST 大纲 + 逐页素材决定（要不要图、要不要 SVG 示意图、要不要 Remotion 视频），写一份 `*-production-prompt.md` 给下游 Skill 100% 原生渲染，最后用 QA 循环盯住渲染结果。Humanize 自己不出 HTML。
 
-`examples/03-codex-guizang-native-ink-classic/` 是一份**已知合格的 Guizang Style A / Ink Classic 原生成品**（10 页、86 个 `data-anim`、WebGL hero 背景）。它不是 Humanize 的产物——是 `guizang-ppt-skill` 跑出来的，作为 v0.6.4 QA 循环的视觉基准。
+`examples/03-codex-guizang-native-ink-classic/` 是一份**已知合格的 Guizang Style A / Ink Classic 原生成品**（10 页、86 个 `data-anim`、WebGL hero 背景）。它不是 Humanize 的产物——是 `guizang-ppt-skill` 跑出来的，作为 QA 循环的视觉基准。
 
 > 这一页 deck 是 guizang-ppt-skill 原生产物，Humanize 只负责出 brief 和 QA。
 
@@ -27,7 +32,7 @@ Humanize PPT 不抢模板库的工作。它是**简报编排器**：把资料整
 如果你正在使用 Codex、Claude Code、Hermes 或其他支持 Skill 的 Agent，把这段话发给它：
 
 ```text
-请安装并使用 Humanize PPT Skill（v0.6.4+）：
+请安装并使用 Humanize PPT Skill（v0.6.5+）：
 https://github.com/LearnPrompt/humanize-ppt
 
 我要做一份 PPT。请按下面三步走，不要让 Humanize 自己渲染任何 HTML：
@@ -54,7 +59,7 @@ npx skills add https://github.com/LearnPrompt/humanize-ppt.git -g -y
 
 ## 怎么跟 Agent 交流
 
-v0.6.4 的对话模型是「Humanize 发 brief → 下游 skill 原生渲染 → Humanize 盯 QA」。你按这个循环给 Agent 下任务：
+当前的对话模型是「Humanize 发 brief → 下游 skill 原生渲染 → Humanize 盯 QA」。你按这个循环给 Agent 下任务：
 
 ```text
 我有一份关于「AI 工具更新」的资料，请用 Humanize PPT 出 AST 大纲 + 逐页素材决定，
@@ -119,12 +124,12 @@ python3 scripts/humanize_ppt.py \
 不适合：
 
 - 你只想找一个单页模板库。
-- 你希望 Humanize 自己渲染 HTML（这是 v0.6.4 故意不做的事；下游 skill 才是渲染器）。
+- 你希望 Humanize 自己渲染 HTML（这是 v0.6.4 起故意不做的事；下游 skill 才是渲染器）。
 - 你还没明确主题、观众或交付场景。
 
 ## 工作流路径
 
-v0.6.4 把工作流分成四段 O / P / Q / C：
+v0.6.4 起，工作流分成四段 O / P / Q / C：
 
 - **O — Outline + Per-Page Media Direction**（Humanize）：raw material → AST 大纲 + 每页要不要图 / 视频
 - **P — Native Renderer Invocation**（下游 skill 100%）：中文 guizang-ppt-skill、英文 frontend-slides / beautiful-html-templates
