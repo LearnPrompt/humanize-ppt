@@ -1,4 +1,4 @@
-<div align=”center”>
+<div align="center">
 
 # Humanize PPT
 
@@ -54,7 +54,7 @@ npx skills add https://github.com/LearnPrompt/humanize-ppt.git -g -y
 
 ## 怎么跟 Agent 交流
 
-v0.6.4 的对话模型是”Humanize 发 brief → 下游 skill 原生渲染 → Humanize 盯 QA”。你按这个循环给 Agent 下任务：
+v0.6.4 的对话模型是「Humanize 发 brief → 下游 skill 原生渲染 → Humanize 盯 QA」。你按这个循环给 Agent 下任务：
 
 ```text
 我有一份关于「AI 工具更新」的资料，请用 Humanize PPT 出 AST 大纲 + 逐页素材决定，
@@ -80,7 +80,7 @@ QA converged 之后，让 guizang-ppt-skill 自己出 speaker notes + presenter 
 python3 scripts/humanize_ppt.py \
   --source examples/01-ai-tool-update/source.md \
   --out .humanize-ppt-runs/ai-tool-update-v0.6.4 \
-  --title “AI 工具更新，不只是功能清单” \
+  --title "AI 工具更新，不只是功能清单" \
   --renderer guizang \
   --guizang-style A
 ```
@@ -131,7 +131,7 @@ v0.6.4 把工作流分成四段 O / P / Q / C：
 - **Q — Conversational QA Loop**（Humanize `--qa-from`）：扫失败模式 → 写 fix_prompt.md → 等下游 skill 重渲 → 收敛，最多 3 轮
 - **C — Complete**（下游 skill 原生）：speaker notes / presenter shell / 静态部署，**不属于 Humanize**
 
-Humanize PPT 当前重点是稳定”资料 → AST + 简报 → 下游 skill 原生 → QA 循环 → 部署”的工作流。视频或动态素材在 `slide_plan.json` 的 `media.video` 字段里有决定，下游 skill 按 prompt 原生产出 Remotion / 静态占位。
+Humanize PPT 当前重点是稳定「资料 → AST + 简报 → 下游 skill 原生 → QA 循环 → 部署」的工作流。视频或动态素材在 `slide_plan.json` 的 `media.video` 字段里有决定，下游 skill 按 prompt 原生产出 Remotion / 静态占位。
 
 ## 为什么是 AST
 
@@ -209,7 +209,7 @@ Humanize PPT 的设计参考了这些项目和操作规章：
 - [op7418/guizang-ppt-skill](https://github.com/op7418/guizang-ppt-skill)：中文稳定成稿、Swiss 风格约束、素材 QA。**Humanize 100% 调用它原生渲染，自己不抄模板。**
 - [zarazhangrui/beautiful-html-templates](https://github.com/zarazhangrui/beautiful-html-templates)：英文路径的多风格候选和 selected-template full deck。
 - [zarazhangrui/frontend-slides](https://github.com/zarazhangrui/frontend-slides)：英文 slide workflow、viewport-safe HTML deck、PPTX/发布方向。
-- [huggingface/smolagents](https://github.com/huggingface/smolagents)：code-first Agent 工作流参考，帮助定义”Agent 读契约、执行工具、写回结果”的协作方式。
+- [huggingface/smolagents](https://github.com/huggingface/smolagents)：code-first Agent 工作流参考，帮助定义「Agent 读契约、执行工具、写回结果」的协作方式。
 - [AST 理论](docs/AST-theory.md)、[OPC 工作流](docs/OPC-workflow.md)：Humanize PPT 自己的大纲方法、路由规则和执行边界。
 - [v0.6.4 版本说明](docs/versions/v0.6.4-guizang-production-brief-orchestrator.md)、[brief 规约](references/guizang-production-brief-orchestrator.md)、[QA 失败模式](references/qa-failure-modes.md)：v0.6.4 简报编排 + QA 循环的契约。
 
