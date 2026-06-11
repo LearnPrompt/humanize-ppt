@@ -75,6 +75,15 @@ Claude Code 用户也可以走 plugin marketplace（自动更新）：
 /plugin install humanize-ppt
 ```
 
+## 触发方式
+
+- 「用 humanize-ppt 把这份资料做成 PPT 大纲」
+- 「我有一堆笔记/录音转写，要做一份给产品团队看的 PPT」
+- 「先出 AST 大纲和逐页素材决定，再调 guizang 渲染」
+- 「帮我对这份渲染好的 deck 跑 QA 循环」
+- 「这页的 Hero 背景看不见，出 fix prompt 让下游改」
+- 「把这份老 PPT 重新编排成人愿意听的结构」
+
 ## 怎么跟 Agent 交流
 
 当前的对话模型是「Humanize 发 brief → 下游 skill 原生渲染 → Humanize 盯 QA」。你按这个循环给 Agent 下任务：
@@ -144,6 +153,18 @@ python3 scripts/humanize_ppt.py \
 - 你只想找一个单页模板库。
 - 你希望 Humanize 自己渲染 HTML（这是 v0.6.4 起故意不做的事；下游 skill 才是渲染器）。
 - 你还没明确主题、观众或交付场景。
+
+## 它和同类有什么不同
+
+| | 直接用模板库 Skill（guizang / frontend-slides） | **Humanize PPT** |
+|---|---|---|
+| 起点 | 资料直接进模板 | 先问观众是谁、看完要变成什么状态（AST） |
+| 素材 | 模板自带什么用什么 | 逐页决定要不要图 / SVG / 视频，写进 brief |
+| 渲染 | 自己渲染 | 100% 交给下游 Skill 原生渲染，零模仿 |
+| 质量 | 渲染完即交付 | QA 循环扫失败模式，最多 3 轮，写 fix prompt |
+| 维护 | 模板更新要跟着改 | 下游更新零改动——只发 brief，不抄模板 |
+
+一句话：模板库负责「好看」，Humanize 负责「有人听懂」，再盯住「好看」真的发生了。它们是上下游，不是竞品。
 
 ## 工作流路径
 
@@ -224,6 +245,13 @@ QA 模式（`--qa-from`）会向 `outputs/qa/` 追加 `fix_prompt.md` 和 `qa_it
 - 版本计划与审查：`docs/plans/`
 - 脱敏样例：`examples/`
 - v0.6.4 已知合格品：`examples/03-codex-guizang-native-ink-classic/`
+
+## 安全边界
+
+- 不渲染、不 post-process 下游 Skill 的 HTML——渲染问题永远写成 fix prompt 交回下游改；
+- 全流程本地脚本，零 API、零 Key，不外发任何资料内容；
+- QA 循环 3 轮不收敛即停手标注 `needs-human`，不无限重试；
+- 不把私有路径、账号、凭据写进 brief 和示例。
 
 ## Reference
 
