@@ -5,8 +5,8 @@
   "plugins": [
     {
       "name": "humanize-ppt",
-      "description": "面向 Agent 的 PPT 简报编排器:把资料变成 AST 大纲+逐页素材决定,交给下游 PPT Skill(guizang/frontend-slides)100%原生渲染,再用 QA 循环盯住渲染结果。Humanize 自己不渲染。PPT is an audience-state changer, not an information container.",
-      "version": "0.6.5",
+      "description": "面向 Agent 的 PPT 渲染质检员:把资料编排成 AST 大纲+逐页素材决定的简报,交给下游 PPT Skill(guizang/frontend-slides)100%原生渲染,再盯住渲染结果——QA 循环扫失败模式、写 fix prompt、3 轮封顶。Humanize 自己不渲染。PPT is an audience-state changer, not an information container.",
+      "version": "0.7.0",
       "author": { "name": "LearnPrompt", "url": "https://github.com/LearnPrompt" },
       "source": "./",
       "category": "productivity",

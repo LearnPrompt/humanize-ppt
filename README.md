@@ -4,16 +4,16 @@
 
 # Humanize PPT
 
-> *「PPT 不只是信息容器，而是观众状态改变器。」*
+> *「所有人都在教 AI 把 PPT 渲染得好看，没人盯着它渲染完有多烂。」*
 
 [![Agent Skills](https://img.shields.io/badge/Agent%20Skills-humanize--ppt-blueviolet)](SKILL.md)
 [![skills.sh](https://skills.sh/b/LearnPrompt/humanize-ppt)](https://skills.sh/LearnPrompt/humanize-ppt)
 [![Release](https://img.shields.io/github/v/release/LearnPrompt/humanize-ppt)](https://github.com/LearnPrompt/humanize-ppt/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**面向 Agent 的 PPT 简报编排器：先把资料变成人愿意听的 AST 大纲 + 逐页素材决定，交给下游 PPT Skill 100% 原生渲染，再用 QA 循环盯住渲染结果。Humanize 自己不渲染。**
+**面向 Agent 的 PPT 渲染质检员：先把资料编排成 AST 大纲 + 逐页素材决定的简报，交给下游 PPT Skill 100% 原生渲染——然后盯住渲染结果：扫失败模式、写 fix prompt、3 轮封顶。模板库负责渲染得好看，Humanize 负责渲染完有人盯。它自己不渲染。**
 
-[看效果](#效果展示) · [30秒上手](#30-秒开始让-agent-安装并使用) · [触发方式](#触发方式) · [它和同类有什么不同](#它和同类有什么不同) · [安全边界](#安全边界) · [在线预览](https://learnprompt.github.io/humanize-ppt/) · [AST理论](docs/AST-theory.md)
+[看效果](#效果展示) · [演讲QA大纲](#演讲-qa-大纲渲染之前先看一眼观众状态弧) · [30秒上手](#30-秒开始让-agent-安装并使用) · [触发方式](#触发方式) · [它和同类有什么不同](#它和同类有什么不同) · [安全边界](#安全边界) · [在线预览](https://learnprompt.github.io/humanize-ppt/) · [AST理论](docs/AST-theory.md)
 
 </div>
 
@@ -32,18 +32,45 @@
 <a href="https://learnprompt.github.io/humanize-ppt/">在线翻完整 deck →</a>
 </sub></p>
 
-Humanize PPT 不抢模板库的工作。它是**简报编排器**：把资料整理成 AST 大纲 + 逐页素材决定（要不要图、要不要 SVG 示意图、要不要 Remotion 视频），写一份 `*-production-prompt.md` 给下游 Skill 100% 原生渲染，最后用 QA 循环盯住渲染结果。Humanize 自己不出 HTML。
+Humanize PPT 不抢模板库的工作。它是**渲染质检员**：上半场做简报编排——把资料整理成 AST 大纲 + 逐页素材决定（要不要图、要不要 SVG 示意图、要不要 Remotion 视频），写一份 `*-production-prompt.md` 给下游 Skill 100% 原生渲染；下半场盯渲染结果——QA 循环扫失败模式、写 fix prompt、3 轮封顶。Humanize 自己不出 HTML。
 
 `examples/03-codex-guizang-native-ink-classic/` 是一份**已知合格的 Guizang Style A / Ink Classic 原生成品**（10 页、86 个 `data-anim`、WebGL hero 背景）。它不是 Humanize 的产物——是 `guizang-ppt-skill` 跑出来的，作为 QA 循环的视觉基准。
 
 > 这一页 deck 是 guizang-ppt-skill 原生产物，Humanize 只负责出 brief 和 QA。
+
+## 演讲 QA 大纲：渲染之前，先看一眼观众状态弧
+
+v0.7.0 起，Humanize 有了第一个自己的可截图产物——不是 PPT（渲染归下游），而是**质检员的工作底稿**：观众状态转移图。输入 `slide_plan.json`，输出一页零依赖单文件 HTML：每页一行「页号 → 观众进入状态 → 本页意图 → 离开状态」，顶部一条状态弧摘要。渲染之前人先过一眼：哪一页没有推动状态转移，哪一页在原地踏步，5 分钟看穿。
+
+<p align="center">
+  <img src="examples/04-preview-outline-ai-tool-update/preview-outline.png" width="92%" />
+</p>
+
+<p align="center"><sub>
+▲ 真实产物：<code>examples/01-ai-tool-update/source.md</code> 跑 brief 模式得到的 <code>slide_plan.json</code>，再经 <code>scripts/preview_outline_html.py</code> 生成。文件在 <code>examples/04-preview-outline-ai-tool-update/</code>，可直接双击打开。
+</sub></p>
+
+```bash
+python3 scripts/preview_outline_html.py \
+  --slide-plan <out>/slide_plan.json \
+  --out <out>/preview-outline.html \
+  --title "你的 deck 标题"
+```
+
+它和 `--preview-outline`（markdown 版大纲检查点，v0.6.6 起内置）是同一道关的两种形态：markdown 给 Agent 读，这页 HTML 给人看、给截图。
+
+## QA 翻车现场：before / after
+
+**虚位以待。** 这一节留给第一单真实 QA 循环抓到的翻车案例：下游渲染产物的 before（`qa_report.md` 的 finding + 截图）和 fix prompt 重渲后的 after。格式会对齐 `examples/03-codex-guizang-native-ink-classic/` 的写法——真实运行产物、可复现路径、不放摆拍。在第一单真实案例进来之前，这里宁可空着。
+
+如果你的 deck 被 QA 循环抓到过值得示众的翻车（`placeholder-residue`、`webgl-canvas-missing`、`swiss-sxx-invented-id`……见 [QA 失败模式目录](references/qa-failure-modes.md)），欢迎提 issue 投稿。
 
 ## 30 秒开始：让 Agent 安装并使用
 
 如果你正在使用 Codex、Claude Code、Hermes 或其他支持 Skill 的 Agent，把这段话发给它：
 
 ```text
-请安装并使用 Humanize PPT Skill（v0.6.5+）：
+请安装并使用 Humanize PPT Skill（v0.7.0+）：
 https://github.com/LearnPrompt/humanize-ppt
 
 我要做一份 PPT。请按下面三步走，不要让 Humanize 自己渲染任何 HTML：
@@ -77,12 +104,15 @@ Claude Code 用户也可以走 plugin marketplace（自动更新）：
 
 ## 触发方式
 
+- 「帮我盯一下渲染出来的 PPT 有没有翻车」
+- 「PPT 渲染质检」「帮我对这份渲染好的 deck 跑 QA 循环」
+- 「这页的 Hero 背景看不见，出 fix prompt 让下游改」
 - 「用 humanize-ppt 把这份资料做成 PPT 大纲」
 - 「我有一堆笔记/录音转写，要做一份给产品团队看的 PPT」
 - 「先出 AST 大纲和逐页素材决定，再调 guizang 渲染」
-- 「帮我对这份渲染好的 deck 跑 QA 循环」
-- 「这页的 Hero 背景看不见，出 fix prompt 让下游改」
 - 「把这份老 PPT 重新编排成人愿意听的结构」
+
+反向指路：如果你只要一个漂亮模板、或者想让 AI 直接渲染 PPT，不需要 Humanize——直接用 [guizang-ppt-skill](https://github.com/op7418/guizang-ppt-skill)（中文）或 [frontend-slides](https://github.com/zarazhangrui/frontend-slides) / [beautiful-html-templates](https://github.com/zarazhangrui/beautiful-html-templates)（英文）。Humanize 管的是渲染前的编排和渲染后的质检。
 
 ## 怎么跟 Agent 交流
 
@@ -138,6 +168,7 @@ python3 scripts/humanize_ppt.py \
 - **逐页素材决定**：每页要不要图、要不要 SVG/HTML 示意图、要不要 Remotion 视频——Humanize 决定，下游 skill 原生产出。
 - **生产简报**：写一份 `<renderer>-production-prompt.md` 给下游 skill 100% 原生渲染，不模仿、不 post-process。
 - **QA 循环**：拿到渲染 HTML 后扫描失败模式（`references/qa-failure-modes.md`），写 fix prompt 给下游 skill 重渲，最多 3 轮。
+- **演讲 QA 大纲**：从 `slide_plan.json` 生成观众状态转移图（零依赖单文件 HTML），渲染之前人先过一眼状态弧。
 
 ## 适合 / 不适合
 
@@ -164,7 +195,7 @@ python3 scripts/humanize_ppt.py \
 | 质量 | 渲染完即交付 | QA 循环扫失败模式，最多 3 轮，写 fix prompt |
 | 维护 | 模板更新要跟着改 | 下游更新零改动——只发 brief，不抄模板 |
 
-一句话：模板库负责「好看」，Humanize 负责「有人听懂」，再盯住「好看」真的发生了。它们是上下游，不是竞品。
+一句话：模板库负责「渲染得好看」，Humanize 负责「有人听懂」+「渲染完有人盯」。它们是上下游，不是竞品——渲染是红海，渲染后的质检是空位，Humanize 站在空位上。
 
 ## 工作流路径
 
@@ -175,7 +206,21 @@ v0.6.4 起，工作流分成四段 O / P / Q / C：
 - **Q — Conversational QA Loop**（Humanize `--qa-from`）：扫失败模式 → 写 fix_prompt.md → 等下游 skill 重渲 → 收敛，最多 3 轮
 - **C — Complete**（下游 skill 原生）：speaker notes / presenter shell / 静态部署，**不属于 Humanize**
 
-Humanize PPT 当前重点是稳定「资料 → AST + 简报 → 下游 skill 原生 → QA 循环 → 部署」的工作流。视频或动态素材在 `slide_plan.json` 的 `media.video` 字段里有决定，下游 skill 按 prompt 原生产出 Remotion / 静态占位。
+Humanize PPT 当前重点是稳定「资料 → AST + 简报 → 下游 skill 原生 → QA 循环 → 部署」的工作流。
+
+**多媒体边界**：视频或动态素材在 `slide_plan.json` 的 `media.video` 字段和 `video_slots.json` 里有决定——这两个字段维持不变，Humanize 继续逐页决定要不要视频、做什么用、多长。但**多媒体管线本身归下游**：Remotion / HyperFrames 的渲染、静态占位、嵌入方式都是下游 skill 的事，本仓库不修、不接管、不验证。
+
+## 英文路径现状：brief 出口可用，QA 这条腿未验证
+
+照实说（对应 `registry/renderer_registry.json` 的 `support_level` 字段）：
+
+| 渲染器 | support_level | 实际含义 |
+|---|---|---|
+| `guizang-ppt-skill`（中文） | `full` | brief 出口 + `--qa-from` QA 循环都在真实渲染产物上验证过，失败模式目录有 7 条 guizang 规则 |
+| `frontend-slides`（英文） | `brief-only` | `frontend-slides-production-prompt.md` 正常产出、可消费；但 QA 循环没在它的真实渲染产物上跑过，失败模式目录里没有它的专属规则 |
+| `beautiful-html-templates`（英文） | `brief-only` | 同上：brief 出口可用，QA 未验证 |
+
+这不是「去修英文」的待办，是边界声明：**英文路径你可以用 brief 出口，但 QA 这条腿我们不承诺**。等第一单真实的英文渲染产物走完 `--qa-from` 并验证过 findings，failure-mode 目录的英文小节才会从 reserved 变成正文（宁空不摆拍，和 showcase 同一条班规）。
 
 ## 为什么是 AST
 
@@ -240,11 +285,12 @@ QA 模式（`--qa-from`）会向 `outputs/qa/` 追加 `fix_prompt.md` 和 `qa_it
 
 ## 当前能力边界
 
-- 推荐入口：`scripts/humanize_ppt.py`
-- 历史版本说明：`docs/versions/`
+- 推荐入口：`scripts/humanize_ppt.py`（演讲 QA 大纲：`scripts/preview_outline_html.py`）
+- 历史版本说明：`docs/versions/`（v0.7.0 为什么改定位：`docs/versions/v0.7.0-render-qa-inspector.md`）
 - 版本计划与审查：`docs/plans/`
 - 脱敏样例：`examples/`
 - v0.6.4 已知合格品：`examples/03-codex-guizang-native-ink-classic/`
+- 渲染器支持级别：`registry/renderer_registry.json` 的 `support_level`（guizang `full`；英文路径 `brief-only`，见上文）
 
 ## 安全边界
 
@@ -262,7 +308,7 @@ Humanize PPT 的设计参考了这些项目和操作规章：
 - [zarazhangrui/frontend-slides](https://github.com/zarazhangrui/frontend-slides)：英文 slide workflow、viewport-safe HTML deck、PPTX/发布方向。
 - [huggingface/smolagents](https://github.com/huggingface/smolagents)：code-first Agent 工作流参考，帮助定义「Agent 读契约、执行工具、写回结果」的协作方式。
 - [AST 理论](docs/AST-theory.md)、[OPC 工作流](docs/OPC-workflow.md)：Humanize PPT 自己的大纲方法、路由规则和执行边界。
-- [v0.6.4 版本说明](docs/versions/v0.6.4-guizang-production-brief-orchestrator.md)、[brief 规约](references/guizang-production-brief-orchestrator.md)、[QA 失败模式](references/qa-failure-modes.md)：v0.6.4 简报编排 + QA 循环的契约。
+- [v0.7.0 版本说明](docs/versions/v0.7.0-render-qa-inspector.md)、[v0.6.4 版本说明](docs/versions/v0.6.4-guizang-production-brief-orchestrator.md)、[brief 规约](references/guizang-production-brief-orchestrator.md)、[QA 失败模式](references/qa-failure-modes.md)：简报编排 + QA 循环的契约，和 v0.7.0 质检员定位的来由。
 
 ## License
 

@@ -12,7 +12,7 @@ from pathlib import Path
 
 SKILL_ROOT = Path(__file__).resolve().parents[1]
 REGISTRY_PATH = SKILL_ROOT / "registry" / "renderer_registry.json"
-VERSION = "0.6.5"
+VERSION = "0.7.0"
 BEAUTIFUL_REPO_URL = "https://github.com/zarazhangrui/beautiful-html-templates.git"
 DEFAULT_ZH_PREVIEW_COUNT = 3
 DEFAULT_EN_PREVIEW_COUNT = 5
@@ -1153,7 +1153,7 @@ def check_downstream_install(skill_name, skip=False):
             return True, p
     if not skip:
         sys.stderr.write(
-            f"\n[humanize-ppt v0.6.5] WARNING: {skill_name} not detected at any known path:\n"
+            f"\n[humanize-ppt v0.7.0] WARNING: {skill_name} not detected at any known path:\n"
             f"  - " + "\n  - ".join(str(p) for p in paths) + "\n"
             f"  The brief still ships, but the next agent must install {skill_name} before rendering.\n"
             f"  Install: see the skill's GitHub README, or use the agent's skill install command.\n"
@@ -2271,25 +2271,25 @@ def main():
             accent = getattr(args, "guizang_accent", None)
             if style == "A" and not theme:
                 sys.stderr.write(
-                    "[humanize-ppt v0.6.5] --guizang-style=A requires --guizang-theme. "
+                    "[humanize-ppt v0.7.0] --guizang-style=A requires --guizang-theme. "
                     "Choose one of: ink-classic, indigo-porcelain, forest-ink, kraft-paper, dune. "
                     "Defaulting to ink-classic.\n"
                 )
                 theme = "ink-classic"
             if style == "B" and not accent:
                 sys.stderr.write(
-                    "[humanize-ppt v0.6.5] --guizang-style=B requires --guizang-accent. "
+                    "[humanize-ppt v0.7.0] --guizang-style=B requires --guizang-accent. "
                     "Choose one of: ikb, lemon-yellow, lemon-green, safety-orange. "
                     "Defaulting to ikb.\n"
                 )
                 accent = "ikb"
             if style == "A" and accent:
                 sys.stderr.write(
-                    f"[humanize-ppt v0.6.5] --guizang-style=A ignores --guizang-accent={accent}.\n"
+                    f"[humanize-ppt v0.7.0] --guizang-style=A ignores --guizang-accent={accent}.\n"
                 )
             if style == "B" and theme:
                 sys.stderr.write(
-                    f"[humanize-ppt v0.6.5] --guizang-style=B ignores --guizang-theme={theme}.\n"
+                    f"[humanize-ppt v0.7.0] --guizang-style=B ignores --guizang-theme={theme}.\n"
                 )
             # v0.6.5: install self-check. Warn-only; the brief still ships.
             check_downstream_install(

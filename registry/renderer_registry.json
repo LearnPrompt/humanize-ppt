@@ -1,11 +1,16 @@
 {
-  "version": "0.6.5",
+  "version": "0.7.0",
+  "support_levels": {
+    "full": "brief 出口 + 渲染后 QA 循环都已在真实渲染产物上验证过",
+    "brief-only": "brief 出口可用；--qa-from 这条腿尚未在该渲染器的真实产物上验证，不承诺"
+  },
   "renderers": [
     {
       "id": "guizang",
       "display_name": "Guizang PPT Skill",
       "skill_name": "guizang-ppt-skill",
       "role": "primary-renderer-100pct-native",
+      "support_level": "full",
       "best_for": [
         "中文分享",
         "稳定成稿",
@@ -38,6 +43,8 @@
       "display_name": "Beautiful HTML Templates",
       "skill_name": "beautiful-html-templates",
       "role": "english-native-renderer",
+      "support_level": "brief-only",
+      "support_note": "v0.7.0: brief 出口可用（beautiful-html-templates-production-prompt.md 正常产出）；QA 失败模式目录还没有 beautiful 专属规则，--qa-from 未在它的真实渲染产物上验证。",
       "best_for": [
         "34套模板",
         "英文默认至少5个真实预览",
@@ -99,6 +106,8 @@
       "display_name": "Frontend Slides",
       "skill_name": "frontend-slides",
       "role": "english-native-renderer",
+      "support_level": "brief-only",
+      "support_note": "v0.7.0: brief 出口可用（frontend-slides-production-prompt.md 正常产出）；QA 失败模式目录还没有 frontend-slides 专属规则，--qa-from 未在它的真实渲染产物上验证。",
       "best_for": [
         "PPTX转HTML",
         "英文style discovery",

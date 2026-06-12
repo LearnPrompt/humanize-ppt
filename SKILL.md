@@ -1,13 +1,13 @@
 ---
 name: humanize-ppt
-description: AST-based outline director and per-page media decision maker. Produces production briefs for native downstream PPT skills (guizang / frontend-slides / beautiful-html-templates) and runs a post-render QA loop on the rendered HTML. Use before generating PPT/HTML slides from raw material.
-version: 0.6.5
+description: Render-QA inspector for agent-made PPTs, plus AST-based outline director and per-page media decision maker. Produces production briefs for native downstream PPT skills (guizang / frontend-slides / beautiful-html-templates), then runs a capped 3-round QA loop on the rendered HTML (failure-mode scan + fix prompts). Use before generating PPT/HTML slides from raw material, and after rendering when the user says things like "帮我盯一下渲染出来的 PPT 有没有翻车", "PPT 渲染质检", "QA this rendered deck", or "对渲染好的 deck 跑 QA 循环". Do NOT use when the user just wants a pretty template or direct rendering — route those to guizang-ppt-skill (Chinese) or frontend-slides / beautiful-html-templates (English); Humanize never renders.
+version: 0.7.0
 author: LearnPrompt
 license: MIT
 requires-skills:
   guizang-ppt-skill: "Required when the deck language is Chinese. The brief writer references ~/.agents/skills/guizang-ppt-skill/SKILL.md; without it the next agent cannot render. v0.6.5 brief writer emits a stderr warning if the skill is not detected."
-  frontend-slides: "Required when the deck language is English. Same hand-off pattern as guizang."
-  beautiful-html-templates: "Optional English alternative. Same hand-off pattern."
+  frontend-slides: "Required when the deck language is English. Same hand-off pattern as guizang. v0.7.0 support_level: brief-only — the brief exit works; the --qa-from leg is unverified on its real rendered output."
+  beautiful-html-templates: "Optional English alternative. Same hand-off pattern. v0.7.0 support_level: brief-only — brief exit works, QA leg unverified."
 metadata:
   tags: [presentation, ppt, html-slides, humanizer, ast, workflow, brief-orchestrator, hv-analysis, 9-styles]
 ---
@@ -18,7 +18,7 @@ Use this skill when a user wants to turn raw material, notes, voice transcripts,
 
 ## Positioning
 
-Humanize PPT is an **Outline Director**, **Per-Page Media Director**, **Production Brief Orchestrator**, and **Post-Render QA Loop Runner**, not a slide renderer.
+Humanize PPT is a **Render-QA Inspector**: an **Outline Director**, **Per-Page Media Director**, **Production Brief Orchestrator**, and **Post-Render QA Loop Runner** — not a slide renderer. v0.7.0 makes the inspector identity primary: downstream template skills own "renders beautifully"; Humanize owns "someone checked what actually rendered".
 
 It runs **before** downstream PPT / HTML slide skills and **around** the post-render QA loop. It owns the AST contract, the per-page media decision (does this page need a photo, a system diagram, a 10-second process clip, nothing?), the production brief that the next agent consumes, and the QA pass on the rendered HTML. It does **not** own the rendered HTML itself.
 
@@ -116,13 +116,15 @@ C — Complete / Control
 ### Renderer-specific guidance (kept for history; the boundary itself is the invariants above)
 
 14. For Chinese PPT production, the default stable path is `Humanize PPT → guizang-ppt-skill native → Humanize --qa-from → downstream presenter/deploy`. Guizang's own material QA and Swiss validator run inside the downstream skill. The `--qa-from` loop in Humanize is a second-pair-of-eyes pass, not a replacement.
-15. For English PPT production, the default path is `Humanize PPT → frontend-slides or beautiful-html-templates (native) → Humanize --qa-from → downstream deploy`. The downstream skill owns its own template selection, preview gallery, and selected-template full deck. Humanize does not imitate them.
+15. For English PPT production, the default path is `Humanize PPT → frontend-slides or beautiful-html-templates (native) → Humanize --qa-from → downstream deploy`. The downstream skill owns its own template selection, preview gallery, and selected-template full deck. Humanize does not imitate them. **v0.7.0 support level: `brief-only`** (see `registry/renderer_registry.json`) — the English brief exit is verified; the `--qa-from` leg has not run on real frontend-slides / beautiful-html-templates output and carries no renderer-specific failure modes. State this honestly when a user asks for English-deck QA; do not pretend the English QA leg is verified.
 16. The verified Style A checkpoint at `examples/03-codex-guizang-native-ink-classic/` is a read-only visual reference. If the QA loop ever fails against it (`test_known_good_style_a_passes_all_style_a_gates`), the fixture or the live Guizang skill has drifted — do not weaken the QA check to make the test pass.
 
 ## Operational references
 
 - `references/guizang-production-brief-orchestrator.md` — v0.6.4 canonical brief specification. The human + agent-facing contract for what `<renderer>-production-prompt.md` must contain and what it must not contain.
-- `references/qa-failure-modes.md` — v0.6.4 failure mode catalog for the post-render QA loop. Human-readable; the code-side source of truth is `FAILURE_MODES` in `scripts/humanize_ppt_v2.py`.
+- `references/qa-failure-modes.md` — v0.7.0 failure mode catalog for the post-render QA loop: a renderer-agnostic failure-class layer plus guizang-specific modes; English-renderer sections stay reserved until their QA leg is verified. Human-readable; the code-side source of truth is `FAILURE_MODES` in `scripts/humanize_ppt_v2.py`.
+- `scripts/preview_outline_html.py` — v0.7.0 speech QA outline: renders the audience state-transfer map (one zero-dependency single-file HTML; per-slide enter-state → intent → leave-state rows plus a state-arc summary) from `slide_plan.json`. Real sample: `examples/04-preview-outline-ai-tool-update/`.
+- `docs/versions/v0.7.0-render-qa-inspector.md` — v0.7.0 release notes: why the positioning moved to render-QA inspector, English-path support levels, and the speech QA outline artifact.
 - `references/agent-teams-public-preview.md` — Agent Teams architecture, specialist-agent command protocol, public preview release loop, and README split convention. (Historical; v0.6.4 collapses the Agent Teams model into a brief + QA loop.)
 - `references/humanize-ppt-public-writing.md` — Public-facing positioning and article/script patterns: Humanize PPT as brief orchestrator, not a fixed 4-Skill bundle.
 - `references/workbuddy-team-packaging-and-video-materials.md` — WorkBuddy/CodeBuddy team upload zip structure, validation script, scenario rules shape, and the Remotion/HyperFrames-as-material-producers pitfall.
@@ -167,7 +169,16 @@ python3 scripts/humanize_ppt.py \
   --max-qa-iterations 3
 ```
 
-English paths use the same shape with `--renderer beautiful-html-templates` or `--renderer frontend-slides`, which write `beautiful-html-templates-production-prompt.md` or `frontend-slides-production-prompt.md` respectively.
+English paths use the same shape with `--renderer beautiful-html-templates` or `--renderer frontend-slides`, which write `beautiful-html-templates-production-prompt.md` or `frontend-slides-production-prompt.md` respectively. (v0.7.0: these two are `support_level: brief-only` — the brief exit works; the `--qa-from` leg is unverified on their real rendered output.)
+
+Speech QA outline (v0.7.0 — audience state-transfer map from an existing `slide_plan.json`, zero-dependency single-file HTML):
+
+```bash
+python3 scripts/preview_outline_html.py \
+  --slide-plan .humanize-ppt-runs/ai-tool-update-v0.6.4/slide_plan.json \
+  --out .humanize-ppt-runs/ai-tool-update-v0.6.4/preview-outline.html \
+  --title "AI 工具更新，不只是功能清单"
+```
 
 The legacy V0.2-compatible entrypoint remains available for compatibility with earlier agents:
 

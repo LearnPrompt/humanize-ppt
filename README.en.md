@@ -2,13 +2,15 @@
 
 # Humanize PPT
 
-## PPT brief orchestrator for agents (v0.6.5)
+## Render-QA inspector for agent-made PPTs (v0.7.0)
 
-**Turn raw material into an audience-aware AST outline + per-page media decisions, hand a production brief to a native downstream PPT skill, and run a post-render QA loop on the output. Humanize never renders HTML itself.**
+> *Everyone is teaching AI to render beautiful slides. Nobody is watching how badly they come out.*
+
+**Turn raw material into an audience-aware AST outline + per-page media decisions, hand a production brief to a native downstream PPT skill — then watch the rendered output: scan failure modes, write fix prompts, cap at 3 rounds. Template skills own "looks good"; Humanize owns "someone checked". It never renders HTML itself.**
 
 [Live Preview](https://learnprompt.github.io/humanize-ppt/) · [Release](https://github.com/LearnPrompt/humanize-ppt/releases) · [MIT License](LICENSE)
 
-[中文](README.md) · [AST Theory](docs/AST-theory.md) · [v0.6.4 Release Notes](docs/versions/v0.6.4-guizang-production-brief-orchestrator.md)
+[中文](README.md) · [AST Theory](docs/AST-theory.md) · [v0.7.0 Release Notes](docs/versions/v0.7.0-render-qa-inspector.md)
 
 </div>
 
@@ -16,18 +18,45 @@
 
 ## Showcase
 
-Humanize PPT is a **brief orchestrator**: it turns source material into an AST outline + per-page media decisions (image / SVG diagram / Remotion video / nothing), writes a `<renderer>-production-prompt.md`, and hands it to a downstream PPT skill that renders 100% natively. After rendering, Humanize runs a 3-iteration QA loop on the rendered HTML. It does **not** render HTML itself.
+Humanize PPT is a **render-QA inspector**: in the first half it orchestrates the brief — turning source material into an AST outline + per-page media decisions (image / SVG diagram / Remotion video / nothing) and writing a `<renderer>-production-prompt.md` for a downstream PPT skill to render 100% natively. In the second half it watches the render — a 3-iteration QA loop scans the rendered HTML for failure modes and writes fix prompts. It does **not** render HTML itself.
 
 `examples/03-codex-guizang-native-ink-classic/` is the verified **known-good Guizang Style A / Ink Classic sample** (10 slides, 86 `data-anim`, WebGL hero background). It was produced by `guizang-ppt-skill`, not by Humanize — it serves as the visual baseline for the v0.6.4 QA loop.
 
 > This deck is the native product of `guizang-ppt-skill`. Humanize only wrote the brief and ran the QA.
+
+## Speech QA outline: see the audience state arc before rendering
+
+Since v0.7.0, Humanize has its first screenshot-able artifact of its own — not a deck (rendering stays downstream), but the **inspector's worksheet**: an audience state-transfer map. Input `slide_plan.json`, output a single-file zero-dependency HTML page — one row per slide ("slide id → state the audience walks in with → page intent → state they walk out with"), with a one-line state-arc summary on top. Five minutes of human review before any render happens.
+
+<p align="center">
+  <img src="examples/04-preview-outline-ai-tool-update/preview-outline.png" width="92%" />
+</p>
+
+<p align="center"><sub>
+▲ Real artifact: <code>examples/01-ai-tool-update/source.md</code> run through brief mode produced the <code>slide_plan.json</code>; <code>scripts/preview_outline_html.py</code> rendered the map. Files live in <code>examples/04-preview-outline-ai-tool-update/</code>.
+</sub></p>
+
+```bash
+python3 scripts/preview_outline_html.py \
+  --slide-plan <out>/slide_plan.json \
+  --out <out>/preview-outline.html \
+  --title "Your deck title"
+```
+
+It is the same checkpoint as `--preview-outline` (the built-in markdown outline review, since v0.6.6) in a second form: markdown for the agent to read, this HTML page for humans and screenshots.
+
+## QA crash gallery: before / after
+
+**Reserved — intentionally empty.** This section is waiting for the first *real* QA-loop catch: the downstream render's before (a `qa_report.md` finding + screenshot) and the after following a fix-prompt re-render, in the same format as `examples/03-codex-guizang-native-ink-classic/` — real run artifacts, reproducible paths, no staging. Until a real case lands, it stays empty.
+
+If your deck got caught by the QA loop in a way worth showing (`placeholder-residue`, `webgl-canvas-missing`, `swiss-sxx-invented-id`… see the [failure-mode catalog](references/qa-failure-modes.md)), open an issue.
 
 ## 30-second start: ask your agent to install and use it
 
 If you use Codex, Claude Code, Hermes, or another Skill-aware agent, send it this:
 
 ```text
-Please install and use the Humanize PPT Skill (v0.6.4+):
+Please install and use the Humanize PPT Skill (v0.7.0+):
 https://github.com/LearnPrompt/humanize-ppt
 
 I want to create a presentation. Follow these three steps. Do NOT let Humanize
@@ -118,6 +147,7 @@ You get `outputs/qa/qa_report.md` / `fix_prompt.md` / `qa_iteration.json`. After
 - **Per-page media decision**: which page wants an image, a system diagram, a 10-second process clip, nothing.
 - **Production brief**: a single `<renderer>-production-prompt.md` for the next agent. No template copy, no `SLIDES_HERE` injection, no post-process.
 - **QA loop**: scans the rendered HTML for failure modes (`references/qa-failure-modes.md`), writes fix prompts for the downstream skill, max 3 rounds, then `needs-human`.
+- **Speech QA outline**: renders the audience state-transfer map (zero-dependency single-file HTML) from `slide_plan.json` for a human pass before any render.
 
 ## Good fit / Not a fit
 
@@ -143,7 +173,21 @@ v0.6.4 splits the workflow into four stages O / P / Q / C:
 - **Q — Conversational QA Loop** (Humanize `--qa-from`): scan failure modes → write `fix_prompt.md` → wait for downstream re-render → converge, max 3 rounds
 - **C — Complete** (downstream skill native): speaker notes / presenter shell / static deploy — **not owned by Humanize**
 
-Humanize PPT's current focus is the stable "material → AST + brief → downstream native → QA loop → deploy" workflow. Video or motion material is decided in `slide_plan.json`'s `media.video` field; the downstream skill produces Remotion / static fallbacks per the brief.
+Humanize PPT's current focus is the stable "material → AST + brief → downstream native → QA loop → deploy" workflow.
+
+**Media boundary:** video and motion material is decided in `slide_plan.json`'s `media.video` field and `video_slots.json` — those decision fields stay. But the **media pipeline itself is downstream-owned**: Remotion / HyperFrames rendering, static fallbacks, and embedding are the downstream skill's job. This repo does not fix, take over, or verify that pipeline.
+
+## English path, stated honestly: brief exit works, the QA leg is unverified
+
+Matching the `support_level` field in `registry/renderer_registry.json`:
+
+| Renderer | support_level | What it actually means |
+|---|---|---|
+| `guizang-ppt-skill` (Chinese) | `full` | Both the brief exit and the `--qa-from` QA loop are verified on real rendered output; the failure-mode catalog has 7 guizang rules |
+| `frontend-slides` (English) | `brief-only` | `frontend-slides-production-prompt.md` is emitted and consumable; but the QA loop has never run on its real rendered output, and no renderer-specific rules exist for it |
+| `beautiful-html-templates` (English) | `brief-only` | Same: brief exit works, QA unverified |
+
+This is not a to-do to "go fix English" — it is a boundary statement: **you can use the English brief exit, but we do not promise the QA leg**. The English sections of the failure-mode catalog stay reserved until a real English render goes through `--qa-from` with verified findings (empty over staged — same house rule as the showcase).
 
 ## Why AST
 
@@ -208,11 +252,12 @@ QA mode (`--qa-from`) appends `fix_prompt.md` and `qa_iteration.json` to `output
 
 ## Current boundaries
 
-- Recommended entrypoint: `scripts/humanize_ppt.py`
-- Historical version notes: `docs/versions/`
+- Recommended entrypoint: `scripts/humanize_ppt.py` (speech QA outline: `scripts/preview_outline_html.py`)
+- Historical version notes: `docs/versions/` (why v0.7.0 repositioned: `docs/versions/v0.7.0-render-qa-inspector.md`)
 - Plans and reviews: `docs/plans/`
 - Safe sample inputs: `examples/`
 - v0.6.4 known-good: `examples/03-codex-guizang-native-ink-classic/`
+- Renderer support levels: `support_level` in `registry/renderer_registry.json` (guizang `full`; English paths `brief-only`, see above)
 
 ## Reference
 
@@ -223,7 +268,7 @@ Humanize PPT is shaped by these projects and operating rules:
 - [zarazhangrui/frontend-slides](https://github.com/zarazhangrui/frontend-slides): English slide workflow, viewport-safe HTML decks, PPTX, and publishing direction.
 - [huggingface/smolagents](https://github.com/huggingface/smolagents): a code-first agent workflow reference for the "read contract, run tools, write back results" collaboration pattern.
 - [AST Theory](docs/AST-theory.md) and [OPC Workflow](docs/OPC-workflow.md): Humanize PPT's own outline method, routing model, and execution boundaries.
-- [v0.6.4 Release Notes](docs/versions/v0.6.4-guizang-production-brief-orchestrator.md), [Brief Specification](references/guizang-production-brief-orchestrator.md), [QA Failure Modes](references/qa-failure-modes.md): the v0.6.4 brief-orchestrator + QA-loop contract.
+- [v0.7.0 Release Notes](docs/versions/v0.7.0-render-qa-inspector.md), [v0.6.4 Release Notes](docs/versions/v0.6.4-guizang-production-brief-orchestrator.md), [Brief Specification](references/guizang-production-brief-orchestrator.md), [QA Failure Modes](references/qa-failure-modes.md): the brief-orchestrator + QA-loop contract, and why v0.7.0 repositioned as render-QA inspector.
 
 ## License
 

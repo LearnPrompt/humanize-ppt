@@ -1,0 +1,155 @@
+[
+  {
+    "slide_id": "S01",
+    "role": "hook",
+    "title": "AI 工具更新，不只是功能清单",
+    "message": "最近很多 AI 工具都在更新：更长上下文、更强的代码能力、更多 Agent 能力、更",
+    "visible_content": [
+      "最近很多 AI 工具都在更新：更长上下文、更强的代码能力、更多 Agent 能力、更",
+      "漂亮的网页生成。 但普通用户真正困惑的不是“功能有没有”，而是：这些更新到底会不会改变我的工作流？ 如果只是把功能列成清单，观众很快会忘。更好的讲法是： 先指出大家已经疲劳：AI 工具每天都在更新。 再提出反常识：真正值"
+    ],
+    "speaker_intent": "抓住注意力：先把观众从信息疲劳里拉出来。",
+    "media": {
+      "image": {
+        "needed": true,
+        "kind": "gpt-photo",
+        "purpose": "Set emotional anchor for the opening page",
+        "slot": "hook-image-16x9"
+      },
+      "diagram": {
+        "needed": false,
+        "kind": "none"
+      },
+      "video": {
+        "needed": false,
+        "kind": "none"
+      }
+    },
+    "layout_hint": "S01-cover-hero",
+    "recommended_renderer": "guizang"
+  },
+  {
+    "slide_id": "S02",
+    "role": "context",
+    "title": "AI 工具更新，不只是功能清单",
+    "message": "最近很多 AI 工具都在更新：更长上下文、更强的代码能力、更多 Agent 能力、更",
+    "visible_content": [
+      "最近很多 AI 工具都在更新：更长上下文、更强的代码能力、更多 Agent 能力、更",
+      "漂亮的网页生成。 但普通用户真正困惑的不是“功能有没有”，而是：这些更新到底会不会改变我的工作流？ 如果只是把功能列成清单，观众很快会忘。更好的讲法是： 先指出大家已经疲劳：AI 工具每天都在更新。 再提出反常识：真正值"
+    ],
+    "speaker_intent": "建立共同背景：说明为什么现在要听这件事。",
+    "media": {
+      "image": {
+        "needed": false,
+        "kind": "none"
+      },
+      "diagram": {
+        "needed": true,
+        "kind": "svg-html",
+        "purpose": "Show the system relationship or scope",
+        "slot": "context-diagram-21x9"
+      },
+      "video": {
+        "needed": false,
+        "kind": "none"
+      }
+    },
+    "layout_hint": "S04-context-system",
+    "recommended_renderer": "guizang"
+  },
+  {
+    "slide_id": "S03",
+    "role": "tension",
+    "title": "AI 工具更新，不只是功能清单",
+    "message": "最近很多 AI 工具都在更新：更长上下文、更强的代码能力、更多 Agent 能力、更",
+    "visible_content": [
+      "最近很多 AI 工具都在更新：更长上下文、更强的代码能力、更多 Agent 能力、更",
+      "漂亮的网页生成。 但普通用户真正困惑的不是“功能有没有”，而是：这些更新到底会不会改变我的工作流？ 如果只是把功能列成清单，观众很快会忘。更好的讲法是： 先指出大家已经疲劳：AI 工具每天都在更新。 再提出反常识：真正值"
+    ],
+    "speaker_intent": "制造认知张力：指出旧理解和真实问题之间的差距。",
+    "media": {
+      "image": {
+        "needed": true,
+        "kind": "svg-html",
+        "purpose": "Show before/after or contradiction visually",
+        "slot": "tension-image-16x9"
+      },
+      "diagram": {
+        "needed": false,
+        "kind": "none"
+      },
+      "video": {
+        "needed": false,
+        "kind": "none"
+      }
+    },
+    "layout_hint": "S06-tension-comparison",
+    "recommended_renderer": "guizang"
+  },
+  {
+    "slide_id": "S04",
+    "role": "method",
+    "title": "AI 工具更新，不只是功能清单",
+    "message": "最近很多 AI 工具都在更新：更长上下文、更强的代码能力、更多 Agent 能力、更",
+    "visible_content": [
+      "最近很多 AI 工具都在更新：更长上下文、更强的代码能力、更多 Agent 能力、更",
+      "漂亮的网页生成。 但普通用户真正困惑的不是“功能有没有”，而是：这些更新到底会不会改变我的工作流？ 如果只是把功能列成清单，观众很快会忘。更好的讲法是： 先指出大家已经疲劳：AI 工具每天都在更新。 再提出反常识：真正值"
+    ],
+    "speaker_intent": "给出方法：把复杂信息变成可执行路径。",
+    "media": {
+      "image": {
+        "needed": false,
+        "kind": "none"
+      },
+      "diagram": {
+        "needed": true,
+        "kind": "svg-html",
+        "purpose": "Diagram the process / decision tree / flow",
+        "slot": "method-diagram-21x9"
+      },
+      "video": {
+        "needed": true,
+        "kind": "remotion-clip",
+        "duration_s": 10,
+        "purpose": "8-12s process clip that walks through the method",
+        "slot": "method-video-16x9"
+      }
+    },
+    "layout_hint": "S07-process-21x9",
+    "recommended_renderer": "guizang"
+  },
+  {
+    "slide_id": "S05",
+    "role": "proof",
+    "title": "AI 工具更新，不只是功能清单",
+    "message": "最近很多 AI 工具都在更新：更长上下文、更强的代码能力、更多 Agent 能力、更",
+    "visible_content": [
+      "最近很多 AI 工具都在更新：更长上下文、更强的代码能力、更多 Agent 能力、更",
+      "漂亮的网页生成。 但普通用户真正困惑的不是“功能有没有”，而是：这些更新到底会不会改变我的工作流？ 如果只是把功能列成清单，观众很快会忘。更好的讲法是： 先指出大家已经疲劳：AI 工具每天都在更新。 再提出反常识：真正值"
+    ],
+    "speaker_intent": "给出证据：用案例、步骤或指标证明它不是口号。",
+    "media": {
+      "image": {
+        "needed": true,
+        "kind": "screenshot",
+        "purpose": "Screenshot evidence of the real UI or result",
+        "slot": "proof-image-16x9"
+      },
+      "diagram": {
+        "needed": true,
+        "kind": "svg-html",
+        "purpose": "Diagram the comparison or supporting structure",
+        "slot": "proof-diagram-21x9"
+      },
+      "video": {
+        "needed": true,
+        "kind": "remotion-clip",
+        "duration_s": 8,
+        "purpose": "Short before/after or result clip",
+        "slot": "proof-video-16x9"
+      }
+    },
+    "layout_hint": "S12-proof-metrics",
+    "recommended_renderer": "guizang"
+  }
+]
