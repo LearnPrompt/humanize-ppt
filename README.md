@@ -267,3 +267,20 @@ Humanize PPT 的设计参考了这些项目和操作规章：
 ## License
 
 MIT
+
+---
+
+<div align="center"><sub>
+
+**[LearnPrompt](https://github.com/LearnPrompt) 出品** · 同门手艺:
+[鲁班·Skill打磨](https://github.com/LearnPrompt/luban-skill) ·
+[庖丁·博主蒸馏](https://github.com/LearnPrompt/paoding-skill) ·
+[蔡伦·对话造纸](https://github.com/LearnPrompt/cailun-skill) ·
+[阿福·LLM Todo](https://github.com/LearnPrompt/afu-llm-todo) ·
+[AI雷达·零API资讯](https://github.com/LearnPrompt/ai-news-radar) ·
+[Humanize PPT·简报编排](https://github.com/LearnPrompt/humanize-ppt) ·
+[CC Harness·六件套](https://github.com/LearnPrompt/cc-harness-skills)
+
+公众号「卡尔的AI沃茨」 · [X @aiwarts](https://x.com/aiwarts) · [learnprompt.pro](https://www.learnprompt.pro)
+
+</sub></div>
