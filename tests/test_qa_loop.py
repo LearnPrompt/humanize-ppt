@@ -211,6 +211,54 @@ def test_brief_mode_does_not_create_guizang_html_even_with_render_args(tmp_path)
     assert not (out / "outputs" / "guizang" / "index.html").exists()
 
 
+def test_qa_loop_runs_renderer_agnostic_checks_for_english_renderer(tmp_path):
+    """v0.8.0: placeholder-residue is renderer-agnostic ("any" scope).
+
+    The presentation checkup (演讲体检) must not be a no-op when pointed
+    at an English renderer's output: generic residue (lorem ipsum /
+    TODO / TBD) must fail, and the fix prompt must name the actual
+    renderer instead of hardcoding guizang.
+    """
+    bad = tmp_path / "bad-en.html"
+    bad.write_text(
+        "<html><body><section class='slide'><h1>TODO title</h1>"
+        "<p>Lorem ipsum dolor sit amet.</p></section></body></html>",
+        encoding="utf-8",
+    )
+    out = tmp_path / "run"
+    _seed_out(out)
+    rc = hp.run_qa_mode(_args(bad, out, renderer="beautiful-html-templates"))
+    assert rc == 0
+    report = (out / "outputs" / "qa" / "qa_report.md").read_text(encoding="utf-8")
+    assert "placeholder-residue" in report
+    fix = (out / "outputs" / "qa" / "fix_prompt.md").read_text(encoding="utf-8")
+    assert "renderer: beautiful-html-templates" in fix
+
+
+EN_SHOWCASE_DECK = ROOT / "docs" / "showcase" / "hermes-agent-mastery" / "en" / "ppt" / "index.html"
+
+
+def test_english_showcase_deck_passes_presentation_checkup(tmp_path):
+    """Regression for the 2026-06-13 verified English checkup run.
+
+    docs/showcase/hermes-agent-mastery/en/ppt/index.html (Neo-Grid Bold,
+    rendered natively by beautiful-html-templates) went through a real
+    --qa-from run and passed round 1. registry/renderer_registry.json
+    records support_level brief+qa-verified for beautiful-html-templates
+    based on this deck; if this test fails, downgrade that support_level.
+    """
+    if not EN_SHOWCASE_DECK.exists():
+        import pytest
+        pytest.skip(f"english showcase deck missing: {EN_SHOWCASE_DECK}")
+    out = tmp_path / "run"
+    out.mkdir(parents=True)
+    rc = hp.run_qa_mode(_args(EN_SHOWCASE_DECK, out, renderer="beautiful-html-templates"))
+    assert rc == 0
+    iter_data = json.loads((out / "outputs" / "qa" / "qa_iteration.json").read_text(encoding="utf-8"))
+    assert iter_data["status"] == "pass", iter_data
+    assert iter_data["renderer"] == "beautiful-html-templates"
+
+
 def test_known_good_style_a_passes_all_style_a_gates(tmp_path):
     """Regression against the verified Guizang Style A Ink Classic sample.
 

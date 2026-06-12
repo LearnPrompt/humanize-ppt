@@ -1,8 +1,10 @@
 {
-  "version": "0.7.0",
+  "version": "0.8.0",
+  "positioning_note": "热插拔：Humanize 广义兼容任何能产出 HTML PPT 的下游 skill——brief 是普通 markdown+JSON，谁都能读。本表只是把『我们真实跑通且输出稳定』的路线标出来：中文推荐 guizang-ppt-skill，英文推荐 frontend-slides / beautiful-html-templates。其他下游可以接，跑通欢迎反馈，support_level 据实更新。",
   "support_levels": {
-    "full": "brief 出口 + 渲染后 QA 循环都已在真实渲染产物上验证过",
-    "brief-only": "brief 出口可用；--qa-from 这条腿尚未在该渲染器的真实产物上验证，不承诺"
+    "full": "brief 出口 + 渲染后演讲体检（--qa-from）都已在真实渲染产物上验证过",
+    "brief+qa-verified": "brief 出口可用，且演讲体检（--qa-from）已在该渲染器的真实渲染产物上完整跑通（扫描→发现→修复→复检）；渲染器专属失败模式规则尚未沉淀",
+    "brief-only": "brief 出口可用；演讲体检（--qa-from）这条腿尚未在该渲染器的真实产物上验证，不承诺"
   },
   "renderers": [
     {
@@ -43,8 +45,8 @@
       "display_name": "Beautiful HTML Templates",
       "skill_name": "beautiful-html-templates",
       "role": "english-native-renderer",
-      "support_level": "brief-only",
-      "support_note": "v0.7.0: brief 出口可用（beautiful-html-templates-production-prompt.md 正常产出）；QA 失败模式目录还没有 beautiful 专属规则，--qa-from 未在它的真实渲染产物上验证。",
+      "support_level": "brief+qa-verified",
+      "support_note": "v0.8.0 (2026-06-13): 演讲体检（--qa-from）在 docs/showcase/hermes-agent-mastery/en/ppt/index.html（Neo-Grid Bold，11 页，beautiful-html-templates 原生渲染）上完整跑通：第 1 轮静态扫描 pass，截图逐页复核发现页码徽章遮挡 9 页正文，修复后第 2 轮 pass。逐轮记录见 docs/showcase/hermes-agent-mastery/en/qa/presentation-checkup-2026-06-13.md。beautiful 专属失败模式规则仍为 0 条（当前只有渲染器无关层 placeholder-residue），故不升 full。",
       "best_for": [
         "34套模板",
         "英文默认至少5个真实预览",
@@ -107,7 +109,7 @@
       "skill_name": "frontend-slides",
       "role": "english-native-renderer",
       "support_level": "brief-only",
-      "support_note": "v0.7.0: brief 出口可用（frontend-slides-production-prompt.md 正常产出）；QA 失败模式目录还没有 frontend-slides 专属规则，--qa-from 未在它的真实渲染产物上验证。",
+      "support_note": "v0.8.0: brief 出口可用（frontend-slides-production-prompt.md 正常产出）；维持 brief-only 的原因：演讲体检（--qa-from）尚未在任何一份 frontend-slides 真实渲染产物上跑过（2026-06-13 验证的英文 deck 是 beautiful-html-templates 渲染的），失败模式目录也没有 frontend-slides 专属规则。第一单真实产物过完体检后据实升级。",
       "best_for": [
         "PPTX转HTML",
         "英文style discovery",
@@ -139,11 +141,12 @@
     },
     {
       "id": "post-render-qa-loop",
-      "display_name": "Humanize PPT Post-Render QA Loop",
+      "display_name": "Humanize PPT 演讲体检 (Post-Render QA Loop)",
       "skill_name": "humanize-ppt",
       "role": "post-render-quality-gate",
       "best_for": [
-        "扫渲染后的 HTML 找 failure modes",
+        "演讲体检：逐页核对渲染结果和大纲页的差异",
+        "把『只能看、不能讲』的页揪出来",
         "写 fix_prompt.md 给下游 skill 重渲",
         "3 轮上限，超出 needs-human",
         "锁定 known-good 视觉基准"

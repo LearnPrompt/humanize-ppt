@@ -12,7 +12,7 @@ from pathlib import Path
 
 SKILL_ROOT = Path(__file__).resolve().parents[1]
 REGISTRY_PATH = SKILL_ROOT / "registry" / "renderer_registry.json"
-VERSION = "0.7.0"
+VERSION = "0.8.0"
 BEAUTIFUL_REPO_URL = "https://github.com/zarazhangrui/beautiful-html-templates.git"
 DEFAULT_ZH_PREVIEW_COUNT = 3
 DEFAULT_EN_PREVIEW_COUNT = 5
@@ -1153,7 +1153,7 @@ def check_downstream_install(skill_name, skip=False):
             return True, p
     if not skip:
         sys.stderr.write(
-            f"\n[humanize-ppt v0.7.0] WARNING: {skill_name} not detected at any known path:\n"
+            f"\n[humanize-ppt v0.8.0] WARNING: {skill_name} not detected at any known path:\n"
             f"  - " + "\n  - ".join(str(p) for p in paths) + "\n"
             f"  The brief still ships, but the next agent must install {skill_name} before rendering.\n"
             f"  Install: see the skill's GitHub README, or use the agent's skill install command.\n"
@@ -1170,9 +1170,13 @@ REGISTERED_SWISS_LAYOUTS = {f"S{n:02d}" for n in range(1, 23)}  # S01..S22
 
 FAILURE_MODES = {
     "placeholder-residue": {
-        "scope": ["guizang"],
+        # v0.8.0: renderer-agnostic. "any" means the rule applies to every
+        # renderer the presentation checkup (演讲体检) is pointed at, not just
+        # guizang. The audience symptom is the same everywhere: visible
+        # lorem/TODO/[必填] text on a live slide.
+        "scope": ["any"],
         "severity_default": "fail",
-        "description": "Template placeholders like [必填] or SLIDES_HERE leaked into the rendered HTML.",
+        "description": "Template placeholders like [必填], SLIDES_HERE, lorem ipsum, TODO, or TBD leaked into the rendered HTML.",
         "check": "check_placeholder_residue",
     },
     "low-power-default": {
@@ -1235,6 +1239,19 @@ def check_placeholder_residue(html, plan, ctx):
             "placeholder-residue", "fail",
             "Rendered HTML still contains SLIDES_HERE marker.",
         ))
+    # v0.8.0: renderer-agnostic residue markers. What the audience would
+    # see: literal "lorem ipsum" / "TODO" / "TBD" text on a live slide.
+    generic_markers = [
+        (r"lorem\s+ipsum", "lorem ipsum filler text"),
+        (r"\bTODO\b", "a TODO marker"),
+        (r"\bTBD\b", "a TBD marker"),
+    ]
+    for pattern, label in generic_markers:
+        if re.search(pattern, html, flags=re.IGNORECASE if "lorem" in pattern else 0):
+            findings.append(_finding(
+                "placeholder-residue", "fail",
+                f"Rendered HTML still contains {label}.",
+            ))
     return findings
 
 
@@ -1338,11 +1355,15 @@ _CHECK_FUNCTIONS = {
 
 
 def failure_modes_for(renderer, style=None):
-    """Return the failure modes that apply to (renderer, style)."""
+    """Return the failure modes that apply to (renderer, style).
+
+    Scope "any" is renderer-agnostic (v0.8.0): the mode runs no matter
+    which downstream renderer produced the HTML.
+    """
     target = renderer if not style else f"{renderer}-style-{style.lower()}"
     out = {}
     for mode_id, meta in FAILURE_MODES.items():
-        if target in meta["scope"] or renderer in meta["scope"]:
+        if "any" in meta["scope"] or target in meta["scope"] or renderer in meta["scope"]:
             out[mode_id] = meta
     return out
 
@@ -1411,7 +1432,7 @@ def _write_qa_report(out, iteration, findings, status, max_iterations):
     (qa / "qa_report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def _write_fix_prompt(out, iteration, unresolved, rendered_path, style):
+def _write_fix_prompt(out, iteration, unresolved, rendered_path, style, renderer="guizang"):
     qa = _qa_dir(out)
     if not unresolved:
         (qa / "fix_prompt.md").write_text(
@@ -1427,14 +1448,14 @@ def _write_fix_prompt(out, iteration, unresolved, rendered_path, style):
         f"> Do not post-process in Humanize.",
         "",
         "## Style",
-        f"- renderer: guizang",
+        f"- renderer: {renderer}",
         f"- style: {style}",
         "",
         "## Fix instructions (one per finding)",
         "",
     ]
     fix_specs = {
-        "placeholder-residue": "Substitute all [必填] placeholders and remove the <!-- SLIDES_HERE --> marker. The downstream skill's own substitution pass must run end-to-end.",
+        "placeholder-residue": "Remove all placeholder residue from live slides: substitute [必填] placeholders, remove the <!-- SLIDES_HERE --> marker, and replace any lorem ipsum / TODO / TBD filler with finished content. The downstream skill's own substitution pass must run end-to-end.",
         "low-power-default": "Remove `low-power` from the body class. Animation must play on first load.",
         "webgl-canvas-missing": "Add both `canvas#bg-dark` and `canvas#bg-light` so the Style A WebGL hero background can render.",
         "data-anim-thin": "Add more `data-anim` / `data-animate` markers across non-cover pages. Aim for 10+ (Ink Classic has 86).",
@@ -1531,7 +1552,7 @@ def run_qa_mode(args):
         status = "iterate"
 
     _write_qa_report(out, iteration, findings, status, max_iter)
-    _write_fix_prompt(out, iteration, unresolved_failures, rendered, style)
+    _write_fix_prompt(out, iteration, unresolved_failures, rendered, style, renderer=renderer)
 
     history = list((prev or {}).get("history", []))
     history.append({
@@ -2271,25 +2292,25 @@ def main():
             accent = getattr(args, "guizang_accent", None)
             if style == "A" and not theme:
                 sys.stderr.write(
-                    "[humanize-ppt v0.7.0] --guizang-style=A requires --guizang-theme. "
+                    "[humanize-ppt v0.8.0] --guizang-style=A requires --guizang-theme. "
                     "Choose one of: ink-classic, indigo-porcelain, forest-ink, kraft-paper, dune. "
                     "Defaulting to ink-classic.\n"
                 )
                 theme = "ink-classic"
             if style == "B" and not accent:
                 sys.stderr.write(
-                    "[humanize-ppt v0.7.0] --guizang-style=B requires --guizang-accent. "
+                    "[humanize-ppt v0.8.0] --guizang-style=B requires --guizang-accent. "
                     "Choose one of: ikb, lemon-yellow, lemon-green, safety-orange. "
                     "Defaulting to ikb.\n"
                 )
                 accent = "ikb"
             if style == "A" and accent:
                 sys.stderr.write(
-                    f"[humanize-ppt v0.7.0] --guizang-style=A ignores --guizang-accent={accent}.\n"
+                    f"[humanize-ppt v0.8.0] --guizang-style=A ignores --guizang-accent={accent}.\n"
                 )
             if style == "B" and theme:
                 sys.stderr.write(
-                    f"[humanize-ppt v0.7.0] --guizang-style=B ignores --guizang-theme={theme}.\n"
+                    f"[humanize-ppt v0.8.0] --guizang-style=B ignores --guizang-theme={theme}.\n"
                 )
             # v0.6.5: install self-check. Warn-only; the brief still ships.
             check_downstream_install(

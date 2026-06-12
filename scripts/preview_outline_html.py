@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Humanize PPT v0.7.0 — 演讲 QA 大纲 (audience state-transfer map).
+"""Humanize PPT v0.8.0 — 演讲大纲预览 (audience state-transfer map).
 
 Reads a `slide_plan.json` (schema: contracts/slide-plan.schema.json) and
 writes a **single-file, zero-dependency HTML page**: one row per slide —
@@ -30,7 +30,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-VERSION = "0.7.0"
+VERSION = "0.8.0"
 
 # Audience state per AST role: (label, state the audience LEAVES the page in).
 # The state a page is ENTERED in is the previous page's leave-state; the
@@ -250,7 +250,7 @@ def render_html(title, plan_path, rows, beats):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(
-        description="Humanize PPT v0.7.0 — render a zero-dependency audience state-transfer map from slide_plan.json"
+        description="Humanize PPT v0.8.0 — render a zero-dependency audience state-transfer map from slide_plan.json"
     )
     ap.add_argument("--slide-plan", required=True, help="Path to slide_plan.json (array of slides).")
     ap.add_argument("--out", required=True, help="Path of the single-file HTML to write.")

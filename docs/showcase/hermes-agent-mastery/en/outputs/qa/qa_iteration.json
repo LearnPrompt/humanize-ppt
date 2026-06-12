@@ -1,0 +1,26 @@
+{
+  "iteration": 2,
+  "status": "pass",
+  "max_iterations": 3,
+  "renderer": "beautiful-html-templates",
+  "style": "A",
+  "unresolved": [],
+  "history": [
+    {
+      "iteration": 1,
+      "status": "pass",
+      "fail_count": 0,
+      "warn_count": 0,
+      "unresolved_ids": [],
+      "resolved_ids": []
+    },
+    {
+      "iteration": 2,
+      "status": "pass",
+      "fail_count": 0,
+      "warn_count": 0,
+      "unresolved_ids": [],
+      "resolved_ids": []
+    }
+  ]
+}

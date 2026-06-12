@@ -144,6 +144,22 @@
     .s11 .close-side{grid-column:9/span 4;grid-row:1/span 8;display:grid;grid-template-rows:repeat(4,1fr);gap:12px;padding:0;background:transparent}
     .s11 .close-step{padding:26px;display:flex;flex-direction:column;justify-content:space-between}
     @media (prefers-reduced-motion:reduce){.slide,.reveal{transition:none!important}}
+
+    /* Presentation checkup fix (2026-06-13): the bottom-left .pagenum badge
+       overlapped and cut the last line of bottom-left text on S02-S11
+       (e.g. "It is one reliable loop." / "What requires confirmation.").
+       Keep the Neo-Grid badge exactly where it is; reserve clearance in
+       the panels whose text sits behind it. */
+    .s2 .note{padding-bottom:96px}
+    .s3 .ordinal{padding-bottom:96px}
+    .s4 .left{padding-bottom:96px}
+    .s5 .c4{padding-bottom:96px}
+    .s6 .context-title{padding-bottom:96px}
+    .s7 .quote{padding-bottom:96px}
+    .s8 .t1{padding-bottom:96px}
+    .s9 .image-title{padding-bottom:96px}
+    .s10 .motion-title{padding-bottom:96px}
+    .s11 .close-hero{padding-bottom:96px}
   </style>
 </head>
 <body>
