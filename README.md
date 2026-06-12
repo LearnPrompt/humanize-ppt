@@ -270,17 +270,12 @@ MIT
 
 ---
 
-<div align="center"><sub>
+<div align="center">
 
-**[LearnPrompt](https://github.com/LearnPrompt) 出品** · 同门手艺:
-[鲁班·Skill打磨](https://github.com/LearnPrompt/luban-skill) ·
-[庖丁·博主蒸馏](https://github.com/LearnPrompt/paoding-skill) ·
-[蔡伦·对话造纸](https://github.com/LearnPrompt/cailun-skill) ·
-[阿福·LLM Todo](https://github.com/LearnPrompt/afu-llm-todo) ·
-[AI雷达·零API资讯](https://github.com/LearnPrompt/ai-news-radar) ·
-[Humanize PPT·简报编排](https://github.com/LearnPrompt/humanize-ppt) ·
-[CC Harness·六件套](https://github.com/LearnPrompt/cc-harness-skills)
+**[LearnPrompt](https://github.com/LearnPrompt) 出品** · 同门手艺
 
-公众号「卡尔的AI沃茨」 · [X @aiwarts](https://x.com/aiwarts) · [learnprompt.pro](https://www.learnprompt.pro)
+[鲁班·Skill打磨](https://github.com/LearnPrompt/luban-skill) · [庖丁·博主蒸馏](https://github.com/LearnPrompt/paoding-skill) · [蔡伦·对话造纸](https://github.com/LearnPrompt/cailun-skill) · [阿福·LLM Todo](https://github.com/LearnPrompt/afu-llm-todo) · [AI雷达·零API资讯](https://github.com/LearnPrompt/ai-news-radar) · [淘金小镇·ClawHub日榜](https://github.com/LearnPrompt/skillrush-town) · [Irasutoya·正文配图](https://github.com/LearnPrompt/carl-irasutoya-illustrations) · [Humanize PPT·简报编排](https://github.com/LearnPrompt/humanize-ppt) · [CC Harness·六件套](https://github.com/LearnPrompt/cc-harness-skills)
 
-</sub></div>
+<sub>公众号「卡尔的AI沃茨」 · [X @aiwarts](https://x.com/aiwarts) · [learnprompt.pro](https://www.learnprompt.pro)</sub>
+
+</div>

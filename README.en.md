@@ -231,17 +231,12 @@ MIT
 
 ---
 
-<div align="center"><sub>
+<div align="center">
 
-**Made by [LearnPrompt](https://github.com/LearnPrompt)** · From the same workshop:
-[Luban · skill polishing](https://github.com/LearnPrompt/luban-skill) ·
-[Paoding · blogger distilling](https://github.com/LearnPrompt/paoding-skill) ·
-[Cailun · chat-to-page](https://github.com/LearnPrompt/cailun-skill) ·
-[Afu · LLM todo](https://github.com/LearnPrompt/afu-llm-todo) ·
-[AI News Radar · zero-API](https://github.com/LearnPrompt/ai-news-radar) ·
-[Humanize PPT](https://github.com/LearnPrompt/humanize-ppt) ·
-[CC Harness](https://github.com/LearnPrompt/cc-harness-skills)
+**Made by [LearnPrompt](https://github.com/LearnPrompt)** · From the same workshop
 
-WeChat「卡尔的AI沃茨」 · [X @aiwarts](https://x.com/aiwarts) · [learnprompt.pro](https://www.learnprompt.pro)
+[Luban · skill polishing](https://github.com/LearnPrompt/luban-skill) · [Paoding · blogger distilling](https://github.com/LearnPrompt/paoding-skill) · [Cailun · chat-to-page](https://github.com/LearnPrompt/cailun-skill) · [Afu · LLM todo](https://github.com/LearnPrompt/afu-llm-todo) · [AI News Radar · zero-API](https://github.com/LearnPrompt/ai-news-radar) · [Skillrush Town · ClawHub daily](https://github.com/LearnPrompt/skillrush-town) · [Irasutoya Illustrations](https://github.com/LearnPrompt/carl-irasutoya-illustrations) · [Humanize PPT](https://github.com/LearnPrompt/humanize-ppt) · [CC Harness](https://github.com/LearnPrompt/cc-harness-skills)
 
-</sub></div>
+<sub>WeChat「卡尔的AI沃茨」 · [X @aiwarts](https://x.com/aiwarts) · [learnprompt.pro](https://www.learnprompt.pro)</sub>
+
+</div>
