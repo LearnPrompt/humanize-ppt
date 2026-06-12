@@ -52,6 +52,12 @@ What the checkup compares against: not beauty, but the outline. The first half o
 
 Real case (2026-06-13, the English deck above): after the static scan passed, the screenshot review found the page-number badge covering the last line of body text on 9 pages, so the audience would read fragments like "uires confirmation." That is exactly a page you can look at but cannot present. The fix kept the deck's visual system and only reserved clearance for the covered text; the re-check passed. Full round log: [checkup record](docs/showcase/hermes-agent-mastery/en/qa/presentation-checkup-2026-06-13.md).
 
+| Before: the badge eats the body text | After: every word is presentable |
+|---|---|
+| ![Before the checkup, the page badge covers the body text, leaving the fragment "uires confirmation."](docs/showcase/hermes-agent-mastery/en/ppt/assets/qa-before-s05.png) | ![After the checkup, "What requires confirmation." is fully visible](docs/showcase/hermes-agent-mastery/en/ppt/assets/qa-after-s05.png) |
+
+<sub>▲ Bottom-left corner of the same slide S05: "uires confirmation." before, the full "What requires confirmation." after. Not a single pixel of the visual system changed.</sub>
+
 ## Outline preview: see the audience state arc before rendering
 
 Since v0.7.0, Humanize has its first screenshot-able artifact of its own. Not a deck (rendering stays downstream), but the inspector's worksheet: an audience state-transfer map. Input `slide_plan.json`, output a single-file zero-dependency HTML page, one row per slide ("slide id → state the audience walks in with → page intent → state they walk out with"), with a one-line state-arc summary on top. Five minutes of human review before any render happens.

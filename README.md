@@ -57,6 +57,12 @@ Humanize PPT 不抢模板库的工作。它是**渲染质检员**：上半场做
 
 真实案例（2026-06-13，英文 deck）：静态扫描通过之后，截图逐页复核发现页码徽章把 9 页的最后一行正文盖住了，观众看到的是「uires confirmation.」这样的断句。这正是「只能看、不能讲」的页。修复保持原视觉体系，只给被遮挡的文字留出空位，复检通过。完整逐轮记录在 [体检记录](docs/showcase/hermes-agent-mastery/en/qa/presentation-checkup-2026-06-13.md)。
 
+| 体检前：页码徽章吃掉正文 | 体检后：每个字都拿得出口 |
+|---|---|
+| ![体检前,左下角页码徽章遮住正文,只剩 uires confirmation. 的断句](docs/showcase/hermes-agent-mastery/en/ppt/assets/qa-before-s05.png) | ![体检后,What requires confirmation. 完整可见](docs/showcase/hermes-agent-mastery/en/ppt/assets/qa-after-s05.png) |
+
+<sub>▲ 同一页 S05 的左下角：修复前观众看到「uires confirmation.」，修复后是完整的「What requires confirmation.」。视觉体系一个像素没动。</sub>
+
 如果你的 deck 被演讲体检抓到过值得示众的翻车（占位残留、Hero 背景丢失、布局 ID 乱编……见 [失败模式目录](references/qa-failure-modes.md)），欢迎提 issue 投稿。
 
 ## 演讲大纲预览：渲染之前，先看一眼观众状态弧
