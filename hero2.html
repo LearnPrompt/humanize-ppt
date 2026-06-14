@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mainframe — Studio</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&display=swap" rel="stylesheet" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+          },
+          opacity: { 85: '0.85' },
+        },
+      },
+    };
+  </script>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/framer-motion@11.11.17/dist/framer-motion.js"></script>
+
+  <style>
+    :root { --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; padding: 0; font-family: var(--font-sans); }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0; }
+    }
+    .animate-blink { animation: blink 1s step-end infinite; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef, Fragment } = React;
+    const { motion, AnimatePresence } = window.Motion;
+
+    const _ce = console.error.bind(console);
+    console.error = (...a) => {
+      if (typeof a[0] === 'string' && a[0].includes('Each child in a list')) return;
+      _ce(...a);
+    };
+
+    /* ── useTypewriter ── */
+    function useTypewriter(text, speed = 38, startDelay = 600) {
+      const [displayed, setDisplayed] = useState('');
+      const [done, setDone] = useState(false);
+
+      useEffect(() => {
+        let i = 0;
+        let intervalId = null;
+        const timeoutId = setTimeout(() => {
+          intervalId = setInterval(() => {
+            i++;
+            setDisplayed(text.slice(0, i));
+            if (i >= text.length) {
+              clearInterval(intervalId);
+              setDone(true);
+            }
+          }, speed);
+        }, startDelay);
+        return () => {
+          clearTimeout(timeoutId);
+          if (intervalId) clearInterval(intervalId);
+        };
+      }, []);
+
+      return { displayed, done };
+    }
+
+    /* ── CheckIcon ── */
+    function CheckIcon() {
+      return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" strokeWidth="2.5"
+             strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      );
+    }
+
+    /* ── BackgroundVideo ── */
+    const VIDEO_SRC = "https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260601_110537_3a579fa0-7bbc-4d94-9d25-0e816c7840f5.mp4";
+
+    function BackgroundVideo() {
+      const videoRef = useRef(null);
+
+      /* desktop mouse scrubbing — direct position mapping */
+      useEffect(() => {
+        const video = videoRef.current;
+        if (!video) return;
+
+        function handleMouseMove(e) {
+          if (window.innerWidth < 1024) return;
+          if (!video.duration) return;
+          const ratio = e.clientX / window.innerWidth;
+          video.currentTime = ratio * video.duration;
+        }
+
+        function handleSeeked() { /* smooth frame-to-frame tracking */ }
+
+        window.addEventListener('mousemove', handleMouseMove);
+        video.addEventListener('seeked', handleSeeked);
+        return () => {
+          window.removeEventListener('mousemove', handleMouseMove);
+          video.removeEventListener('seeked', handleSeeked);
+        };
+      }, []);
+
+      /* mobile autoplay */
+      useEffect(() => {
+        const video = videoRef.current;
+        if (!video) return;
+        if (window.innerWidth < 1024) {
+          video.autoplay = true;
+          video.loop     = true;
+          video.play().catch(() => {});
+        }
+        function handleResize() {
+          if (window.innerWidth < 1024) video.play().catch(() => {});
+        }
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+      }, []);
+
+      return (
+        <div className="order-last lg:order-none relative lg:absolute lg:inset-0 lg:z-0 overflow-hidden pointer-events-none w-full aspect-square md:aspect-video lg:aspect-auto lg:h-full bg-neutral-50 lg:bg-transparent">
+          <video
+            ref={videoRef}
+            muted playsInline preload="auto"
+            className="w-full h-full object-cover object-right lg:object-right-bottom"
+            src={VIDEO_SRC}
+          />
+        </div>
+      );
+    }
+
+    /* ── Navbar ── */
+    const NAV_LINKS = ['Labs', 'Studio', 'Openings', 'Shop'];
+
+    function Navbar() {
+      const [isOpen, setIsOpen] = useState(false);
+
+      return (
+        <>
+          <header className="fixed top-0 inset-x-0 z-50 px-5 sm:px-8 py-4 sm:py-5 flex flex-row justify-between items-center bg-transparent">
+            {/* Logo */}
+            <div className="flex flex-row items-center gap-3">
+              <span className="text-[21px] sm:text-[26px] tracking-tight text-black font-medium select-none">
+                Mainframe&reg;
+              </span>
+              <span className="text-[25px] sm:text-[30px] text-black select-none tracking-[-0.02em] font-medium leading-none mb-1">
+                &#10033;
+              </span>
+            </div>
+
+            {/* Desktop nav */}
+            <nav className="hidden md:flex flex-row items-center text-[23px] text-black">
+              {NAV_LINKS.map((link, i) => (
+                <Fragment key={link}>
+                  <a href="#" style={{textDecoration:'none'}}
+                     className="hover:opacity-60 transition-opacity">{link}</a>
+                  {i < NAV_LINKS.length - 1 && (
+                    <span className="opacity-40">,&nbsp;</span>
+                  )}
+                </Fragment>
+              ))}
+            </nav>
+
+            {/* Desktop CTA */}
+            <a href="#" className="hidden md:block text-[23px] text-black underline underline-offset-2 hover:opacity-60 transition-opacity">
+              Get in touch
+            </a>
+
+            {/* Hamburger */}
+            <button
+              className="md:hidden flex flex-col gap-[5px] cursor-pointer bg-transparent border-none p-0"
+              onClick={() => setIsOpen(v => !v)}
+              aria-label="Toggle menu"
+            >
+              <span className={`block w-6 h-[2px] bg-black transition-all duration-300 ${isOpen ? 'rotate-45 translate-y-[7px]' : ''}`}/>
+              <span className={`block w-6 h-[2px] bg-black transition-all duration-300 ${isOpen ? 'opacity-0' : ''}`}/>
+              <span className={`block w-6 h-[2px] bg-black transition-all duration-300 ${isOpen ? '-rotate-45 -translate-y-[7px]' : ''}`}/>
+            </button>
+          </header>
+
+          {/* Mobile overlay */}
+          <div
+            className={`md:hidden fixed inset-0 z-[9] bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center gap-8 transition-opacity duration-300 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+          >
+            {NAV_LINKS.map(link => (
+              <a key={link} href="#" onClick={() => setIsOpen(false)}
+                 style={{textDecoration:'none'}}
+                 className="text-4xl text-black font-medium">{link}</a>
+            ))}
+            <a href="#" onClick={() => setIsOpen(false)}
+               className="text-4xl text-black underline underline-offset-2">
+              Get in touch
+            </a>
+          </div>
+        </>
+      );
+    }
+
+    /* ── ServicePills ── */
+    const SERVICES = ["Brand", "Digital", "Campaign", "Other"];
+
+    function ServicePills() {
+      const [selected, setSelected] = useState([]);
+
+      const toggle = (s) =>
+        setSelected(prev =>
+          prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]
+        );
+
+      return (
+        <div>
+          <h3 className="text-2xl font-medium tracking-tight mb-2 text-black">
+            What sort of service?
+          </h3>
+          <p className="opacity-85 text-[#738273] mb-8 text-base">Select all that apply</p>
+
+          <div className="flex flex-wrap gap-3 mb-5">
+            {SERVICES.map(service => {
+              const isSelected = selected.includes(service);
+              return (
+                <motion.button
+                  key={service}
+                  layout
+                  onClick={() => toggle(service)}
+                  transition={{ layout: { type:'spring', stiffness:300, damping:25 } }}
+                  className={`flex items-center gap-2 px-5 py-3 rounded-full text-base font-normal cursor-pointer transition-colors
+                    ${isSelected
+                      ? 'bg-[#1C2E1E] text-white shadow-md shadow-emerald-950/5 border border-transparent'
+                      : 'bg-white text-[#1C2E1E] border border-[#F1F3F1] hover:bg-[#F1F3F1]'
+                    }`}
+                >
+                  <AnimatePresence>
+                    {isSelected && (
+                      <motion.span
+                        initial={{ scale:0, opacity:0 }}
+                        animate={{ scale:1, opacity:1 }}
+                        exit={{ scale:0, opacity:0 }}
+                        transition={{ type:'spring', stiffness:300, damping:20 }}
+                        className="flex items-center"
+                      >
+                        <CheckIcon/>
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                  {service}
+                </motion.button>
+              );
+            })}
+          </div>
+
+          <AnimatePresence mode="wait">
+            {selected.length === 0 ? (
+              <motion.p
+                key="empty"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.5 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="text-xs italic text-neutral-500"
+              >
+                Please click to select services above.
+              </motion.p>
+            ) : (
+              <motion.div
+                key="active"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ type:'spring', stiffness:280, damping:30 }}
+                style={{ overflow: 'hidden' }}
+              >
+                <div className="bg-[#FAFBF9] border border-neutral-200 rounded-2xl px-5 py-4 flex items-center justify-between gap-4">
+                  <p className="text-sm text-neutral-700">
+                    Ready to inquire about:{' '}
+                    <span className="font-medium text-[#1C2E1E]">
+                      {selected.join(', ')}
+                    </span>
+                  </p>
+                  <button className="flex items-center gap-1.5 text-[#4D6D47] uppercase text-xs font-medium cursor-pointer bg-transparent border-none whitespace-nowrap shrink-0">
+                    Let's Go <span className="text-sm">→</span>
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      );
+    }
+
+    /* ── App ── */
+    function App() {
+      const { displayed, done } = useTypewriter("we'd love to\nhear from you!");
+
+      return (
+        <div className="relative bg-white text-neutral-900 font-sans selection:bg-[#EAECE9] selection:text-[#1C2E1E] antialiased overflow-x-hidden flex flex-col lg:block lg:min-h-screen">
+          <Navbar/>
+          <BackgroundVideo/>
+
+          <div className="relative z-10 flex flex-col order-first lg:order-none w-full bg-white lg:bg-transparent pb-8 lg:pb-0 lg:min-h-screen">
+            <main id="spade-hero" className="w-full max-w-7xl mx-auto px-6 py-12 flex-1 flex flex-col justify-center">
+
+              {/* Headline + typewriter */}
+              <motion.div
+                initial={{ opacity:0, y:20 }}
+                animate={{ opacity:1, y:0 }}
+                transition={{ duration:0.6 }}
+              >
+                <h1 className="text-5xl md:text-6xl lg:text-[76px] font-normal tracking-tight text-black leading-[1.08] mb-8 select-none w-full whitespace-pre-wrap">
+                  {displayed}
+                  {!done && (
+                    <span className="inline-block w-[2px] h-[1.1em] bg-black align-middle ml-[2px] animate-blink"/>
+                  )}
+                </h1>
+              </motion.div>
+
+              {/* Description */}
+              <motion.div
+                initial={{ opacity:0, y:20 }}
+                animate={{ opacity:1, y:0 }}
+                transition={{ duration:0.6, delay:0.1 }}
+              >
+                <p className="text-lg md:text-xl text-[#5A635A] leading-relaxed font-normal mb-14 max-w-2xl">
+                  Whether you have questions, feedback,{' '}
+                  <br/>
+                  drop us a message and we'll get back to you as soon as possible.
+                </p>
+              </motion.div>
+
+              {/* Service pills */}
+              <ServicePills/>
+            </main>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+  </script>
+</body>
+</html>

@@ -1,3 +1,6 @@
 .DS_Store
 .humanize-ppt-runs/
 __pycache__/
+
+# Playwright MCP 运行日志缓存(非产物)
+.playwright-mcp/
