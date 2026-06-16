@@ -1650,6 +1650,74 @@ def run_qa_mode(args):
     return 0
 
 
+def _format_per_page_media_block(plan):
+    """v0.6.7: shared per-page media section for all 3 brief writers.
+
+    Lists the per-page media decision (kind + duration) and surfaces
+    the machine-actionable fields (asset_path + prompt_hint) for any
+    media slot with `needed: true`. The downstream media subagent
+    reads this section to find the target file paths and the
+    image / video / SVG-generation prompts. Without asset_path a slot
+    is a label, not a task (v0.6.5 gap).
+    """
+    media_lines = []
+    for p in plan:
+        slide_id = p.get("slide_id", "")
+        media = p.get("media") or {}
+        image = media.get("image") or {}
+        diagram = media.get("diagram") or {}
+        video = media.get("video") or {}
+        bits = []
+        if image.get("needed"):
+            bits.append(f"image={image.get('kind', 'unspecified')}")
+        if diagram.get("needed"):
+            bits.append(f"diagram={diagram.get('kind', 'svg-html')}")
+        if video.get("needed"):
+            bits.append(f"video={video.get('kind', 'remotion-clip')} ({video.get('duration_s', '?')}s)")
+        if not bits:
+            bits.append("no media")
+        media_lines.append(f"- {slide_id} {p.get('title', '')} — {', '.join(bits)}")
+        for key in ("image", "diagram", "video"):
+            entry = media.get(key) or {}
+            if entry.get("needed") and entry.get("asset_path"):
+                media_lines.append(f"  - {key}.asset_path: `{entry['asset_path']}`")
+                if entry.get("prompt_hint"):
+                    media_lines.append(f"  - {key}.prompt_hint: {entry['prompt_hint']}")
+    return "\n".join(media_lines) if media_lines else "- (no slide-level media decisions in this plan)"
+
+
+def _media_production_guidance(language="zh"):
+    """v0.9: tell the downstream media subagent which generator to call for
+    each media kind. The slide_plan already carries asset_path + prompt_hint
+    per slot (machine-actionable). This block maps each `kind` to a concrete
+    skill so the subagent can execute, not guess. Generators are hot-pluggable
+    recommendations, not a lock-in.
+    """
+    return """\
+## Media production (visual enhancement)
+
+Each media slot above ships `asset_path` (where to write) and `prompt_hint`
+(what to generate). Produce the asset, then reference it from the rendered
+slide. Recommended generators (hot-pluggable — swap for any equivalent skill):
+
+- **image** (`gpt-photo`): call an image-generation skill — `imagegen` /
+  `imagen` / `nanobanana-ppt`, or the Codex image skill. Feed `prompt_hint`,
+  honor `aspect_ratio` and `max_size_kb`, write the file to `asset_path`.
+- **image** (`screenshot`): capture the real UI / result; do not synthesize.
+- **diagram** (`svg-html` / `html-table`): render as deterministic inline SVG
+  or HTML from `prompt_hint`. No external call, no text overflow.
+- **video** (`remotion-clip`): call a Remotion skill — `remotion-video-toolkit`
+  / `remotion-video-generator` / `remotion-video-production`. Build a
+  deterministic loop of `duration_s` seconds (no narration), render to
+  `asset_path` (mp4).
+- **video** (`hyperframes`): use the HyperFrames pipeline for the clip.
+
+Rule: an asset slot with `asset_path` is an executable task. A slot without
+one is a label only — do not invent paths. Humanize decides *what* and
+*where*; this skill produces the file. Humanize never renders it.
+"""
+
+
 def write_guizang_production_brief(out, title, plan, source, language, style="A", theme=None, accent=None):
     """Write only the Guizang production brief. No HTML is produced here.
 
@@ -1718,34 +1786,8 @@ def write_guizang_production_brief(out, title, plan, source, language, style="A"
         ]
     )
 
-    media_lines = []
-    for p in plan:
-        slide_id = p.get("slide_id", "")
-        media = p.get("media") or {}
-        image = media.get("image") or {}
-        diagram = media.get("diagram") or {}
-        video = media.get("video") or {}
-        bits = []
-        if image.get("needed"):
-            bits.append(f"image={image.get('kind', 'unspecified')}")
-        if diagram.get("needed"):
-            bits.append(f"diagram={diagram.get('kind', 'svg-html')}")
-        if video.get("needed"):
-            bits.append(f"video={video.get('kind', 'remotion-clip')} ({video.get('duration_s', '?')}s)")
-        if not bits:
-            bits.append("no media")
-        media_lines.append(f"- {slide_id} {p.get('title', '')} — {', '.join(bits)}")
-        # v0.6.7: emit the machine-actionable fields so the downstream media
-        # subagent gets an executable task (where to write + what to generate),
-        # not just a human-readable label.
-        for key in ("image", "diagram", "video"):
-            entry = media.get(key) or {}
-            if entry.get("needed") and entry.get("asset_path"):
-                media_lines.append(f"  - {key}.asset_path: `{entry['asset_path']}`")
-                if entry.get("prompt_hint"):
-                    media_lines.append(f"  - {key}.prompt_hint: {entry['prompt_hint']}")
-
-    media_block = "\n".join(media_lines) if media_lines else "- (no slide-level media decisions in this plan)"
+    media_block = _format_per_page_media_block(plan)
+    media_guidance = _media_production_guidance(language)
 
     style_a_qa = """\
 - no `[必填]` template residue
@@ -1817,6 +1859,7 @@ def write_guizang_production_brief(out, title, plan, source, language, style="A"
 
 {media_block}
 
+{media_guidance}
 ## Known-good checkpoint (read-only reference)
 
 - `examples/03-codex-guizang-native-ink-classic/index.html`
@@ -1864,6 +1907,8 @@ def write_frontend_slides_production_brief(out, title, plan, source, language):
             "style_brief.md",
         ]
     )
+    media_block = _format_per_page_media_block(plan)
+    media_guidance = _media_production_guidance(language)
 
     prompt = f"""# Frontend Slides Production Prompt
 
@@ -1891,6 +1936,11 @@ def write_frontend_slides_production_brief(out, title, plan, source, language):
 
 {inputs_block}
 
+## Per-page media decisions (Humanize-owned)
+
+{media_block}
+
+{media_guidance}
 ## Hand-off
 
 The next agent writes its output to its own convention
@@ -1925,6 +1975,8 @@ def write_beautiful_html_templates_production_brief(out, title, plan, source, la
             "style_brief.md",
         ]
     )
+    media_block = _format_per_page_media_block(plan)
+    media_guidance = _media_production_guidance(language)
 
     prompt = f"""# Beautiful HTML Templates Production Prompt
 
@@ -1951,6 +2003,11 @@ def write_beautiful_html_templates_production_brief(out, title, plan, source, la
 
 {inputs_block}
 
+## Per-page media decisions (Humanize-owned)
+
+{media_block}
+
+{media_guidance}
 ## Hand-off
 
 The next agent writes its output to its own convention
