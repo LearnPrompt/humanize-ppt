@@ -286,7 +286,7 @@ The Humanize brief is plain markdown + JSON; anything can read it. So Humanize i
 On top of that, we mark the routes we have **actually run end to end with stable output** as recommendations:
 
 - **One Chinese recommendation**: `guizang-ppt-skill` (brief exit + presentation checkup both verified on real rendered output; support_level `full`)
-- **One English recommendation**: `frontend-slides` / `beautiful-html-templates` (the beautiful leg completed a full presentation checkup on a real deck on 2026-06-13, support_level `brief+qa-verified`; the frontend-slides checkup leg has not run on real output yet, so it stays `brief-only`)
+- **One English recommendation**: `frontend-slides` / `beautiful-html-templates` (both completed a full presentation checkup on a real deck, support_level `brief+qa-verified` — beautiful on 2026-06-13, frontend-slides on 2026-06-17)
 
 Other downstreams are welcome: feed the brief to any rendering skill, and if it works, open an issue. We update `support_level` in `registry/renderer_registry.json` based on real results.
 
@@ -307,7 +307,7 @@ Matching the `support_level` field in `registry/renderer_registry.json`:
 |---|---|---|
 | `guizang-ppt-skill` (Chinese) | `full` | Both the brief exit and the presentation checkup are verified on real rendered output; the failure-mode catalog has 7 guizang rules |
 | `beautiful-html-templates` (English) | `brief+qa-verified` | Brief exit works; on 2026-06-13 a full presentation checkup ran on the real Neo-Grid deck at `docs/showcase/hermes-agent-mastery/en/ppt/` (scan → badge-overlap finding on 9 pages → fix → re-check pass, [round log](docs/showcase/hermes-agent-mastery/en/qa/presentation-checkup-2026-06-13.md)); still 0 renderer-specific failure-mode rules, so not `full` |
-| `frontend-slides` (English) | `brief-only` | Brief exit works; the checkup leg has never run on a real frontend-slides render (the verified English deck above was rendered by beautiful-html-templates). Upgrades when the first real deck goes through |
+| `frontend-slides` (English) | `brief+qa-verified` | Brief exit works; on 2026-06-17 the first real frontend-slides deck (`docs/showcase/v0.9-frontend-slides/ppt/`, 5-slide single-file zero-dep) went through the checkup: static scan pass + negative control + per-page screenshot review ([round log](docs/showcase/v0.9-frontend-slides/qa/presentation-checkup-2026-06-17.md)); still 0 renderer-specific failure-mode rules, so same tier as beautiful, not `full` |
 
 This is a measurement table, not a promise table: every cell must be backed by real rendered output. Empty cells stay empty; nothing is staged.
 

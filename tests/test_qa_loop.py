@@ -259,6 +259,30 @@ def test_english_showcase_deck_passes_presentation_checkup(tmp_path):
     assert iter_data["renderer"] == "beautiful-html-templates"
 
 
+FRONTEND_SHOWCASE_DECK = ROOT / "docs" / "showcase" / "v0.9-frontend-slides" / "ppt" / "index.html"
+
+
+def test_frontend_slides_showcase_deck_passes_presentation_checkup(tmp_path):
+    """Regression for the 2026-06-17 verified frontend-slides checkup run.
+
+    docs/showcase/v0.9-frontend-slides/ppt/index.html (5-slide single-file
+    zero-dep deck, rendered natively by frontend-slides) went through a real
+    --qa-from run and passed round 1. registry/renderer_registry.json records
+    support_level brief+qa-verified for frontend-slides based on this deck;
+    if this test fails, downgrade that support_level.
+    """
+    if not FRONTEND_SHOWCASE_DECK.exists():
+        import pytest
+        pytest.skip(f"frontend-slides showcase deck missing: {FRONTEND_SHOWCASE_DECK}")
+    out = tmp_path / "run"
+    out.mkdir(parents=True)
+    rc = hp.run_qa_mode(_args(FRONTEND_SHOWCASE_DECK, out, renderer="frontend-slides"))
+    assert rc == 0
+    iter_data = json.loads((out / "outputs" / "qa" / "qa_iteration.json").read_text(encoding="utf-8"))
+    assert iter_data["status"] == "pass", iter_data
+    assert iter_data["renderer"] == "frontend-slides"
+
+
 def test_known_good_style_a_passes_all_style_a_gates(tmp_path):
     """Regression against the verified Guizang Style A Ink Classic sample.
 

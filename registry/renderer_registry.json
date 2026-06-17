@@ -108,8 +108,8 @@
       "display_name": "Frontend Slides",
       "skill_name": "frontend-slides",
       "role": "english-native-renderer",
-      "support_level": "brief-only",
-      "support_note": "v0.8.0: brief 出口可用（frontend-slides-production-prompt.md 正常产出）；维持 brief-only 的原因：演讲体检（--qa-from）尚未在任何一份 frontend-slides 真实渲染产物上跑过（2026-06-13 验证的英文 deck 是 beautiful-html-templates 渲染的），失败模式目录也没有 frontend-slides 专属规则。第一单真实产物过完体检后据实升级。",
+      "support_level": "brief+qa-verified",
+      "support_note": "v0.9 (2026-06-17): 演讲体检（--qa-from）在第一单真实 frontend-slides 渲染产物（docs/showcase/v0.9-frontend-slides/ppt/index.html，5 页单文件零依赖 deck，《AI 工具更新，不只是功能清单》）上完整跑通：第 1 轮静态扫描 pass（0 fail/0 warn），负向对照（注入 TODO/lorem 的副本）正确扫出 2 条 fail 证明非空转，截图逐页复核 5 页全部 viewport-fitting 无溢出无遮挡。逐轮记录见 docs/showcase/v0.9-frontend-slides/qa/presentation-checkup-2026-06-17.md。frontend-slides 专属失败模式规则仍为 0 条（当前只有渲染器无关层 placeholder-residue），故与 beautiful 同档、不升 full。",
       "best_for": [
         "PPTX转HTML",
         "英文style discovery",
