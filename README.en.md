@@ -113,6 +113,17 @@ For Chinese, swap in "Chinese + guizang-ppt-skill". CLI flags, staged control, a
 ▲ Real case (2026-06-13 English deck): static scan passed, but the per-page screenshot review found a page-number badge covering body text on 9 pages — the audience would read "uires confirmation." Caught automatically, fix prompt emitted, re-check passed — no more hunting page numbers by hand with Codex. <a href="docs/showcase/hermes-agent-mastery/en/qa/presentation-checkup-2026-06-13.md">Round log</a> · <a href="https://learnprompt.github.io/humanize-ppt/">Browse the deck</a>
 </sub></p>
 
+### Presenter mode: press <kbd>S</kbd> in the rendered deck to switch to the stage view
+
+<p align="center">
+  <img src="docs/showcase/v0.9-presenter/presenter-zh.png" width="49%" />
+  <img src="docs/showcase/v0.9-presenter/presenter-en.png" width="49%" />
+</p>
+
+<p align="center"><sub>
+▲ In the rendered deck, press <kbd>S</kbd> to switch to presenter mode: the current page enlarged plus a timer on the left; the per-page speaker script and cues, a next-page preview, and the full talk outline on the right. Chinese on guizang Swiss, English on Neo-Grid — both produced natively downstream. Humanize provides the <code>speaker_intent</code> source; the downstream skill builds the console.
+</sub></p>
+
 ## What it solves
 
 I give a fair number of talks. Every time I reached for one of those gorgeous HTML PPT skills I hit the same wall: **they're built for concept display** — a single idea balloons into a dozen pages, but a 90-minute talk tops out around thirty. The pretty shell runs ahead of the content density; the pages look great and the line doesn't hold.

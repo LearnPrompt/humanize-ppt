@@ -111,6 +111,17 @@ Claude Code 用户也可以走 plugin marketplace（自动更新）：
 ▲ 真实案例（2026-06-13 英文 deck）：静态扫描通过，截图逐页复核发现页码徽章遮挡 9 页正文，观众看到的是「uires confirmation.」这样的断句。自动揪出来、出修复指令，复检通过——不用你再跟 Codex 一页页数。<a href="docs/showcase/hermes-agent-mastery/en/qa/presentation-checkup-2026-06-13.md">逐轮记录</a> · <a href="https://learnprompt.github.io/humanize-ppt/">在线翻完整 deck</a>
 </sub></p>
 
+### 演讲模式：渲染好的 deck 里按 <kbd>S</kbd> 切到演讲台
+
+<p align="center">
+  <img src="docs/showcase/v0.9-presenter/presenter-zh.png" width="49%" />
+  <img src="docs/showcase/v0.9-presenter/presenter-en.png" width="49%" />
+</p>
+
+<p align="center"><sub>
+▲ 在渲染好的 deck 里按 <kbd>S</kbd> 切到演讲模式：左边当前页放大 + 计时器，右边是这一页的演讲稿和提词（cues）、下一页预览、整场页目录。中文走 guizang 瑞士风、英文走 Neo-Grid，都是下游原生产出——Humanize 出 <code>speaker_intent</code> 这个演讲稿语义源，下游照着搭这个台。
+</sub></p>
+
 ## 它解决什么
 
 我做过不少演讲。每次想用那些好看的 HTML PPT skill，都会撞到同一个问题：**它们更适合做概念展示**——一个简单概念也能给你铺成十几页，可一场一个半小时的演讲，撑死也就三十多页。好看的外壳跑在了内容密度前面，页是漂亮的，话是接不上的。
