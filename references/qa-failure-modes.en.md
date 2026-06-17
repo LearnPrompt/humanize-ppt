@@ -1,0 +1,143 @@
+# Presentation Checkup — Failure Mode Catalog (v0.9)
+
+> English mirror of `references/qa-failure-modes.md`. Both files are kept in
+> sync; the code-side source of truth is the `FAILURE_MODES` dict in
+> `scripts/humanize_ppt_v2.py`, matched one-to-one by id.
+
+The presentation checkup (the former "QA loop"; the CLI is still `--qa-from`) is the per-page review Humanize PPT runs over the *rendered* HTML before sign-off. The checkup is **not** about how pretty the deck is — it is about the **outline**: it diffs each rendered page against its outline page and catches the pages that can be *looked at* but not *presented*, until every page is one you could stand up and deliver.
+
+Say plainly what a failed page is. A page with only a few words that never finishes the point it owes; or a page that does not complete the audience state transfer it promised — the listener walks away from it in the same state they arrived. Such pages should not exist. The checkup finds them and emits a fix instruction (`fix_prompt.md`) for the downstream skill to re-render.
+
+This file is the human-readable catalog the checkup scans against. The single code-side source of truth is the `FAILURE_MODES` dict in `scripts/humanize_ppt_v2.py`; the two sides correspond by id.
+
+**Catalog discipline: list only rules that actually exist in code.** No wishlist, no invented checks. A failure class that is real but the scanner cannot yet detect goes under [Failure classes the static scan can't catch yet](#failure-classes-the-static-scan-cant-catch-yet) — it is never dressed up as a mode.
+
+## Scope
+
+Failure modes come in two layers:
+
+- **Layer 1: renderer-agnostic failure classes.** The symptom can show up on any renderer's output. As of v0.8.0, `placeholder-residue` is itself renderer-agnostic (scope `any`) and runs on every downstream-rendered HTML.
+- **Layer 2: renderer-specific modes.** Scoped by renderer id:
+  - **guizang**: applies to both Style A and Style B unless noted otherwise
+  - **guizang-style-a**: Style A only
+  - **guizang-style-b**: Style B only (Swiss-locked)
+  - **frontend-slides**: no specific rules yet (see the English-renderer section below)
+  - **beautiful-html-templates**: no specific rules yet (see the English-renderer section below)
+
+## Layer 1: renderer-agnostic failure classes
+
+| Failure class | What the audience sees | Implemented rules |
+| --- | --- | --- |
+| Template placeholder residue | Half-finished tokens like `[必填]`, `SLIDES_HERE`, lorem ipsum, TODO, TBD on a live slide | `placeholder-residue` (scope `any`, runs on every renderer) |
+| Animation downgrade | The whole deck sits motionless; the delivery rhythm collapses | `low-power-default`, `data-anim-thin` |
+| Layout contract breach | Page count or layout doesn't match the outline; content that should appear is missing | `swiss-sxx-count-mismatch`, `swiss-sxx-invented-id`, `swiss-low-diversity` |
+| Missing background layer | The hero page background is blank; the page looks unfinished | `webgl-canvas-missing` |
+| AI draft residue | Model scaffolding text like "As an AI" / "First I need to" leaks onto the slide | brief-mode check `visible_slide_text_has_no_ai_draft_markers` (`BANNED_VISIBLE_PATTERNS` in `write_qa`), run on the slide plan *before* rendering |
+
+### Failure classes the static scan can't catch yet
+
+Text overflow, low contrast, font-weight downgrade, viewport clipping, image/text misalignment, badges or decorative elements covering body copy — these are real rendering failures, but they need a real browser render to detect, and the static scan in `scripts/humanize_ppt_v2.py` cannot see them today. By catalog discipline they are **not** listed as modes. Until Humanize has a real detection path, they are backstopped by the downstream visual checklist (`references/guizang-material-qa.md`) and a human screenshot review.
+
+Real case: in the 2026-06-13 checkup of the English deck (`docs/showcase/hermes-agent-mastery/en/ppt/`), the static scan passed, while a per-page screenshot review found a page-number badge covering body text on 9 pages — the audience would read a broken fragment like "uires confirmation." Fix and re-check record: `docs/showcase/hermes-agent-mastery/en/qa/presentation-checkup-2026-06-13.md`. Screenshot review is half the checkup methodology and is not automated yet.
+
+There is also a class where even the *page itself* is correct — what's wrong is **how you capture it**:
+
+**WebGL hero cover not captured by a static screenshot → blank cover.** Guizang Style A covers paint their background with a WebGL hero canvas. The HTML is fully correct (`canvas#bg-dark`/`canvas#bg-light` both present, ample `data-anim`, `low-power` not active — every static check passes), but a PNG shot of it comes back blank: the canvas paints its first frame asynchronously *after* load, and the screenshot fires before that, capturing an uncolored canvas. The static rule `webgl-canvas-missing` checks "is the canvas in the HTML"; it cannot check "did the canvas paint, did the screenshot catch it." This is a **correct page + wrong capture = blank artifact** class, distinct from the "the page itself is broken" classes like text overflow, but it likewise needs a real render / screenshot review to surface.
+
+Evidence: in the 2026-06 nine-style agent-cover experiment, the static screenshot of the Style A `ink-classic` cover was only 14KB and read as a blank page by eye (the Style B Swiss static cover screenshot in the same batch was fine). That batch of screenshots was therefore pulled rather than shipped (leave it empty before staging a fake).
+
+Backstop rule (baked into the v0.9 style-gallery cover render commands; see `references/style-gallery-spec.md`): when capturing a WebGL hero page, treat the live `cover.html` as the source of truth and `cover.png` as a thumbnail only; wait for the canvas's first frame before screenshotting (delay ≥1.5s); a `cover.png` under 20KB is always a failed capture, not an empty cover — re-shoot or ship the live page only. This is not detectable today (Humanize does not read PNG bytes), so it is listed here, not packaged as a `FAILURE_MODES` mode.
+
+## Mode catalog
+
+Each mode gives four things: symptom, what the audience sees, detection (the rule function name in `scripts/humanize_ppt_v2.py`), and fix direction (what `fix_prompt.md` asks the downstream skill to do).
+
+### `placeholder-residue` (all renderers)
+
+**Symptom:** Template placeholders leaked into the rendered HTML. The downstream skill's own substitution pass didn't finish, or filler text was left in. As of v0.8.0 this rule is renderer-agnostic.
+
+**What the audience sees:** Tokens like `[必填]`, `<!-- SLIDES_HERE -->`, lorem ipsum, TODO, TBD on a live slide. The audience knows instantly the page is unfinished.
+
+**Detection:** `check_placeholder_residue`. `[必填]` or `SLIDES_HERE` in the rendered HTML → fail; lorem ipsum (case-insensitive), a standalone TODO, or TBD → fail.
+
+**Fix direction:** Replace every `[必填]`, delete the `<!-- SLIDES_HERE -->` marker, swap lorem / TODO / TBD filler for finished content; the downstream skill must run its substitution pass to completion.
+
+### `low-power-default` (guizang)
+
+**Symptom:** `body.low-power` is active in the rendered HTML. It suppresses animation; it is meant to be a runtime opt-in power saver, not the default.
+
+**What the audience sees:** The deck opens fully static — the intended entrance animations and rhythm are gone.
+
+**Detection:** `check_low_power_default`. `low-power` in the `<body>` class list → fail.
+
+**Fix direction:** Remove `low-power` from the body class; animation must play on first load.
+
+### `webgl-canvas-missing` (guizang-style-a)
+
+**Symptom:** The dual WebGL canvas (`canvas#bg-dark` and `canvas#bg-light`) is missing or only half present. Without it the hero background cannot render.
+
+**What the audience sees:** The hero page background is blank or a dead block of color; the opening page looks half-built.
+
+**Detection:** `check_webgl_canvas_missing`. Passes only if both `canvas#bg-dark` and `canvas#bg-light` are present.
+
+**Fix direction:** Add both canvases back so the Style A WebGL hero background can render.
+
+> Related but distinct: a present-and-correct canvas can still produce a *blank screenshot* if captured before it paints. That is a capture-time failure, not a static one — see [Failure classes the static scan can't catch yet](#failure-classes-the-static-scan-cant-catch-yet).
+
+### `data-anim-thin` (guizang-style-a)
+
+**Symptom:** `data-anim` / `data-animate` markers are too few to carry a watchable deck. The verified Ink Classic baseline has 86.
+
+**What the audience sees:** Almost no element entrance animation between slides; the whole deck reads like a stack of static posters.
+
+**Detection:** `check_data_anim_thin`. Fewer than 3 → hard fail; fewer than 10 → soft warn.
+
+**Fix direction:** Add `data-anim` / `data-animate` markers on non-cover pages, targeting more than 10 (Ink Classic has 86).
+
+### `swiss-sxx-count-mismatch` (guizang-style-b)
+
+**Symptom:** The count of `data-layout="Sxx"` markers in the rendered HTML doesn't match the page count in `slide_plan.json`.
+
+**What the audience sees:** Some outline pages didn't render, or pages appear that aren't in the outline; when you get to that page there's nothing on the projector to match.
+
+**Detection:** `check_swiss_sxx_count_mismatch`. Sxx count ≠ page count → fail.
+
+**Fix direction:** Make the `data-layout="Sxx"` count equal the page count in `slide_plan.json`, re-produced by the downstream skill.
+
+### `swiss-sxx-invented-id` (guizang-style-b)
+
+**Symptom:** A `data-layout="Sxx"` value is not in the registered set (`S01` through `S22`). The downstream skill invented a layout id instead of picking from the registered set in `references/layouts-swiss.md`.
+
+**What the audience sees:** That page's layout isn't in the Swiss system and breaks from the deck's visual language; the audience can feel that the page is "off."
+
+**Detection:** `check_swiss_sxx_invented_id`. Any Sxx value outside S01–S22 → fail.
+
+**Fix direction:** Replace invented Sxx values with registered layout ids from S01 through S22.
+
+### `swiss-low-diversity` (guizang-style-b, soft warn)
+
+**Symptom:** Fewer than 6 distinct `Sxx` values in an 8-page deck (other lengths use 60% of the page count, rounded up, as the floor). The whole deck reads like one layout stamped n times.
+
+**What the audience sees:** Every page looks nearly identical; after three pages the audience drifts, because the layout gives no signal that "this page differs from the last."
+
+**Detection:** `check_swiss_low_diversity`. Fewer than 3 → hard fail; below the 60% floor → soft warn.
+
+**Fix direction:** Diversify the Swiss layouts, ideally a different registered Sxx per page, with a 60% uniqueness floor.
+
+## English renderers: why the specific rules are still empty
+
+v0.8.0 verified state (matches `registry/renderer_registry.json`):
+
+- `beautiful-html-templates` is marked `"support_level": "brief+qa-verified"`: the brief exit works, and on 2026-06-13 the presentation checkup ran end to end on its real Neo-Grid deck (scan, find, fix, re-check — per-round record in `docs/showcase/hermes-agent-mastery/en/qa/presentation-checkup-2026-06-13.md`). But `FAILURE_MODES` still has no beautiful-specific rule; only the renderer-agnostic `placeholder-residue` applies to it, so it is not marked `full`.
+- `frontend-slides` is marked `"support_level": "brief-only"`: the brief exit works (the production prompt is produced and consumable), but the checkup has not yet run on any real frontend-slides render, and it has no specific rules.
+
+The renderer-specific sections stay empty until that renderer's real output produces verifiable findings in a checkup. Leave it empty before staging a fake — the same house rule as the README showcase.
+
+## How the checkup uses this catalog
+
+1. `run_checks(html, plan, modes)` runs each mode's check function and returns a findings list: `[{id, severity, pages, evidence}]`.
+2. `_write_qa_report` produces the human-readable `qa_report.md`.
+3. `_write_fix_prompt` produces the downstream-executable `fix_prompt.md` (e.g. "replace S04's `data-layout="S99"` with a registered Sxx layout").
+4. The iteration tracker `qa_iteration.json` records the round, which findings the last round resolved, and which are still open.
+
+The checkup is capped at `--max-qa-iterations` (default 3). If unresolved findings remain at the cap, `qa_status` becomes `needs-human` and is handed back to the next agent or a human to decide.

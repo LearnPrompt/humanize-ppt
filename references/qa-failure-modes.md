@@ -38,6 +38,14 @@
 
 真实案例：2026-06-13 英文 deck（`docs/showcase/hermes-agent-mastery/en/ppt/`）的体检中，静态扫描通过，而截图逐页复核发现页码徽章遮挡 9 页正文，观众会看到「uires confirmation.」这样的断句。修复与复检记录见 `docs/showcase/hermes-agent-mastery/en/qa/presentation-checkup-2026-06-13.md`。截图复核是体检方法论的一半，今天还没自动化。
 
+还有一类失败，连「页本身」都是对的，错的是**怎么截它**——
+
+**WebGL hero 封面静态截图捕获不到 → 封面空白。** Guizang Style A 的封面用 WebGL hero canvas 画背景。HTML 完全正确（`canvas#bg-dark`/`canvas#bg-light` 都在、`data-anim` 充足、`low-power` 没激活，所有静态检查全过），但对它截的那张 PNG 是空白的——因为 canvas 在页面加载后才异步绘制首帧，截图发生在绘制之前，截到的是还没上色的画布。`webgl-canvas-missing` 这类静态规则查的是「画布在不在 HTML 里」，查不出「画布画出来没、截图截到没」。这是一个**正确的页 + 错误的截图 = 空白产物**的失败类，和文字溢出那种「页本身有问题」的失败类不同，但同样要靠真实渲染/截图复核才能发现。
+
+实证：2026-06 的 9 风格 agent 封面试验里，Style A `ink-classic` 封面的静态截图只有 14KB，肉眼看是一张空白页（同批 Style B 瑞士静态封面截图正常）。这批截图因此撤回不入库（宁空不摆拍）。
+
+兜底规则（写进了 v0.9 风格画廊的封面渲染命令，见 `references/style-gallery-spec.md`）：截 WebGL hero 页时，以活页 `cover.html` 为准、`cover.png` 仅作缩略；截图前等 canvas 完成首帧（延迟 ≥1.5s）；`cover.png` 小于 20KB 一律判为截图失败而非空封面，重截或只交活页。这条今天还测不出来（Humanize 不读 PNG 字节），所以列在这里，不包装成 `FAILURE_MODES` 模式。
+
 ## 模式目录
 
 每条模式给四样东西：症状、观众视角会看到什么、检测方式（`scripts/humanize_ppt_v2.py` 里的规则函数名）、修复指令方向（`fix_prompt.md` 会让下游 skill 做什么）。
