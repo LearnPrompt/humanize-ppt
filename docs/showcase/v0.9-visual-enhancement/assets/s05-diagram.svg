@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="'Noto Sans SC','PingFang SC',sans-serif">
+  <rect width="1280" height="720" fill="#0c1118"/>
+  <text x="80" y="84" fill="#8a93a3" font-size="22" letter-spacing="6">S05 · 证据 / PROOF</text>
+  <text x="80" y="132" fill="#eef2f7" font-size="40" font-weight="700">一份素材，两种结果</text>
+
+  <g>
+    <g>
+      <rect x="80" y="220" width="540" height="190" rx="12" fill="#141c27" stroke="#2a3647"/>
+      <text x="110" y="330" fill="#f4a23b" font-size="86" font-weight="800">5</text>
+      <text x="240" y="300" fill="#eef2f7" font-size="26" font-weight="700">页</text>
+      <text x="240" y="340" fill="#8a93a3" font-size="20">一条状态转移弧</text>
+    </g>
+    <g>
+      <rect x="660" y="220" width="540" height="190" rx="12" fill="#141c27" stroke="#2a3647"/>
+      <text x="690" y="330" fill="#f4a23b" font-size="86" font-weight="800">1</text>
+      <text x="800" y="300" fill="#eef2f7" font-size="26" font-weight="700">句</text>
+      <text x="800" y="340" fill="#8a93a3" font-size="20">可复述的判断</text>
+    </g>
+    <g>
+      <rect x="80" y="440" width="540" height="190" rx="12" fill="#141c27" stroke="#1f3a33"/>
+      <text x="110" y="550" fill="#4fd0a6" font-size="86" font-weight="800">100%</text>
+      <text x="110" y="600" fill="#8a93a3" font-size="20">每页拿得出口去讲</text>
+    </g>
+    <g>
+      <rect x="660" y="440" width="540" height="190" rx="12" fill="#141c27" stroke="#1f3a33"/>
+      <text x="690" y="550" fill="#4fd0a6" font-size="86" font-weight="800">0</text>
+      <text x="820" y="520" fill="#eef2f7" font-size="26" font-weight="700">只能看不能讲的页</text>
+      <text x="820" y="558" fill="#8a93a3" font-size="20">演讲体检 0 fail</text>
+    </g>
+  </g>
+</svg>

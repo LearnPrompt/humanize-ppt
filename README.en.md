@@ -99,6 +99,18 @@ The covers are rendered downstream; Humanize emits only the spec and the command
 
 The command lives under "Advanced usage" below.
 
+## Visual enhancement: images, diagrams, video — all real output
+
+The second core capability. Humanize decides per page whether it needs an image / SVG diagram / video and writes it into `slide_plan.json`'s `media` slots (with `asset_path` + `prompt_hint`); the downstream skill produces the real file at that path — Humanize decides *what* and *where*, and renders nothing itself.
+
+<p align="center">
+  <img src="docs/showcase/v0.9-visual-enhancement/contact-sheet.png" width="92%" />
+</p>
+
+<p align="center"><sub>
+▲ Real output: the 8 media slots of one deck — 4 deterministic inline SVG diagrams/images (svg-html) + 2 real Remotion-rendered mp4s (10s / 8s deterministic loops, no narration) + 1 real UI screenshot. The gpt-photo synthesized image needs `OPENAI_API_KEY` (unset here), so it stays an executable task rather than a faked PNG. Per-slot log: <a href="docs/showcase/v0.9-visual-enhancement/media-production-2026-06-17.md">production record</a>.
+</sub></p>
+
 ## 30-second start: ask your agent to install and use it
 
 If you use Codex, Claude Code, Hermes, or another Skill-aware agent, first have it install:

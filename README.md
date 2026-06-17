@@ -106,6 +106,18 @@ v0.9 起，出大纲之前还有一道门：风格画廊。一句话——别让
 
 生成命令见下方「进阶用法」。
 
+## 视觉增强：图、图表、视频都是真产出
+
+第二项核心能力。Humanize 逐页决定要不要图 / SVG 图表 / 视频，写进 `slide_plan.json` 的 `media` 槽（带 `asset_path` + `prompt_hint`），下游照着把真实文件产到那个路径——Humanize 决定要什么、放哪，自己不渲染。
+
+<p align="center">
+  <img src="docs/showcase/v0.9-visual-enhancement/contact-sheet.png" width="92%" />
+</p>
+
+<p align="center"><sub>
+▲ 真实产出：同一份 deck 的 8 个媒体槽——4 张确定性内联 SVG 图表/图（svg-html）+ 2 支真 Remotion 渲染的 mp4（10s / 8s 确定性循环、无旁白）+ 1 张真实 UI 截图（screenshot）。gpt-photo 合成图需 `OPENAI_API_KEY`，本环境未设，诚实留为可执行任务不摆拍。逐槽记录见 <a href="docs/showcase/v0.9-visual-enhancement/media-production-2026-06-17.md">产出记录</a>。
+</sub></p>
+
 ## 30 秒开始：让 Agent 安装并使用
 
 如果你正在使用 Codex、Claude Code、Hermes 或其他支持 Skill 的 Agent，先让它安装：

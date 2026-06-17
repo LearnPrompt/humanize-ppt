@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="'Noto Sans SC','PingFang SC',sans-serif">
+  <defs>
+    <marker id="ah4" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#f4a23b"/>
+    </marker>
+  </defs>
+  <rect width="1280" height="720" fill="#0c1118"/>
+  <text x="80" y="84" fill="#8a93a3" font-size="22" letter-spacing="6">S04 · 方法 / 状态转移</text>
+  <text x="80" y="132" fill="#eef2f7" font-size="40" font-weight="700">别列清单，走一条状态转移</text>
+
+  <g>
+    <g>
+      <rect x="80" y="300" width="240" height="160" rx="12" fill="#141c27" stroke="#2a3647"/>
+      <text x="108" y="350" fill="#f4a23b" font-size="40" font-weight="800">01</text>
+      <text x="108" y="402" fill="#eef2f7" font-size="27" font-weight="700">承认疲劳</text>
+      <text x="108" y="436" fill="#8a93a3" font-size="19">每天都在更新</text>
+    </g>
+    <g>
+      <rect x="360" y="300" width="240" height="160" rx="12" fill="#141c27" stroke="#2a3647"/>
+      <text x="388" y="350" fill="#f4a23b" font-size="40" font-weight="800">02</text>
+      <text x="388" y="402" fill="#eef2f7" font-size="27" font-weight="700">抛反常识</text>
+      <text x="388" y="436" fill="#8a93a3" font-size="19">功能不是重点</text>
+    </g>
+    <g>
+      <rect x="640" y="300" width="240" height="160" rx="12" fill="#141c27" stroke="#2a3647"/>
+      <text x="668" y="350" fill="#f4a23b" font-size="40" font-weight="800">03</text>
+      <text x="668" y="402" fill="#eef2f7" font-size="27" font-weight="700">给判断</text>
+      <text x="668" y="436" fill="#8a93a3" font-size="19">会不会改工作流</text>
+    </g>
+    <g>
+      <rect x="920" y="300" width="240" height="160" rx="12" fill="#141c27" stroke="#4fd0a6"/>
+      <text x="948" y="350" fill="#4fd0a6" font-size="40" font-weight="800">04</text>
+      <text x="948" y="402" fill="#eef2f7" font-size="27" font-weight="700">配证据</text>
+      <text x="948" y="436" fill="#8a93a3" font-size="19">案例 / 指标 / 步骤</text>
+    </g>
+  </g>
+  <g stroke="#f4a23b" stroke-width="2.5" fill="none">
+    <path d="M320,380 L356,380" marker-end="url(#ah4)"/>
+    <path d="M600,380 L636,380" marker-end="url(#ah4)"/>
+    <path d="M880,380 L916,380" marker-end="url(#ah4)"/>
+  </g>
+  <text x="80" y="560" fill="#8a93a3" font-size="22">观众状态：信息疲劳 → 拿到一句可复述的判断</text>
+</svg>

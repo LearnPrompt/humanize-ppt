@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="'Noto Sans SC','PingFang SC',sans-serif">
+  <defs>
+    <marker id="ah" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#4fd0a6"/>
+    </marker>
+  </defs>
+  <rect width="1280" height="720" fill="#0c1118"/>
+  <text x="80" y="84" fill="#8a93a3" font-size="22" letter-spacing="6">S02 · 背景 / SCOPE</text>
+  <text x="80" y="132" fill="#eef2f7" font-size="40" font-weight="700">所有更新，最后都收敛到同一个系统</text>
+
+  <!-- input nodes -->
+  <g font-size="26" fill="#eef2f7">
+    <g>
+      <rect x="80" y="240" width="300" height="70" rx="10" fill="#141c27" stroke="#2a3647"/>
+      <text x="110" y="283">更长上下文</text>
+    </g>
+    <g>
+      <rect x="80" y="340" width="300" height="70" rx="10" fill="#141c27" stroke="#2a3647"/>
+      <text x="110" y="383">更强代码能力</text>
+    </g>
+    <g>
+      <rect x="80" y="440" width="300" height="70" rx="10" fill="#141c27" stroke="#2a3647"/>
+      <text x="110" y="483">更多 Agent 能力</text>
+    </g>
+    <g>
+      <rect x="80" y="540" width="300" height="70" rx="10" fill="#141c27" stroke="#2a3647"/>
+      <text x="110" y="583">更漂亮的网页生成</text>
+    </g>
+  </g>
+
+  <!-- converging arrows -->
+  <g stroke="#4fd0a6" stroke-width="2.5" fill="none" opacity="0.85">
+    <path d="M380,275 C560,300 640,360 820,400" marker-end="url(#ah)"/>
+    <path d="M380,375 C560,388 660,395 820,415" marker-end="url(#ah)"/>
+    <path d="M380,475 C560,452 660,440 820,430" marker-end="url(#ah)"/>
+    <path d="M380,575 C560,520 640,470 820,448" marker-end="url(#ah)"/>
+  </g>
+
+  <!-- hub -->
+  <g>
+    <circle cx="980" cy="424" r="150" fill="#f4a23b" opacity="0.12"/>
+    <circle cx="980" cy="424" r="118" fill="#141c27" stroke="#f4a23b" stroke-width="2.5"/>
+    <text x="980" y="408" text-anchor="middle" fill="#f4a23b" font-size="34" font-weight="700">你的</text>
+    <text x="980" y="456" text-anchor="middle" fill="#f4a23b" font-size="34" font-weight="700">工作流</text>
+  </g>
+  <text x="980" y="624" text-anchor="middle" fill="#8a93a3" font-size="22">问题不在功能有没有，而在它落到这里没有</text>
+</svg>

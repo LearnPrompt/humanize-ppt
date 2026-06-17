@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="'Noto Sans SC','PingFang SC',sans-serif">
+  <defs>
+    <marker id="ah3" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#4fd0a6"/>
+    </marker>
+  </defs>
+  <rect width="1280" height="720" fill="#0c1118"/>
+  <text x="80" y="84" fill="#8a93a3" font-size="22" letter-spacing="6">S03 · 张力 / TENSION</text>
+
+  <!-- LEFT: old understanding -->
+  <g>
+    <rect x="80" y="150" width="500" height="470" rx="14" fill="#141c27" stroke="#3a2530"/>
+    <text x="110" y="206" fill="#e0556a" font-size="24" font-weight="700">旧理解</text>
+    <text x="110" y="246" fill="#eef2f7" font-size="30" font-weight="700">盯着功能清单</text>
+    <g fill="#8a93a3" font-size="24">
+      <rect x="112" y="296" width="22" height="22" rx="4" fill="none" stroke="#5a6473" stroke-width="2"/>
+      <text x="150" y="315">更长上下文 ✓</text>
+      <rect x="112" y="346" width="22" height="22" rx="4" fill="none" stroke="#5a6473" stroke-width="2"/>
+      <text x="150" y="365">更强代码 ✓</text>
+      <rect x="112" y="396" width="22" height="22" rx="4" fill="none" stroke="#5a6473" stroke-width="2"/>
+      <text x="150" y="415">更多 Agent ✓</text>
+      <rect x="112" y="446" width="22" height="22" rx="4" fill="none" stroke="#5a6473" stroke-width="2"/>
+      <text x="150" y="465">网页生成 ✓</text>
+    </g>
+    <text x="110" y="560" fill="#e0556a" font-size="22">→ 清单很长，看完就忘</text>
+  </g>
+
+  <text x="640" y="400" text-anchor="middle" fill="#f4a23b" font-size="40" font-weight="800">VS</text>
+
+  <!-- RIGHT: real question -->
+  <g>
+    <rect x="700" y="150" width="500" height="470" rx="14" fill="#141c27" stroke="#1f3a33"/>
+    <text x="730" y="206" fill="#4fd0a6" font-size="24" font-weight="700">真问题</text>
+    <text x="730" y="246" fill="#eef2f7" font-size="30" font-weight="700">它会改我的工作流吗</text>
+    <g stroke="#4fd0a6" stroke-width="2.5" fill="none">
+      <path d="M760,330 L1000,330" marker-end="url(#ah3)"/>
+      <path d="M760,400 L1000,400" marker-end="url(#ah3)"/>
+      <path d="M760,470 L1000,470" marker-end="url(#ah3)"/>
+    </g>
+    <g fill="#eef2f7" font-size="22">
+      <text x="760" y="324">这一步谁来做</text>
+      <text x="760" y="394">我少干哪类活</text>
+      <text x="760" y="464">交付方式变没变</text>
+    </g>
+    <text x="730" y="560" fill="#4fd0a6" font-size="22">→ 一句判断，记得住、讲得出</text>
+  </g>
+</svg>
