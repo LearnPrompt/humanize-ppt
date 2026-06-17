@@ -86,8 +86,23 @@ v0.9 起，出大纲之前还有一道门：风格画廊。一句话——别让
 封面由下游真渲，Humanize 只出 spec 和 command，自己不渲一个像素——和它一贯的边界一致。命令里对 Style A 的 WebGL hero 封面专门加了警告：静态 PNG 截图会捕获到空白（canvas 加载后才画首帧），以活页 `cover.html` 为准，小于 20KB 的 PNG 判为截图失败而非空封面（见[失败模式目录](references/qa-failure-modes.md)）。规格见 [references/style-gallery-spec.md](references/style-gallery-spec.md)。
 
 <p align="center">
-<sub>▲ 演示 GIF 槽位：风格画廊 + 大纲预览两张零依赖工作底稿的录屏。生成脚本 <code>scripts/record_demo_gif.py</code> 已就位；真录制留到下游真渲 4 张候选封面之后再补——空着的封面位不摆拍，和 showcase 同一条班规。</sub>
+  <img src="docs/showcase/v0.9-style-gallery/covers/guizang-ink-classic.png" width="24%" />
+  <img src="docs/showcase/v0.9-style-gallery/covers/guizang-kraft-paper.png" width="24%" />
+  <img src="docs/showcase/v0.9-style-gallery/covers/guizang-indigo-porcelain.png" width="24%" />
+  <img src="docs/showcase/v0.9-style-gallery/covers/guizang-swiss-ikb.png" width="24%" />
 </p>
+
+<p align="center"><sub>
+▲ 真实产物：同一份《AI 工具更新，不只是功能清单》的 4 张封面，由 guizang-ppt-skill 真渲——墨水经典 / 牛皮纸 / 靛蓝瓷（Style A）+ 瑞士克莱因蓝（Style B），四张视觉互异。Humanize 只出 spec/command，封面归下游渲。
+</sub></p>
+
+<p align="center">
+  <img src="docs/showcase/v0.9-style-gallery/style-gallery-picker.png" width="80%" />
+</p>
+
+<p align="center"><sub>
+▲ 零依赖 <code>style_gallery.html</code> 把 4 张封面并排供选，每张带描述和「选定后回灌命令」。挑中哪张，跑它的回灌命令把风格带进正常的大纲 → brief 流程。想要动图版录屏，用 <code>scripts/record_demo_gif.py</code>（见下方「进阶用法」）。
+</sub></p>
 
 生成命令见下方「进阶用法」。
 

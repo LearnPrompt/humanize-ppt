@@ -79,8 +79,23 @@ Since v0.9, there is one more gate before the outline: the style gallery. In one
 The covers are rendered downstream; Humanize emits only the spec and the commands and renders not a single pixel — consistent with its standing boundary. The commands carry a specific warning for Style A WebGL hero covers: a static PNG screenshot can capture blank (the canvas paints its first frame after load), so treat the live `cover.html` as the source of truth and a sub-20KB PNG as a failed capture, not an empty cover (see the [failure-mode catalog](references/qa-failure-modes.md)). Spec: [references/style-gallery-spec.md](references/style-gallery-spec.md).
 
 <p align="center">
-<sub>▲ Demo GIF slot: a screen recording of the style gallery + outline preview, the two zero-dependency working drafts. The generator <code>scripts/record_demo_gif.py</code> is in place; the real recording lands once the downstream skill has rendered the 4 candidate covers — empty cover slots are not staged, the same house rule as the showcase.</sub>
+  <img src="docs/showcase/v0.9-style-gallery/covers/guizang-ink-classic.png" width="24%" />
+  <img src="docs/showcase/v0.9-style-gallery/covers/guizang-kraft-paper.png" width="24%" />
+  <img src="docs/showcase/v0.9-style-gallery/covers/guizang-indigo-porcelain.png" width="24%" />
+  <img src="docs/showcase/v0.9-style-gallery/covers/guizang-swiss-ikb.png" width="24%" />
 </p>
+
+<p align="center"><sub>
+▲ Real artifacts: four covers of the same deck, rendered natively by guizang-ppt-skill — Ink Classic / Kraft Paper / Indigo Porcelain (Style A) + Swiss Klein Blue (Style B), four distinct looks. Humanize emits only the spec/command; the covers are rendered downstream.
+</sub></p>
+
+<p align="center">
+  <img src="docs/showcase/v0.9-style-gallery/style-gallery-picker.png" width="80%" />
+</p>
+
+<p align="center"><sub>
+▲ The zero-dependency <code>style_gallery.html</code> places the 4 covers side by side, each with its description and re-injection command. Pick one and run its command to carry the style into the normal outline → brief flow. For a motion recording, use <code>scripts/record_demo_gif.py</code> (see "Advanced usage").
+</sub></p>
 
 The command lives under "Advanced usage" below.
 

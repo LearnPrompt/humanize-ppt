@@ -80,16 +80,19 @@ def _build_artifacts(source, title, workdir):
 
 
 def _overlay_covers(gallery_dir, covers_dir):
-    """Copy real downstream-rendered covers into the gallery before recording."""
+    """Copy real downstream-rendered covers into the gallery before recording.
+
+    Copies each candidate's whole subdir (cover.html + cover.png + any local
+    assets like motion.min.js), so an embedded cover renders fully offline
+    rather than relying on a CDN fallback.
+    """
     src = Path(covers_dir)
     dst = gallery_dir / "outputs" / "style-gallery"
     if not src.exists():
         return
-    for cover in src.rglob("cover.*"):
-        rel = cover.relative_to(src)
-        target = dst / rel
-        target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(cover, target)
+    for sub in src.iterdir():
+        if sub.is_dir():
+            shutil.copytree(sub, dst / sub.name, dirs_exist_ok=True)
 
 
 def _capture(pages, out_gif, frames_per_page, workdir):
