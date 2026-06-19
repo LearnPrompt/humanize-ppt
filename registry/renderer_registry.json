@@ -1,5 +1,5 @@
 {
-  "version": "0.9.0",
+  "version": "1.0.0",
   "positioning_note": "热插拔：Humanize 广义兼容任何能产出 HTML PPT 的下游 skill——brief 是普通 markdown+JSON，谁都能读。本表只是把『我们真实跑通且输出稳定』的路线标出来：中文推荐 guizang-ppt-skill，英文推荐 frontend-slides / beautiful-html-templates。其他下游可以接，跑通欢迎反馈，support_level 据实更新。",
   "support_levels": {
     "full": "brief 出口 + 渲染后演讲体检（--qa-from）都已在真实渲染产物上验证过",

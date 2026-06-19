@@ -13,7 +13,7 @@ from pathlib import Path
 
 SKILL_ROOT = Path(__file__).resolve().parents[1]
 REGISTRY_PATH = SKILL_ROOT / "registry" / "renderer_registry.json"
-VERSION = "0.9.0"
+VERSION = "1.0.0"
 BEAUTIFUL_REPO_URL = "https://github.com/zarazhangrui/beautiful-html-templates.git"
 DEFAULT_ZH_PREVIEW_COUNT = 3
 DEFAULT_EN_PREVIEW_COUNT = 5

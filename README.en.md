@@ -229,7 +229,7 @@ python3 scripts/record_demo_gif.py --source examples/01-ai-tool-update/source.md
 - **Style gallery**: ≥4 cover candidates before the outline, each rendered downstream, picked in a zero-dependency gallery.
 - **Outline preview**: the audience state-transfer map from `slide_plan.json`, reviewed before any render.
 - **Presentation checkup**: per-page outline diff after render, scans failure modes, writes fix prompts, capped at 3 rounds.
-- **Presenter mode**: speaker-script semantic source + brief directs downstream to build the presenter / deploy.
+- **Presenter mode**: writes `outputs/presenter/presenter-shell.html` directly from `slide_plan.json` + `speaker_intent.md` — usable standalone before the downstream deck exists; downstream native consoles can take over the full stage view once the deck is ready.
 
 ## How it differs
 
@@ -263,7 +263,7 @@ English and Chinese are now both `full`: brief exit works + checkup verified on 
 
 > PPT is not an information container. PPT is an audience state-transfer artifact.
 
-See [AST Theory](docs/AST-theory.md), [SPEC.md](SPEC.md), [v0.9 Release Notes](docs/versions/v0.9.0-style-gallery.md).
+See [AST Theory](docs/AST-theory.md), [SPEC.md](SPEC.md), [v1.0 Release Notes](docs/versions/v1.0.0-full-english-presenter.md), [v0.9 Release Notes](docs/versions/v0.9.0-style-gallery.md).
 
 ## Safety
 
