@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Codex Starter Guide — Frontend Slides Vol.01</title>
+
+  <!-- ===========================================
+       FONTS (distinctive, non-generic)
+       - Fraunces: optical serif with high contrast & soft terminals
+         (the editorial hero voice — NOT Inter/Space Grotesk)
+       - Spline Sans Mono: crisp humanist mono for chrome/labels
+       =========================================== -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Spline+Sans+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    /* ===========================================
+       CSS CUSTOM PROPERTIES (THEME)
+       Atmospheric dark editorial — "ink & ember"
+       =========================================== */
+    :root {
+      /* Colors */
+      --bg-ink:        #0a0c12;   /* deep blue-black */
+      --bg-ink-2:      #11151f;   /* lifted panel tone */
+      --paper:         #efe9dd;   /* warm off-white text */
+      --paper-dim:     #b9b3a6;   /* muted body text */
+      --paper-faint:   #6f6c66;   /* faint chrome text */
+      --ember:         #d98a4e;   /* warm terracotta-amber accent */
+      --ember-soft:    rgba(217, 138, 78, 0.16);
+      --line:          rgba(239, 233, 221, 0.12);
+      --line-strong:   rgba(239, 233, 221, 0.22);
+
+      /* Typography */
+      --font-display: "Fraunces", Georgia, serif;
+      --font-mono:    "Spline Sans Mono", ui-monospace, monospace;
+
+      --title-size:    clamp(2.6rem, 8.4vw, 6.6rem);
+      --eyebrow-size:  clamp(0.7rem, 1.5vw, 1rem);
+      --dek-size:      clamp(1rem, 2.4vw, 1.7rem);
+      --body-size:     clamp(0.8rem, 1.4vw, 1.05rem);
+      --chrome-size:   clamp(0.58rem, 1vw, 0.78rem);
+
+      /* Spacing */
+      --slide-padding: clamp(1.6rem, 4.5vw, 4.5rem);
+      --content-gap:   clamp(0.7rem, 1.8vw, 1.6rem);
+      --element-gap:   clamp(0.3rem, 1vw, 0.9rem);
+
+      /* Motion */
+      --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* ===========================================
+       BASE STYLES
+       =========================================== */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* --- viewport-base.css (full contents, mandatory) --- */
+    html, body { height: 100%; overflow-x: hidden; }
+    html { scroll-snap-type: y mandatory; scroll-behavior: smooth; }
+    .slide {
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      scroll-snap-align: start;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    .slide-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      max-height: 100%;
+      overflow: hidden;
+      padding: var(--slide-padding);
+    }
+    .card, .container, .content-box {
+      max-width: min(90vw, 1000px);
+      max-height: min(80vh, 700px);
+    }
+    .feature-list, .bullet-list { gap: clamp(0.4rem, 1vh, 1rem); }
+    .feature-list li, .bullet-list li { font-size: var(--body-size); line-height: 1.4; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+      gap: clamp(0.5rem, 1.5vw, 1rem);
+    }
+    img, .image-container {
+      max-width: 100%;
+      max-height: min(50vh, 400px);
+      object-fit: contain;
+    }
+    @media (max-height: 700px) {
+      :root {
+        --slide-padding: clamp(0.75rem, 3vw, 2rem);
+        --content-gap: clamp(0.4rem, 1.5vw, 1rem);
+        --title-size: clamp(1.25rem, 4.5vw, 2.5rem);
+        --h2-size: clamp(1rem, 3vw, 1.75rem);
+      }
+    }
+    @media (max-height: 600px) {
+      :root {
+        --slide-padding: clamp(0.5rem, 2.5vw, 1.5rem);
+        --content-gap: clamp(0.3rem, 1vw, 0.75rem);
+        --title-size: clamp(1.1rem, 4vw, 2rem);
+        --body-size: clamp(0.7rem, 1.2vw, 0.95rem);
+      }
+      .nav-dots, .keyboard-hint, .decorative { display: none; }
+    }
+    @media (max-height: 500px) {
+      :root {
+        --slide-padding: clamp(0.4rem, 2vw, 1rem);
+        --title-size: clamp(1rem, 3.5vw, 1.5rem);
+        --h2-size: clamp(0.9rem, 2.5vw, 1.25rem);
+        --body-size: clamp(0.65rem, 1vw, 0.85rem);
+      }
+    }
+    @media (max-width: 600px) {
+      :root { --title-size: clamp(1.25rem, 7vw, 2.5rem); }
+      .grid { grid-template-columns: 1fr; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.2s !important;
+      }
+      html { scroll-behavior: auto; }
+    }
+    /* --- end viewport-base.css --- */
+
+    body {
+      background: var(--bg-ink);
+      color: var(--paper);
+      font-family: var(--font-mono);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ===========================================
+       COVER — ATMOSPHERIC BACKGROUND
+       Layered radial gradients + grain + faint grid
+       create depth without imagery.
+       =========================================== */
+    .cover { background: var(--bg-ink); }
+
+    .cover .bg-layers {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      /* glow pooling toward title (lower-left), ember warmth top-right */
+      background:
+        radial-gradient(ellipse 70% 55% at 22% 78%, rgba(64, 78, 120, 0.40) 0%, transparent 60%),
+        radial-gradient(ellipse 55% 45% at 88% 12%, var(--ember-soft) 0%, transparent 55%),
+        radial-gradient(ellipse 90% 90% at 50% 40%, rgba(20, 26, 42, 0.85) 0%, transparent 75%),
+        linear-gradient(160deg, #0c0f17 0%, #0a0c12 55%, #07080d 100%);
+    }
+
+    /* faint structural grid — editorial scaffolding */
+    .cover .grid-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.5;
+      background-image:
+        linear-gradient(var(--line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--line) 1px, transparent 1px);
+      background-size: clamp(48px, 7vw, 96px) clamp(48px, 7vw, 96px);
+      -webkit-mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, #000 35%, transparent 78%);
+              mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, #000 35%, transparent 78%);
+    }
+
+    /* film grain via inline SVG noise */
+    .cover .grain {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      opacity: 0.05;
+      mix-blend-mode: overlay;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    /* ===========================================
+       COVER LAYOUT
+       Top chrome row / hero block / bottom chrome row
+       =========================================== */
+    .cover .slide-content {
+      position: relative;
+      z-index: 2;
+      justify-content: space-between;
+      padding-top: clamp(1.3rem, 3.2vw, 2.6rem);
+      padding-bottom: clamp(1.3rem, 3.2vw, 2.4rem);
+    }
+
+    /* --- top chrome row --- */
+    .top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 1rem;
+      font-family: var(--font-mono);
+      font-size: var(--chrome-size);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--paper-faint);
+    }
+    .top-row .right { color: var(--ember); text-align: right; }
+
+    /* --- hero block --- */
+    .hero { max-width: min(94vw, 1180px); }
+
+    .eyebrow {
+      display: flex;
+      align-items: center;
+      gap: clamp(0.5rem, 1.2vw, 0.9rem);
+      font-family: var(--font-mono);
+      font-size: var(--eyebrow-size);
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--paper-dim);
+      margin-bottom: clamp(0.7rem, 1.8vw, 1.4rem);
+    }
+    .eyebrow .tick {
+      width: clamp(28px, 5vw, 58px);
+      height: 1px;
+      background: var(--ember);
+      flex: none;
+    }
+
+    .hero-title {
+      font-family: var(--font-display);
+      font-optical-sizing: auto;
+      font-weight: 400;
+      font-size: var(--title-size);
+      line-height: 0.96;
+      letter-spacing: -0.02em;
+      color: var(--paper);
+      margin-bottom: clamp(0.6rem, 1.6vw, 1.2rem);
+    }
+    /* second word carries the optical/italic emphasis */
+    .hero-title .accent {
+      font-style: italic;
+      font-weight: 300;
+      color: var(--ember);
+    }
+
+    .dek {
+      font-family: var(--font-display);
+      font-weight: 400;
+      font-style: italic;
+      font-size: var(--dek-size);
+      line-height: 1.25;
+      color: var(--paper);
+      opacity: 0.92;
+      margin-bottom: clamp(0.8rem, 1.8vw, 1.4rem);
+      max-width: 24ch;
+    }
+
+    .body {
+      font-family: var(--font-mono);
+      font-weight: 400;
+      font-size: var(--body-size);
+      line-height: 1.65;
+      color: var(--paper-dim);
+      max-width: 62ch;
+      margin-bottom: clamp(0.9rem, 2vw, 1.6rem);
+    }
+    .body .hl { color: var(--paper); }
+
+    .meta-line {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-family: var(--font-mono);
+      font-size: var(--chrome-size);
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--paper-faint);
+    }
+    .meta-line .dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: var(--ember);
+      box-shadow: 0 0 10px var(--ember);
+    }
+
+    /* --- bottom chrome row --- */
+    .bottom-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 1rem;
+    }
+    .bottom-left, .bottom-right {
+      font-family: var(--font-mono);
+      font-size: var(--chrome-size);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--paper-faint);
+    }
+    .bottom-center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: clamp(0.5rem, 1.2vw, 0.85rem);
+    }
+
+    /* page dots */
+    .nav-dots {
+      display: flex;
+      gap: clamp(7px, 1.1vw, 11px);
+      align-items: center;
+    }
+    .nav-dots .dot {
+      width: clamp(6px, 0.8vw, 8px);
+      height: clamp(6px, 0.8vw, 8px);
+      border-radius: 50%;
+      background: var(--line-strong);
+      transition: all 0.4s var(--ease-out-expo);
+    }
+    .nav-dots .dot.active {
+      width: clamp(20px, 2.8vw, 30px);
+      border-radius: 99px;
+      background: var(--ember);
+      box-shadow: 0 0 12px var(--ember-soft);
+    }
+
+    .keyboard-hint {
+      font-family: var(--font-mono);
+      font-size: clamp(0.5rem, 0.85vw, 0.66rem);
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--paper-faint);
+      opacity: 0.55;
+    }
+
+    /* hairline framing the cover */
+    .cover .frame {
+      position: absolute;
+      z-index: 2;
+      pointer-events: none;
+      inset: clamp(0.7rem, 1.6vw, 1.3rem);
+      border: 1px solid var(--line);
+    }
+
+    /* ===========================================
+       LOAD ANIMATION — staggered editorial reveal
+       Title rises word-by-word; chrome fades in last.
+       =========================================== */
+    .anim {
+      opacity: 0;
+      transform: translateY(26px);
+      filter: blur(6px);
+      animation: rise 1s var(--ease-out-expo) forwards;
+    }
+    @keyframes rise {
+      to { opacity: 1; transform: translateY(0); filter: blur(0); }
+    }
+
+    .d-top   { animation-delay: 0.10s; }
+    .d-eye   { animation-delay: 0.30s; }
+    .d-t1    { animation-delay: 0.46s; }
+    .d-t2    { animation-delay: 0.62s; }
+    .d-dek   { animation-delay: 0.86s; }
+    .d-body  { animation-delay: 1.04s; }
+    .d-meta  { animation-delay: 1.20s; }
+    .d-bottom{ animation-delay: 1.40s; }
+
+    /* slow ember breathing on the corner glow */
+    @keyframes drift {
+      0%, 100% { opacity: 0.9; transform: scale(1); }
+      50%      { opacity: 1;   transform: scale(1.04); }
+    }
+    .cover .bg-layers { animation: drift 14s ease-in-out infinite; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .anim { opacity: 1; transform: none; filter: none; animation: none; }
+      .cover .bg-layers { animation: none; }
+    }
+  </style>
+</head>
+<body>
+  <!-- ===========================================
+       COVER SLIDE
+       =========================================== -->
+  <section class="slide cover">
+    <!-- atmospheric background stack -->
+    <div class="bg-layers"></div>
+    <div class="grid-overlay"></div>
+    <div class="grain"></div>
+    <div class="frame"></div>
+
+    <div class="slide-content">
+
+      <!-- top chrome: kicker (left) + volume label (right) -->
+      <div class="top-row anim d-top">
+        <span class="left">Codex App &middot; Starter Guide</span>
+        <span class="right">Frontend-Slides &middot; Vol.01</span>
+      </div>
+
+      <!-- hero block -->
+      <div class="hero">
+        <div class="eyebrow anim d-eye">
+          <span class="tick"></span>
+          For anyone getting serious about Codex
+        </div>
+
+        <h1 class="hero-title">
+          <span class="anim d-t1" style="display:block;">Codex</span>
+          <span class="anim d-t2 accent" style="display:block;">Starter Guide</span>
+        </h1>
+
+        <p class="dek anim d-dek">Turn it from a chat box into a workbench</p>
+
+        <p class="body anim d-body">
+          The hard part isn&rsquo;t too few features &mdash; it&rsquo;s too many entry points.
+          <span class="hl">The real first lesson is turning a task into one verifiable workflow.</span>
+        </p>
+
+        <div class="meta-line anim d-meta">
+          <span class="dot"></span>
+          HV Analysis Brief &middot; Frontend-Slides
+        </div>
+      </div>
+
+      <!-- bottom chrome: footer + page dots + arrow hint + year -->
+      <div class="bottom-row anim d-bottom">
+        <span class="bottom-left">Humanize PPT &times; Frontend-Slides</span>
+
+        <div class="bottom-center">
+          <nav class="nav-dots" aria-label="Slide navigation">
+            <span class="dot active"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+          </nav>
+          <span class="keyboard-hint">&larr; &rarr; Arrow Keys</span>
+        </div>
+
+        <span class="bottom-right">&mdash; 2026 &mdash;</span>
+      </div>
+
+    </div>
+  </section>
+
+  <script>
+    /* ===========================================
+       MINIMAL COVER CONTROLLER
+       Single-slide cover: keyboard hint is decorative,
+       but we wire arrow keys to a subtle nudge so the
+       chrome reads as a real deck cover.
+       =========================================== */
+    (function () {
+      const dots = Array.from(document.querySelectorAll(".nav-dots .dot"));
+      let idx = 0;
+
+      function setActive(n) {
+        idx = Math.max(0, Math.min(dots.length - 1, n));
+        dots.forEach((d, i) => d.classList.toggle("active", i === idx));
+      }
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); setActive(idx + 1); }
+        if (e.key === "ArrowLeft") { e.preventDefault(); setActive(idx - 1); }
+      });
+
+      // let the dots themselves be clickable for tactile feedback
+      dots.forEach((d, i) => d.addEventListener("click", () => setActive(i)));
+    })();
+  </script>
+</body>
+</html>
