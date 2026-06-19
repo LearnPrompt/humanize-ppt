@@ -280,10 +280,13 @@ def test_write_presenter_adapter_creates_presenter_shell_with_notes(tmp_path):
 
     assert result["status"] == "rendered"
     presenter = out / "outputs" / "presenter" / "index.html"
+    presenter_shell = out / "outputs" / "presenter" / "presenter-shell.html"
     manifest = out / "outputs" / "presenter" / "presenter_manifest.json"
     assert presenter.exists()
+    assert presenter_shell.exists()
     assert manifest.exists()
     html = presenter.read_text(encoding="utf-8")
+    shell_html = presenter_shell.read_text(encoding="utf-8")
     assert "Humanize PPT · Presenter Adapter" in html
     assert "../beautiful/selected/index.html?slide=1" in html
     assert "presenter-goto" in html
@@ -293,9 +296,38 @@ def test_write_presenter_adapter_creates_presenter_shell_with_notes(tmp_path):
     assert "SCRIPT" in html
     assert "先把获得感拉满" in html
     assert "给出路径" in html
+    assert "Humanize PPT · Presenter Shell" in shell_html
+    assert "Shortcuts: S / ← / →" in shell_html
+    assert "先把获得感拉满" in shell_html
     data = json.loads(manifest.read_text(encoding="utf-8"))
     assert data["deck"] == str(deck_path)
+    assert data["presenter_shell"] == str(presenter_shell)
     assert data["slide_count"] == 2
+
+
+def test_write_presenter_adapter_renders_standalone_shell_without_deck(tmp_path):
+    out = tmp_path / "run"
+    plan = [
+        {"slide_id": "S01", "title": "Opening", "message": "Set the frame", "speaker_intent": "Open with the core promise."},
+        {"slide_id": "S02", "title": "Method", "message": "Show the path", "speaker_intent": "Give the audience a concrete next step."},
+    ]
+
+    result = hp.write_presenter_adapter(out, title="Humanize Talk", plan=plan, deck_path=None)
+
+    presenter_shell = out / "outputs" / "presenter" / "presenter-shell.html"
+    manifest = out / "outputs" / "presenter" / "presenter_manifest.json"
+    assert result["status"] == "rendered"
+    assert result["standalone"] is True
+    assert result["presenter"] == str(presenter_shell)
+    assert presenter_shell.exists()
+    html = presenter_shell.read_text(encoding="utf-8")
+    assert "Open with the core promise." in html
+    assert "Give the audience a concrete next step." in html
+    assert "2 / ${notes.length}" in html or "notes.length" in html
+    data = json.loads(manifest.read_text(encoding="utf-8"))
+    assert data["deck"] is None
+    assert data["slide_count"] == 2
+    assert data["standalone"] is True
 
 
 def test_write_export_adapter_creates_portable_package_and_export_script(tmp_path):

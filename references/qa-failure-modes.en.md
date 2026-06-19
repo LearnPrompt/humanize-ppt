@@ -21,8 +21,8 @@ Failure modes come in two layers:
   - **guizang**: applies to both Style A and Style B unless noted otherwise
   - **guizang-style-a**: Style A only
   - **guizang-style-b**: Style B only (Swiss-locked)
-  - **frontend-slides**: no specific rules yet (see the English-renderer section below)
-  - **beautiful-html-templates**: no specific rules yet (see the English-renderer section below)
+  - **frontend-slides**: English-renderer rules for overflow, contrast, hyphenation, font contracts, and image alt text
+  - **beautiful-html-templates**: the same English-renderer rules, scoped to its native HTML decks
 
 ## Layer 1: renderer-agnostic failure classes
 
@@ -32,11 +32,14 @@ Failure modes come in two layers:
 | Animation downgrade | The whole deck sits motionless; the delivery rhythm collapses | `low-power-default`, `data-anim-thin` |
 | Layout contract breach | Page count or layout doesn't match the outline; content that should appear is missing | `swiss-sxx-count-mismatch`, `swiss-sxx-invented-id`, `swiss-low-diversity` |
 | Missing background layer | The hero page background is blank; the page looks unfinished | `webgl-canvas-missing` |
+| English renderer contract breach | English-native decks show horizontal scroll, weak contrast, noisy broken words, generic font fallback, or inaccessible images | `english-horizontal-overflow`, `english-low-contrast`, `english-hyphenation-noise`, `english-font-contract-missing`, `english-image-alt-missing` |
 | AI draft residue | Model scaffolding text like "As an AI" / "First I need to" leaks onto the slide | brief-mode check `visible_slide_text_has_no_ai_draft_markers` (`BANNED_VISIBLE_PATTERNS` in `write_qa`), run on the slide plan *before* rendering |
 
 ### Failure classes the static scan can't catch yet
 
-Text overflow, low contrast, font-weight downgrade, viewport clipping, image/text misalignment, badges or decorative elements covering body copy — these are real rendering failures, but they need a real browser render to detect, and the static scan in `scripts/humanize_ppt_v2.py` cannot see them today. By catalog discipline they are **not** listed as modes. Until Humanize has a real detection path, they are backstopped by the downstream visual checklist (`references/guizang-material-qa.md`) and a human screenshot review.
+Font-weight downgrade, viewport clipping caused by real browser layout, image/text misalignment, badges or decorative elements covering body copy — these are real rendering failures, but they need a real browser render to detect, and the static scan in `scripts/humanize_ppt_v2.py` cannot see them today. By catalog discipline they are **not** listed as modes. Until Humanize has a real detection path, they are backstopped by the downstream visual checklist (`references/guizang-material-qa.md`) and a human screenshot review.
+
+The v0.9.1 English-renderer rules below intentionally cover the static subset Humanize can detect reliably: explicit horizontal overflow settings, obvious low-contrast hex pairs, forced hyphenation/noisy wrapping CSS, missing font contracts, and missing image alt text. They do not claim to replace screenshot review.
 
 Real case: in the 2026-06-13 checkup of the English deck (`docs/showcase/hermes-agent-mastery/en/ppt/`), the static scan passed, while a per-page screenshot review found a page-number badge covering body text on 9 pages — the audience would read a broken fragment like "uires confirmation." Fix and re-check record: `docs/showcase/hermes-agent-mastery/en/qa/presentation-checkup-2026-06-13.md`. Screenshot review is half the checkup methodology and is not automated yet.
 
@@ -124,14 +127,64 @@ Each mode gives four things: symptom, what the audience sees, detection (the rul
 
 **Fix direction:** Diversify the Swiss layouts, ideally a different registered Sxx per page, with a 60% uniqueness floor.
 
-## English renderers: why the specific rules are still empty
+### `english-horizontal-overflow` (frontend-slides, beautiful-html-templates)
 
-v0.8.0 verified state (matches `registry/renderer_registry.json`):
+**Symptom:** The rendered HTML opts into horizontal scrolling (`overflow-x:auto`, `scroll`, or `visible`) or sets viewport widths above `100vw`.
 
-- `beautiful-html-templates` is marked `"support_level": "brief+qa-verified"`: the brief exit works, and on 2026-06-13 the presentation checkup ran end to end on its real Neo-Grid deck (scan, find, fix, re-check — per-round record in `docs/showcase/hermes-agent-mastery/en/qa/presentation-checkup-2026-06-13.md`). But `FAILURE_MODES` still has no beautiful-specific rule; only the renderer-agnostic `placeholder-residue` applies to it, so it is not marked `full`.
-- `frontend-slides` is marked `"support_level": "brief-only"`: the brief exit works (the production prompt is produced and consumable), but the checkup has not yet run on any real frontend-slides render, and it has no specific rules.
+**What the audience sees:** A slide can drift sideways or clip long English technical terms, especially in browser presenter mode or during screenshot capture.
 
-The renderer-specific sections stay empty until that renderer's real output produces verifiable findings in a checkup. Leave it empty before staging a fake — the same house rule as the README showcase.
+**Detection:** `check_english_horizontal_overflow`. CSS with `overflow-x:auto/scroll/visible` or `width` / `min-width` above `100vw` -> fail.
+
+**Fix direction:** Keep horizontal overflow locked (`overflow-x:hidden`) and fit long terms through layout, font sizing, or safe wrapping rather than a wider canvas.
+
+### `english-low-contrast` (frontend-slides, beautiful-html-templates)
+
+**Symptom:** A CSS rule sets explicit foreground and background hex colors whose contrast ratio is below 3.0:1.
+
+**What the audience sees:** English copy fades into the panel, especially on projectors or in recordings.
+
+**Detection:** `check_english_low_contrast`. Static hex pairs in the same CSS rule are measured; ratio below 3.0:1 -> fail.
+
+**Fix direction:** Increase text/background contrast, usually by darkening the background or using a stronger text token.
+
+### `english-hyphenation-noise` (frontend-slides, beautiful-html-templates, soft warn)
+
+**Symptom:** CSS enables forced visual breaking such as `hyphens:auto`, `word-break:break-all`, or `overflow-wrap:anywhere`.
+
+**What the audience sees:** Technical English words split into noisy fragments and the slide looks machine-compressed.
+
+**Detection:** `check_english_hyphenation_noise`. The noisy CSS declarations above -> warn.
+
+**Fix direction:** Prefer manual line breaks, shorter copy, or `overflow-wrap:break-word` for rare long tokens.
+
+### `english-font-contract-missing` (frontend-slides, beautiful-html-templates)
+
+**Symptom:** The deck has no web font / `@font-face` source and no distinctive font-family contract.
+
+**What the audience sees:** The deck falls back to generic system serif/sans, losing the native renderer's intended identity.
+
+**Detection:** `check_english_font_contract_missing`. No `fonts.googleapis.com` / `@font-face` and no recognizable named deck font -> fail.
+
+**Fix direction:** Add the renderer's intended web font or a documented local font stack with a distinctive primary family.
+
+### `english-image-alt-missing` (frontend-slides, beautiful-html-templates)
+
+**Symptom:** `<img>` tags are missing `alt` or have an empty `alt`.
+
+**What the audience sees:** Visual assets become inaccessible to assistive tooling and harder to audit in generated decks.
+
+**Detection:** `check_english_image_alt_missing`. Any image tag with missing or empty `alt` -> fail.
+
+**Fix direction:** Add short, meaningful alt text for every image.
+
+## English renderers: full support status
+
+v0.9.1 verified state (matches `registry/renderer_registry.json`):
+
+- `beautiful-html-templates` is marked `"support_level": "full"`: the brief exit works, the presentation checkup ran end to end on its real Neo-Grid deck (scan, screenshot finding, fix, re-check — per-round record in `docs/showcase/hermes-agent-mastery/en/qa/presentation-checkup-2026-06-13.md`), and it now has 5 English-renderer-specific static rules.
+- `frontend-slides` is marked `"support_level": "full"`: the brief exit works, the presentation checkup ran end to end on the first real frontend-slides deck (`docs/showcase/v0.9-frontend-slides/ppt/index.html`), the negative-control scan proved the checkup is not a no-op, and it now has the same 5 English-renderer-specific static rules.
+
+The renderer-specific rules stay conservative: they encode static checks Humanize can run deterministically, while screenshot review remains required for overlap, clipping, and presenter-view bugs that static HTML cannot prove.
 
 ## How the checkup uses this catalog
 

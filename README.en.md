@@ -121,7 +121,7 @@ For Chinese, swap in "Chinese + guizang-ppt-skill". CLI flags, staged control, a
 </p>
 
 <p align="center"><sub>
-▲ In the rendered deck, press <kbd>S</kbd> to switch to presenter mode: the current page enlarged plus a timer on the left; the per-page speaker script and cues, a next-page preview, and the full talk outline on the right. Chinese on guizang Swiss, English on Neo-Grid — both produced natively downstream. Humanize provides the <code>speaker_intent</code> source; the downstream skill builds the console.
+▲ In the rendered deck, press <kbd>S</kbd> to switch to presenter mode: the current page enlarged plus a timer on the left; the per-page speaker script and cues, a next-page preview, and the full talk outline on the right. Humanize now also writes a baseline <code>presenter-shell.html</code> from <code>slide_plan.json</code> + <code>speaker_intent.md</code>; when the downstream deck is ready, guizang / Neo-Grid style native consoles can still provide the fuller stage view.
 </sub></p>
 
 ## What it solves
@@ -167,7 +167,7 @@ Since v0.7 Humanize has its own screenshot-able working draft (not a deck): the 
 
 ## Presenter mode
 
-What ships is a talk you can take on stage, not a stack of static pages: per-page speaker script, state transitions, HTML beauty kept. **This step is produced natively by the downstream skill** — Humanize emits `speaker_intent.md` (the semantic source for the script) and, in the brief, directs downstream to build the presenter shell / speaker notes / deploy. Humanize owns "what each page says"; the template owns "how the presenter renders."
+What ships is a talk you can take on stage, not a stack of static pages: per-page speaker script, state transitions, HTML beauty kept. Humanize now writes `outputs/presenter/presenter-shell.html` directly from `slide_plan.json` + `speaker_intent.md`, so you still get a usable presenter shell before any downstream deck exists. Downstream template skills can still provide richer native presenter consoles once the final deck is rendered; Humanize owns "what each page says", the template owns "how the final stage renders."
 
 ## Advanced usage
 
@@ -253,7 +253,7 @@ The Humanize brief is plain markdown + JSON, so it's **broadly compatible with a
 | `beautiful-html-templates` (English) | full chain | brief exit + a full checkup on a real Neo-Grid deck on 2026-06-13 (found a badge covering 9 pages → fixed → re-check passed, [log](docs/showcase/hermes-agent-mastery/en/qa/presentation-checkup-2026-06-13.md)) |
 | `frontend-slides` (English) | full chain | brief exit + a full checkup on a real 5-page deck on 2026-06-17 (scan pass + negative control + screenshot review, [log](docs/showcase/v0.9-frontend-slides/qa/presentation-checkup-2026-06-17.md)) |
 
-English and Chinese are the same tier: brief exit works + checkup verified on real output + image generation wired in. The only difference is the count of renderer-specific failure-mode rules — guizang has accumulated 7 Style A/B rules; the English pair currently lean on the renderer-agnostic rules (placeholder residue, etc.) plus screenshot review, with specific rules still accruing from real output. This is a measurement table, not a promise table: every cell is backed by real rendered output, matching `support_level` in `registry/renderer_registry.json`.
+English and Chinese are now both `full`: brief exit works + checkup verified on real output + image generation wired in + renderer-specific failure modes recorded. Guizang has 7 Style A/B rules; the English pair now add 5 static rules for horizontal overflow, low contrast, hyphenation noise, missing font contracts, and missing image alt text. Screenshot review remains part of the process for occlusion, clipping, and visual alignment failures that static HTML cannot prove.
 
 ## Why AST
 

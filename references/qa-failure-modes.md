@@ -17,8 +17,8 @@
   - **guizang**：Style A 和 Style B 都适用，特别注明的除外
   - **guizang-style-a**：仅 Style A
   - **guizang-style-b**：仅 Style B（Swiss 锁定）
-  - **frontend-slides**：暂无专属规则（原因见下文英文渲染器小节）
-  - **beautiful-html-templates**：暂无专属规则（原因见下文英文渲染器小节）
+  - **frontend-slides**：英文渲染器专属规则，覆盖溢出、对比度、断词、字体契约、图片 alt
+  - **beautiful-html-templates**：同一组英文渲染器专属规则，作用于它的原生 HTML deck
 
 ## 第一层：渲染器无关的失败类
 
@@ -30,11 +30,14 @@
 | 动画降级 | 整个 deck 一动不动，讲述节奏塌掉 | `low-power-default`、`data-anim-thin` |
 | 布局契约违约 | 页数或布局和大纲对不上，有的页该有的内容没出现 | `swiss-sxx-count-mismatch`、`swiss-sxx-invented-id`、`swiss-low-diversity` |
 | 背景层缺失 | Hero 页背景一片空白，页面像没做完 | `webgl-canvas-missing` |
+| 英文渲染器契约违约 | 英文 deck 出现横向滚动、低对比、英文单词被噪声式断开、字体退回系统默认、图片不可访问 | `english-horizontal-overflow`、`english-low-contrast`、`english-hyphenation-noise`、`english-font-contract-missing`、`english-image-alt-missing` |
 | AI 草稿残留 | 页面上出现「作为AI」「首先我需要」这类模型脚手架文字 | brief 模式检查 `visible_slide_text_has_no_ai_draft_markers`（`write_qa` 里的 `BANNED_VISIBLE_PATTERNS`），在渲染之前就跑在 slide plan 上 |
 
 ### 静态扫描还测不出的失败类
 
-文字溢出、对比度过低、字重降级、视口截断、图文错位、徽章或装饰元素遮挡正文，这些都是真实的渲染失败类，但它们需要真实浏览器渲染才能检测，`scripts/humanize_ppt_v2.py` 的静态扫描今天测不出来。按目录纪律，它们不被列为模式。在 Humanize 有真实检测手段之前，这些靠下游的视觉检查清单（`references/guizang-material-qa.md`）和人工截图复核兜底。
+字重降级、真实浏览器布局导致的视口截断、图文错位、徽章或装饰元素遮挡正文，这些都是真实的渲染失败类，但它们需要真实浏览器渲染才能检测，`scripts/humanize_ppt_v2.py` 的静态扫描今天测不出来。按目录纪律，它们不被列为模式。在 Humanize 有真实检测手段之前，这些靠下游的视觉检查清单（`references/guizang-material-qa.md`）和人工截图复核兜底。
+
+v0.9.1 新增的英文渲染器规则只覆盖静态扫描能可靠判断的子集：显式横向溢出设置、明显低对比十六进制配色、强制断词/噪声换行 CSS、字体契约缺失、图片 alt 缺失。它们不替代截图复核。
 
 真实案例：2026-06-13 英文 deck（`docs/showcase/hermes-agent-mastery/en/ppt/`）的体检中，静态扫描通过，而截图逐页复核发现页码徽章遮挡 9 页正文，观众会看到「uires confirmation.」这样的断句。修复与复检记录见 `docs/showcase/hermes-agent-mastery/en/qa/presentation-checkup-2026-06-13.md`。截图复核是体检方法论的一半，今天还没自动化。
 
@@ -120,14 +123,64 @@
 
 **修复指令方向：** 让 Swiss 布局多样化，尽量每页换一个注册 Sxx，下限是 60% 的不重复率。
 
-## 英文渲染器：专属规则为什么还空着
+### `english-horizontal-overflow`（frontend-slides、beautiful-html-templates）
 
-v0.8.0 实测状态（对应 `registry/renderer_registry.json`）：
+**症状：** 渲染 HTML 允许横向滚动（`overflow-x:auto/scroll/visible`），或设置超过 `100vw` 的宽度。
 
-- `beautiful-html-templates` 标为 `"support_level": "brief+qa-verified"`：brief 出口可用，且 2026-06-13 在它的真实 Neo-Grid deck 上完整跑通了演讲体检（扫描、发现、修复、复检，逐轮记录见 `docs/showcase/hermes-agent-mastery/en/qa/presentation-checkup-2026-06-13.md`）。但 `FAILURE_MODES` 里仍然没有 beautiful 专属规则，目前对它生效的只有渲染器无关层的 `placeholder-residue`，所以不标 `full`。
-- `frontend-slides` 标为 `"support_level": "brief-only"`：brief 出口可用（production prompt 正常产出、可消费），但体检还没在任何一份 frontend-slides 的真实渲染产物上跑过，也没有它的专属规则。
+**观众视角会看到什么：** 英文长词或页面本身可能横向漂移、裁切，presenter 或截图时尤其明显。
 
-专属规则小节会一直空着，直到对应渲染器的真实产物在体检里跑出可验证的发现。宁空不摆拍，和 README showcase 同一条班规。
+**检测：** `check_english_horizontal_overflow`。命中上述 CSS 即 fail。
+
+**修复指令方向：** 锁住横向溢出，用布局、字号或安全换行解决长词，而不是扩大画布。
+
+### `english-low-contrast`（frontend-slides、beautiful-html-templates）
+
+**症状：** 同一 CSS 规则里出现前景/背景十六进制颜色，且对比度低于 3.0:1。
+
+**观众视角会看到什么：** 英文正文在投影或录屏里发灰，看不清。
+
+**检测：** `check_english_low_contrast`。
+
+**修复指令方向：** 提高文字和背景对比度。
+
+### `english-hyphenation-noise`（frontend-slides、beautiful-html-templates，软性警告）
+
+**症状：** CSS 使用 `hyphens:auto`、`word-break:break-all` 或 `overflow-wrap:anywhere`。
+
+**观众视角会看到什么：** 英文技术词被切成噪声片段，页面像被机器强行压缩。
+
+**检测：** `check_english_hyphenation_noise`。
+
+**修复指令方向：** 优先手工换行、压缩文案或用 `overflow-wrap:break-word` 兜底。
+
+### `english-font-contract-missing`（frontend-slides、beautiful-html-templates）
+
+**症状：** 没有 web font / `@font-face`，也没有明确的特色字体栈。
+
+**观众视角会看到什么：** deck 退回系统默认 serif/sans，失去原生渲染器风格。
+
+**检测：** `check_english_font_contract_missing`。
+
+**修复指令方向：** 补回渲染器预期的字体加载或明确的本地字体契约。
+
+### `english-image-alt-missing`（frontend-slides、beautiful-html-templates）
+
+**症状：** `<img>` 缺少非空 `alt`。
+
+**观众视角会看到什么：** 视觉素材不可访问，也更难审计。
+
+**检测：** `check_english_image_alt_missing`。
+
+**修复指令方向：** 给每张图片补简短、准确的 alt 文本。
+
+## 英文渲染器：full 支持状态
+
+v0.9.1 实测状态（对应 `registry/renderer_registry.json`）：
+
+- `beautiful-html-templates` 标为 `"support_level": "full"`：brief 出口可用，2026-06-13 在真实 Neo-Grid deck 上完整跑通演讲体检，并已补 5 条英文渲染器专属静态规则。
+- `frontend-slides` 标为 `"support_level": "full"`：brief 出口可用，2026-06-17 在真实 frontend-slides deck 上完整跑通演讲体检，负向对照证明体检不是空转，并已补同一组 5 条英文渲染器专属静态规则。
+
+这些规则仍然保守：只编码 Humanize 能静态、确定性扫描的部分；遮挡、裁切、视觉错位仍然需要截图复核。
 
 ## 体检怎么用这份目录
 
