@@ -137,6 +137,8 @@ Humanize PPT fills that gap. It doesn't take over the template's "renders beauti
 
 The boundary is clear: **the full beautiful deck is rendered natively by the downstream template skill**; Humanize doesn't copy its template or touch the rendered HTML. Humanize directs the talk; the template paints each page.
 
+If you see `humanize-ppt-team` inside WorkBuddy, treat it as a multi-agent packaging of the same core: AST outline, media decisions, renderer hand-off, presenter mode, and checkup split across specialist agents. It is not a separate monolithic renderer. Chinese positioning note: [WorkBuddy Team vs Humanize PPT](docs/workbuddy-team-vs-humanize-ppt.md).
+
 ## Presentation checkup
 
 First, what a failed page is: one with only a few words that never finishes its point; or one that doesn't complete the audience state transfer it promised, so the listener leaves it in the same state they arrived. Such pages shouldn't exist. HTML's variety is seductive — it's easy to ship a deck where a page says nothing. That's made for looking at, not presenting.

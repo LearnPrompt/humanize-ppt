@@ -1,6 +1,23 @@
 ---
 name: humanize-ppt
-description: A presentation system for agent-made PPTs — born for the talk, not just the template. It turns raw material into an AST (audience-state-transfer) outline where every page turn moves the audience forward, decides per-page visual enhancement (real images via baoyu-image-gen on the local Codex CLI, SVG diagrams, Remotion video), then runs a capped 3-round presentation checkup (演讲体检) on the rendered HTML, comparing each page against its outline page and writing fix prompts. The beautiful deck is rendered natively by a downstream template skill (broadly compatible with any HTML-PPT skill; verified: guizang-ppt-skill for Chinese, frontend-slides / beautiful-html-templates for English) — Humanize orchestrates the presentation, the template skill paints the slides. Use before generating PPT/HTML slides from raw material, and after rendering when the user says things like "帮我盯一下渲染出来的 PPT 有没有翻车", "PPT 渲染质检", "给这份 deck 做演讲体检", or "告诉我哪几页只能看不能讲". If all you want is one beautiful template page with no outline and no checkup, a rendering skill alone is enough; bring in Humanize when you need the talk's narrative before rendering and the checkup after.
+description: >-
+  A presentation system for agent-made PPTs — born for the talk, not just the
+  template. It turns raw material into an AST (audience-state-transfer) outline
+  where every page turn moves the audience forward, decides per-page visual
+  enhancement (real images via baoyu-image-gen on the local Codex CLI, SVG
+  diagrams, Remotion video), then runs a capped 3-round presentation checkup
+  (演讲体检) on the rendered HTML, comparing each page against its outline page
+  and writing fix prompts. The beautiful deck is rendered natively by a
+  downstream template skill (broadly compatible with any HTML-PPT skill;
+  verified: guizang-ppt-skill for Chinese, frontend-slides /
+  beautiful-html-templates for English) — Humanize orchestrates the
+  presentation, the template skill paints the slides. Use before generating
+  PPT/HTML slides from raw material, and after rendering when the user says
+  things like "帮我盯一下渲染出来的 PPT 有没有翻车", "PPT 渲染质检",
+  "给这份 deck 做演讲体检", or "告诉我哪几页只能看不能讲". If all you want is
+  one beautiful template page with no outline and no checkup, a rendering skill
+  alone is enough; bring in Humanize when you need the talk's narrative before
+  rendering and the checkup after.
 version: 1.0.0
 author: LearnPrompt
 license: MIT
