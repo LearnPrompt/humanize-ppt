@@ -30,10 +30,14 @@
         "video_slots.json",
         "style_brief.md"
       ],
-      "outputs": [
+      "humanize_outputs": [
         "guizang-production-prompt.md"
       ],
-      "v0_6_4_note": "Humanize does not write outputs/guizang/index.html. The downstream guizang-ppt-skill renders natively. Post-render QA is run via --qa-from on the downstream's HTML.",
+      "outputs": [
+        "outputs/guizang-rendered/index.html",
+        "outputs/guizang-rendered/render_manifest.json"
+      ],
+      "v0_6_4_note": "Humanize writes guizang-production-prompt.md (the brief). The downstream guizang-ppt-skill reads it and renders natively to outputs/guizang-rendered/. Post-render QA is run via --qa-from on the downstream's HTML.",
       "local_skill_paths": [
         "~/.agents/skills/guizang-ppt-skill",
         "~/.hermes/skills/guizang-ppt-skill"
@@ -63,10 +67,14 @@
         "video_slots.json",
         "style_brief.md"
       ],
-      "outputs": [
+      "humanize_outputs": [
         "beautiful-html-templates-production-prompt.md"
       ],
-      "v0_6_4_note": "Humanize does not write outputs/beautiful/previews/* or outputs/beautiful/selected/*. The downstream beautiful-html-templates renders natively.",
+      "outputs": [
+        "outputs/beautiful-rendered/index.html",
+        "outputs/beautiful-rendered/render_manifest.json"
+      ],
+      "v0_6_4_note": "Humanize writes beautiful-html-templates-production-prompt.md (the brief). The downstream beautiful-html-templates reads it and renders natively to outputs/beautiful-rendered/. Post-render QA is run via --qa-from on the downstream's HTML.",
       "local_skill_paths": [
         "~/.agents/skills/beautiful-html-templates",
         "~/.hermes/skills/beautiful-html-templates"
@@ -129,10 +137,13 @@
         "style_brief.md",
         "source.pptx"
       ],
-      "outputs": [
+      "humanize_outputs": [
         "frontend-slides-production-prompt.md"
       ],
-      "v0_6_4_note": "Humanize does not write outputs/frontend-slides/*. The downstream frontend-slides renders natively.",
+      "outputs": [
+        "outputs/frontend-slides-rendered/index.html"
+      ],
+      "v0_6_4_note": "Humanize writes frontend-slides-production-prompt.md (the brief). The downstream frontend-slides reads it and renders natively to outputs/frontend-slides-rendered/. Post-render QA is run via --qa-from on the downstream's HTML.",
       "local_skill_paths": [
         "~/.agents/skills/frontend-slides",
         "~/.hermes/skills/frontend-slides"

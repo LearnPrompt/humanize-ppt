@@ -1225,21 +1225,48 @@ def write_router_plan(out, title, source_path, primary, routes, registry):
 def command_text(route, out):
     rid = route["id"]
     output_map = {
-        "beautiful-html-templates": "beautiful",
+        "guizang": "guizang-rendered",
+        "beautiful-html-templates": "beautiful-rendered",
+        "frontend-slides": "frontend-slides-rendered",
         "presenter-adapter": "presenter",
         "export-adapter": "export",
     }
     output_dir = f"outputs/{output_map.get(rid, rid)}"
     if rid == "qa":
         output_dir = "outputs/qa"
+
+    # For downstream renderer agents, the primary input is the production
+    # prompt that Humanize already wrote — not the raw AST files directly.
+    if rid == "guizang":
+        preamble = (
+            f"You are the downstream rendering agent for this deck.\n"
+            f"Your entry point is the production prompt Humanize already wrote:\n"
+            f"  {out}/guizang-production-prompt.md\n\n"
+            f"Read that file first. It tells you which skill to load, which style/theme\n"
+            f"to use, and where to write your output. The AST files below are supporting\n"
+            f"context — the production prompt is the authoritative contract.\n"
+        )
+    elif rid in ("frontend-slides", "beautiful-html-templates"):
+        prompt_file = f"{rid}-production-prompt.md"
+        preamble = (
+            f"You are the downstream rendering agent for this deck.\n"
+            f"Your entry point is the production prompt Humanize already wrote:\n"
+            f"  {out}/{prompt_file}\n\n"
+            f"Read that file first. The AST files below are supporting context.\n"
+        )
+    else:
+        preamble = (
+            f"You are the {route.get('display_name', rid)} specialist agent.\n"
+            f"Load skill: {route.get('skill_name', rid)}\n"
+        )
+
     read_list = "\n".join(f"- {name}" for name in route.get("expected_inputs", [])) or "- deck_brief.md\n- slide_plan.json"
     return f"""# {route.get('display_name', rid)} Command
 
-You are the {route.get('display_name', rid)} specialist agent.
-Load skill: {route.get('skill_name', rid)}
+{preamble}
 Input directory: {out}
 
-Read:
+Supporting files:
 {read_list}
 
 Task:
