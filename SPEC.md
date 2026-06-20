@@ -6,7 +6,7 @@
 > of truth is `scripts/humanize_ppt_v2.py` (stable entrypoint:
 > `scripts/humanize_ppt.py`).
 >
-> Version: 0.9 · License: MIT · Author: LearnPrompt
+> Version: 1.0 · License: MIT · Author: LearnPrompt
 
 ## 1. Purpose & boundary
 

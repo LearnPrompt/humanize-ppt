@@ -100,7 +100,7 @@ def test_format_per_page_media_block_helper_deduped():
     be constructed. Other brief writers must call _format_per_page_media_block
     instead of inlining the same loop."""
     import re
-    src = Path("/Users/carl/Downloads/humanize-ppt/scripts/humanize_ppt_v2.py").read_text(encoding="utf-8")
+    src = (ROOT / "scripts" / "humanize_ppt_v2.py").read_text(encoding="utf-8")
     # Find the helper definition block, then strip it, then count any
     # remaining inline `media_lines = []` declarations.
     helper_start = src.find("def _format_per_page_media_block")

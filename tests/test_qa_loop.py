@@ -235,6 +235,42 @@ def test_qa_loop_runs_renderer_agnostic_checks_for_english_renderer(tmp_path):
     assert "renderer: beautiful-html-templates" in fix
 
 
+def test_qa_loop_runs_english_specific_failure_modes(tmp_path):
+    html = tmp_path / "bad-english.html"
+    html.write_text(
+        """<!doctype html><html><head><style>
+        body { overflow-x: auto; font-family: serif; color: #eeeeee; background: #ffffff; }
+        .term { hyphens: auto; word-break: break-all; }
+        </style></head><body><section class="slide"><img src="hero.png"><p class="term">InternationalizationPlatformArchitecture</p></section></body></html>""",
+        encoding="utf-8",
+    )
+    out = tmp_path / "run"
+
+    rc = hp.run_qa_mode(_args(html, out, renderer="frontend-slides"))
+
+    assert rc == 0
+    report = (out / "outputs" / "qa" / "qa_report.md").read_text(encoding="utf-8")
+    assert "english-horizontal-overflow" in report
+    assert "english-low-contrast" in report
+    assert "english-hyphenation-noise" in report
+    assert "english-font-contract-missing" in report
+    assert "english-image-alt-missing" in report
+
+
+def test_english_specific_modes_are_registered_for_both_english_renderers():
+    expected = {
+        "english-horizontal-overflow",
+        "english-low-contrast",
+        "english-hyphenation-noise",
+        "english-font-contract-missing",
+        "english-image-alt-missing",
+    }
+
+    for renderer in ("frontend-slides", "beautiful-html-templates"):
+        modes = hp.failure_modes_for(renderer)
+        assert expected.issubset(modes)
+
+
 EN_SHOWCASE_DECK = ROOT / "docs" / "showcase" / "hermes-agent-mastery" / "en" / "ppt" / "index.html"
 
 
@@ -244,7 +280,7 @@ def test_english_showcase_deck_passes_presentation_checkup(tmp_path):
     docs/showcase/hermes-agent-mastery/en/ppt/index.html (Neo-Grid Bold,
     rendered natively by beautiful-html-templates) went through a real
     --qa-from run and passed round 1. registry/renderer_registry.json
-    records support_level brief+qa-verified for beautiful-html-templates
+    records support_level full for beautiful-html-templates
     based on this deck; if this test fails, downgrade that support_level.
     """
     if not EN_SHOWCASE_DECK.exists():
@@ -268,7 +304,7 @@ def test_frontend_slides_showcase_deck_passes_presentation_checkup(tmp_path):
     docs/showcase/v0.9-frontend-slides/ppt/index.html (5-slide single-file
     zero-dep deck, rendered natively by frontend-slides) went through a real
     --qa-from run and passed round 1. registry/renderer_registry.json records
-    support_level brief+qa-verified for frontend-slides based on this deck;
+    support_level full for frontend-slides based on this deck;
     if this test fails, downgrade that support_level.
     """
     if not FRONTEND_SHOWCASE_DECK.exists():

@@ -2,9 +2,11 @@ import json
 import re
 from pathlib import Path
 
+import yaml
+
 
 ROOT = Path(__file__).resolve().parents[1]
-EXPECTED_VERSION = "0.9.0"
+EXPECTED_VERSION = "1.0.0"
 
 
 def test_release_version_metadata_is_consistent():
@@ -12,6 +14,20 @@ def test_release_version_metadata_is_consistent():
     script = (ROOT / "scripts" / "humanize_ppt_v2.py").read_text(encoding="utf-8")
     registry = json.loads((ROOT / "registry" / "renderer_registry.json").read_text(encoding="utf-8"))
 
-    assert re.search(r"^version: 0\.9\.0$", skill, re.MULTILINE)
+    assert re.search(r"^version: 1\.0\.0$", skill, re.MULTILINE)
     assert f'VERSION = "{EXPECTED_VERSION}"' in script
     assert registry["version"] == EXPECTED_VERSION
+
+
+def test_skill_frontmatter_is_valid_yaml():
+    skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+    match = re.match(r"^---\n(.*?)\n---\n", skill, flags=re.DOTALL)
+    assert match, "SKILL.md must start with YAML frontmatter"
+
+    meta = yaml.safe_load(match.group(1))
+
+    assert meta["name"] == "humanize-ppt"
+    assert meta["version"] == EXPECTED_VERSION
+    assert isinstance(meta["description"], str)
+    assert "verified: guizang-ppt-skill" in meta["description"]
+    assert "frontend-slides" in meta["requires-skills"]

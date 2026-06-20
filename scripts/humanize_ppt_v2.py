@@ -13,7 +13,7 @@ from pathlib import Path
 
 SKILL_ROOT = Path(__file__).resolve().parents[1]
 REGISTRY_PATH = SKILL_ROOT / "registry" / "renderer_registry.json"
-VERSION = "0.9.0"
+VERSION = "1.0.0"
 BEAUTIFUL_REPO_URL = "https://github.com/zarazhangrui/beautiful-html-templates.git"
 DEFAULT_ZH_PREVIEW_COUNT = 3
 DEFAULT_EN_PREVIEW_COUNT = 5
@@ -1043,13 +1043,113 @@ def relative_href(from_dir, target):
     return os.path.relpath(Path(target).resolve(), Path(from_dir).resolve()).replace(os.sep, "/")
 
 
+def write_presenter_shell(out, title, plan, deck_path=None):
+    target = out / "outputs" / "presenter"
+    target.mkdir(parents=True, exist_ok=True)
+    deck = Path(deck_path).expanduser() if deck_path else None
+    deck_exists = bool(deck and deck.exists())
+    deck_href = relative_href(target, deck) if deck_exists else ""
+    safe_plan = plan or [{"slide_id": "S01", "title": title, "message": title, "speaker_intent": "Introduce the deck."}]
+    notes = [
+        {
+            "slide_id": slide.get("slide_id", f"S{idx:02d}"),
+            "title": slide.get("title") or title,
+            "message": slide.get("message") or "",
+            "script": speaker_script(slide),
+        }
+        for idx, slide in enumerate(safe_plan, 1)
+    ]
+    notes_json = json.dumps(notes, ensure_ascii=False)
+    deck_panel = (
+        f'<iframe id="deckFrame" src="{html.escape(deck_href)}?slide=1" title="Rendered deck preview"></iframe>'
+        if deck_exists else
+        '<div class="standalone-card"><div class="slide-id" id="stageSlideId"></div><h2 id="stageTitle"></h2><p id="stageMessage"></p></div>'
+    )
+    doc = f"""<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{html.escape(title)} · Presenter Shell</title><style>
+:root{{color-scheme:dark;--bg:#0d1117;--panel:#161b22;--panel2:#0f1724;--line:rgba(255,255,255,.12);--text:#f0f6fc;--muted:#8b949e;--accent:#58a6ff;--hot:#f2cc60}}
+*{{box-sizing:border-box}}body{{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif;height:100vh;overflow:hidden}}
+main{{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(360px,.95fr);gap:0;height:100vh}}
+.stage{{background:linear-gradient(135deg,#05070b,#111827);display:grid;place-items:center;padding:22px;border-right:1px solid var(--line)}}
+iframe{{width:100%;aspect-ratio:16/9;border:0;border-radius:14px;background:#000;box-shadow:0 24px 80px rgba(0,0,0,.5)}}
+.standalone-card{{width:min(82vw,900px);aspect-ratio:16/9;border:1px solid var(--line);border-radius:18px;background:radial-gradient(circle at 80% 20%,rgba(88,166,255,.18),transparent 34%),var(--panel);display:flex;flex-direction:column;justify-content:flex-end;padding:44px;box-shadow:0 24px 80px rgba(0,0,0,.45)}}
+.slide-id,.kicker{{font:700 12px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.18em;text-transform:uppercase;color:var(--accent)}}h1,h2,p{{margin:0}}h1{{font-size:28px;line-height:1.15}}h2{{font-size:clamp(34px,5vw,74px);line-height:1.02;max-width:12ch}}.standalone-card p{{margin-top:18px;font-size:20px;line-height:1.5;color:var(--muted);max-width:56ch}}
+aside{{display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;gap:16px;padding:22px;background:var(--panel)}}
+.top{{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}}.timer{{font:800 42px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--hot)}}
+.cards{{display:grid;grid-template-columns:1fr 1fr;gap:12px}}.card{{border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--panel2);min-width:0}}.label{{font:700 11px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}}strong{{font-size:18px;line-height:1.35}}
+.script{{overflow:auto;white-space:pre-wrap;font-size:21px;line-height:1.55;border:1px solid var(--line);border-radius:12px;padding:18px;background:#0b1220}}
+.outline{{display:grid;gap:6px;max-height:18vh;overflow:auto}}.outline button{{text-align:left;border:0;border-radius:8px;padding:8px 10px;background:transparent;color:var(--muted);cursor:pointer}}.outline button.active{{background:rgba(88,166,255,.14);color:var(--text)}}
+.nav{{display:flex;align-items:center;gap:10px;flex-wrap:wrap}}button{{border:1px solid var(--line);border-radius:10px;padding:10px 14px;background:#1f6feb;color:white;font-weight:800;cursor:pointer}}button.secondary{{background:transparent;color:var(--text)}}.hint{{color:var(--muted);font-size:12px;margin-left:auto}}
+body.script-mode main{{grid-template-columns:0 1fr}}body.script-mode .stage{{display:none}}body.script-mode aside{{padding:32px 11vw}}body.script-mode .script{{font-size:30px}}
+@media(max-width:900px){{main{{grid-template-columns:1fr;grid-template-rows:42vh 58vh}}aside{{border-top:1px solid var(--line)}}.timer{{font-size:30px}}}}
+</style></head><body><main><section class="stage">{deck_panel}</section><aside><div class="top"><div><div class="kicker">Humanize PPT · Presenter Shell</div><h1>{html.escape(title)}</h1></div><div class="timer" id="timer">00:00</div></div><div class="cards"><div class="card"><div class="label">CURRENT</div><strong id="current"></strong></div><div class="card"><div class="label">NEXT</div><strong id="next"></strong></div></div><div class="script" id="script"></div><div><div class="outline" id="outline"></div><div class="nav"><button id="prev" class="secondary">←</button><button id="nextBtn">→</button><button id="toggle" class="secondary">S</button><button id="reset" class="secondary">Reset</button><span id="counter"></span><span class="hint">Shortcuts: S / ← / →</span></div></div></aside></main><script>
+const notes = {notes_json};
+let idx = 0;
+let start = Date.now();
+const deckFrame = document.getElementById('deckFrame');
+function two(n){{ return String(n).padStart(2,'0'); }}
+function tick(){{ const s = Math.floor((Date.now() - start) / 1000); document.getElementById('timer').textContent = `${{two(Math.floor(s / 60))}}:${{two(s % 60)}}`; }}
+setInterval(tick, 500); tick();
+function sendDeck(){{ if(deckFrame && deckFrame.contentWindow) deckFrame.contentWindow.postMessage({{type:'presenter-goto', index:idx}}, '*'); }}
+function itemLabel(item){{ return item ? `${{item.slide_id}} · ${{item.title}}` : 'END'; }}
+function renderOutline(){{ const root = document.getElementById('outline'); root.innerHTML = ''; notes.forEach((n,i)=>{{ const b=document.createElement('button'); b.textContent=itemLabel(n); b.className=i===idx?'active':''; b.onclick=()=>go(i); root.appendChild(b); }}); }}
+function render(){{
+  const item = notes[idx] || notes[0];
+  const next = notes[idx + 1];
+  document.getElementById('current').textContent = itemLabel(item);
+  document.getElementById('next').textContent = itemLabel(next);
+  document.getElementById('script').textContent = item ? item.script : '';
+  document.getElementById('counter').textContent = `${{idx + 1}} / ${{notes.length}}`;
+  const sid = document.getElementById('stageSlideId'); if(sid) sid.textContent = item ? item.slide_id : '';
+  const st = document.getElementById('stageTitle'); if(st) st.textContent = item ? item.title : '';
+  const sm = document.getElementById('stageMessage'); if(sm) sm.textContent = item ? item.message : '';
+  renderOutline(); sendDeck();
+}}
+function go(n){{ idx = Math.max(0, Math.min(notes.length - 1, n)); render(); }}
+document.getElementById('prev').onclick = () => go(idx - 1);
+document.getElementById('nextBtn').onclick = () => go(idx + 1);
+document.getElementById('toggle').onclick = () => document.body.classList.toggle('script-mode');
+document.getElementById('reset').onclick = () => {{ start = Date.now(); tick(); }};
+document.addEventListener('keydown', e => {{ if(e.key === 'ArrowRight') go(idx + 1); if(e.key === 'ArrowLeft') go(idx - 1); if(e.key.toLowerCase() === 's') document.body.classList.toggle('script-mode'); }});
+if(deckFrame) deckFrame.addEventListener('load', sendDeck);
+render();
+</script></body></html>"""
+    presenter_shell = target / "presenter-shell.html"
+    presenter_shell.write_text(doc, encoding="utf-8")
+    manifest = {
+        "version": VERSION,
+        "generated_at": now_iso(),
+        "title": title,
+        "deck": str(deck) if deck_exists else None,
+        "presenter_shell": str(presenter_shell),
+        "slide_count": len(safe_plan),
+        "notes": notes,
+        "standalone": not deck_exists,
+    }
+    (target / "presenter_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    (target / "render_report.md").write_text(
+        f"# Presenter Shell Report\n\n- status: rendered\n- mode: {'deck-linked' if deck_exists else 'standalone'}\n- presenter_shell: {presenter_shell}\n- slides: {len(safe_plan)}\n",
+        encoding="utf-8",
+    )
+    return {
+        "status": "rendered",
+        "presenter_shell": str(presenter_shell),
+        "manifest": str(target / "presenter_manifest.json"),
+        "report": str(target / "render_report.md"),
+        "standalone": not deck_exists,
+    }
+
+
 def write_presenter_adapter(out, title, plan, deck_path):
     deck = Path(deck_path).expanduser() if deck_path else None
     if not deck or not deck.exists():
-        return {"status": "missing-deck", "message": f"deck not found: {deck_path}"}
+        shell_result = write_presenter_shell(out, title, plan, None)
+        shell_result["presenter"] = shell_result["presenter_shell"]
+        shell_result["message"] = f"standalone presenter shell rendered without deck: {deck_path}"
+        return shell_result
 
     target = out / "outputs" / "presenter"
     target.mkdir(parents=True, exist_ok=True)
+    shell_result = write_presenter_shell(out, title, plan, deck)
     deck_href = relative_href(target, deck)
     safe_plan = plan or [{"slide_id": "S01", "title": title, "message": title, "speaker_intent": "Introduce the deck."}]
     notes = [
@@ -1112,12 +1212,13 @@ render();
         "title": title,
         "deck": str(deck),
         "presenter": str(presenter),
+        "presenter_shell": shell_result.get("presenter_shell"),
         "slide_count": len(safe_plan),
         "notes": notes,
     }
     (target / "presenter_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
-    (target / "render_report.md").write_text(f"# Presenter Adapter Report\n\n- status: rendered\n- deck: {deck}\n- presenter: {presenter}\n- slides: {len(safe_plan)}\n", encoding="utf-8")
-    return {"status": "rendered", "presenter": str(presenter), "manifest": str(target / "presenter_manifest.json"), "report": str(target / "render_report.md")}
+    (target / "render_report.md").write_text(f"# Presenter Adapter Report\n\n- status: rendered\n- deck: {deck}\n- presenter: {presenter}\n- presenter_shell: {shell_result.get('presenter_shell')}\n- slides: {len(safe_plan)}\n", encoding="utf-8")
+    return {"status": "rendered", "presenter": str(presenter), "presenter_shell": shell_result.get("presenter_shell"), "manifest": str(target / "presenter_manifest.json"), "report": str(target / "render_report.md")}
 
 
 def export_script_text():
@@ -1225,21 +1326,48 @@ def write_router_plan(out, title, source_path, primary, routes, registry):
 def command_text(route, out):
     rid = route["id"]
     output_map = {
-        "beautiful-html-templates": "beautiful",
+        "guizang": "guizang-rendered",
+        "beautiful-html-templates": "beautiful-rendered",
+        "frontend-slides": "frontend-slides-rendered",
         "presenter-adapter": "presenter",
         "export-adapter": "export",
     }
     output_dir = f"outputs/{output_map.get(rid, rid)}"
     if rid == "qa":
         output_dir = "outputs/qa"
+
+    # For downstream renderer agents, the primary input is the production
+    # prompt that Humanize already wrote — not the raw AST files directly.
+    if rid == "guizang":
+        preamble = (
+            f"You are the downstream rendering agent for this deck.\n"
+            f"Your entry point is the production prompt Humanize already wrote:\n"
+            f"  {out}/guizang-production-prompt.md\n\n"
+            f"Read that file first. It tells you which skill to load, which style/theme\n"
+            f"to use, and where to write your output. The AST files below are supporting\n"
+            f"context — the production prompt is the authoritative contract.\n"
+        )
+    elif rid in ("frontend-slides", "beautiful-html-templates"):
+        prompt_file = f"{rid}-production-prompt.md"
+        preamble = (
+            f"You are the downstream rendering agent for this deck.\n"
+            f"Your entry point is the production prompt Humanize already wrote:\n"
+            f"  {out}/{prompt_file}\n\n"
+            f"Read that file first. The AST files below are supporting context.\n"
+        )
+    else:
+        preamble = (
+            f"You are the {route.get('display_name', rid)} specialist agent.\n"
+            f"Load skill: {route.get('skill_name', rid)}\n"
+        )
+
     read_list = "\n".join(f"- {name}" for name in route.get("expected_inputs", [])) or "- deck_brief.md\n- slide_plan.json"
     return f"""# {route.get('display_name', rid)} Command
 
-You are the {route.get('display_name', rid)} specialist agent.
-Load skill: {route.get('skill_name', rid)}
+{preamble}
 Input directory: {out}
 
-Read:
+Supporting files:
 {read_list}
 
 Task:
@@ -1371,6 +1499,36 @@ FAILURE_MODES = {
         "description": "Fewer than 60% unique Sxx values for the deck length.",
         "check": "check_swiss_low_diversity",
     },
+    "english-horizontal-overflow": {
+        "scope": ["frontend-slides", "beautiful-html-templates"],
+        "severity_default": "fail",
+        "description": "English renderer output opts into horizontal scrolling or over-wide viewport units.",
+        "check": "check_english_horizontal_overflow",
+    },
+    "english-low-contrast": {
+        "scope": ["frontend-slides", "beautiful-html-templates"],
+        "severity_default": "fail",
+        "description": "An English slide rule sets foreground and background colors with insufficient contrast.",
+        "check": "check_english_low_contrast",
+    },
+    "english-hyphenation-noise": {
+        "scope": ["frontend-slides", "beautiful-html-templates"],
+        "severity_default": "warn",
+        "description": "English renderer output uses noisy forced hyphenation or break-all wrapping.",
+        "check": "check_english_hyphenation_noise",
+    },
+    "english-font-contract-missing": {
+        "scope": ["frontend-slides", "beautiful-html-templates"],
+        "severity_default": "fail",
+        "description": "English renderer output lacks a distinctive font contract and risks falling back to system serif/sans.",
+        "check": "check_english_font_contract_missing",
+    },
+    "english-image-alt-missing": {
+        "scope": ["frontend-slides", "beautiful-html-templates"],
+        "severity_default": "fail",
+        "description": "Rendered English deck contains image tags with missing or empty alt text.",
+        "check": "check_english_image_alt_missing",
+    },
 }
 
 
@@ -1499,6 +1657,145 @@ def check_swiss_low_diversity(html, plan, ctx):
     return findings
 
 
+def _strip_css_comments(css):
+    return re.sub(r"/\*.*?\*/", "", css, flags=re.DOTALL)
+
+
+def _hex_to_rgb(value):
+    value = value.strip().lstrip("#")
+    if len(value) == 3:
+        value = "".join(ch * 2 for ch in value)
+    if len(value) != 6:
+        return None
+    try:
+        return tuple(int(value[i:i + 2], 16) for i in (0, 2, 4))
+    except ValueError:
+        return None
+
+
+def _rel_luminance(rgb):
+    def channel(v):
+        v = v / 255.0
+        return v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
+    r, g, b = (channel(v) for v in rgb)
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def _contrast_ratio(fg, bg):
+    l1 = _rel_luminance(fg)
+    l2 = _rel_luminance(bg)
+    hi, lo = max(l1, l2), min(l1, l2)
+    return (hi + 0.05) / (lo + 0.05)
+
+
+def _css_rules(html):
+    css = "\n".join(re.findall(r"<style\b[^>]*>(.*?)</style>", html, flags=re.DOTALL | re.IGNORECASE))
+    css = _strip_css_comments(css)
+    return re.findall(r"([^{}]+)\{([^{}]+)\}", css)
+
+
+def _decl_value(decls, prop):
+    m = re.search(rf"(?:^|;)\s*{re.escape(prop)}\s*:\s*([^;]+)", decls, flags=re.IGNORECASE)
+    return m.group(1).strip() if m else ""
+
+
+def _first_hex(value):
+    m = re.search(r"#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?\b", value or "")
+    return m.group(0) if m else None
+
+
+def check_english_horizontal_overflow(html, plan, ctx):
+    findings = []
+    css = _strip_css_comments("\n".join(re.findall(r"<style\b[^>]*>(.*?)</style>", html, flags=re.DOTALL | re.IGNORECASE)))
+    compact = re.sub(r"\s+", " ", css)
+    if re.search(r"overflow-x\s*:\s*(auto|scroll|visible)\b", compact, flags=re.IGNORECASE):
+        findings.append(_finding(
+            "english-horizontal-overflow", "fail",
+            "CSS enables horizontal overflow via overflow-x:auto/scroll/visible; English decks must lock or fit the viewport.",
+        ))
+    for prop, value in re.findall(r"\b(width|min-width)\s*:\s*([0-9.]+)vw\b", compact, flags=re.IGNORECASE):
+        if float(value) > 100:
+            findings.append(_finding(
+                "english-horizontal-overflow", "fail",
+                f"CSS sets {prop}:{value}vw, which can create horizontal scroll.",
+            ))
+            break
+    return findings
+
+
+def check_english_low_contrast(html, plan, ctx):
+    findings = []
+    for selector, decls in _css_rules(html):
+        fg_hex = _first_hex(_decl_value(decls, "color"))
+        bg_hex = _first_hex(_decl_value(decls, "background-color") or _decl_value(decls, "background"))
+        if not fg_hex or not bg_hex:
+            continue
+        fg = _hex_to_rgb(fg_hex)
+        bg = _hex_to_rgb(bg_hex)
+        if not fg or not bg:
+            continue
+        ratio = _contrast_ratio(fg, bg)
+        if ratio < 3.0:
+            clean_selector = " ".join(selector.split())[:80]
+            findings.append(_finding(
+                "english-low-contrast", "fail",
+                f"Rule `{clean_selector}` has contrast ratio {ratio:.2f}:1 ({fg_hex} on {bg_hex}); minimum is 3.0:1 for slide text.",
+            ))
+            break
+    return findings
+
+
+def check_english_hyphenation_noise(html, plan, ctx):
+    findings = []
+    css = _strip_css_comments("\n".join(re.findall(r"<style\b[^>]*>(.*?)</style>", html, flags=re.DOTALL | re.IGNORECASE)))
+    noisy = []
+    if re.search(r"\bhyphens\s*:\s*auto\b", css, flags=re.IGNORECASE):
+        noisy.append("hyphens:auto")
+    if re.search(r"\bword-break\s*:\s*break-all\b", css, flags=re.IGNORECASE):
+        noisy.append("word-break:break-all")
+    if re.search(r"\boverflow-wrap\s*:\s*anywhere\b", css, flags=re.IGNORECASE):
+        noisy.append("overflow-wrap:anywhere")
+    if noisy:
+        findings.append(_finding(
+            "english-hyphenation-noise", "warn",
+            "Noisy English wrapping detected: " + ", ".join(noisy) + ". Prefer balanced manual line breaks or overflow-wrap:break-word for long technical terms.",
+        ))
+    return findings
+
+
+def check_english_font_contract_missing(html, plan, ctx):
+    findings = []
+    has_font_source = bool(re.search(r"fonts\.googleapis\.com|@font-face", html, flags=re.IGNORECASE))
+    families = re.findall(r"font-family\s*:\s*([^;}{]+)", html, flags=re.IGNORECASE)
+    joined = " ".join(families)
+    distinctive = re.search(
+        r"JetBrains|Space\s+Grotesk|Noto|IBM\s+Plex|Playfair|Source\s+Serif|Inter|Roboto|Manrope|Montserrat|Poppins|Satoshi",
+        joined,
+        flags=re.IGNORECASE,
+    )
+    if not has_font_source and not distinctive:
+        findings.append(_finding(
+            "english-font-contract-missing", "fail",
+            "No web font/@font-face or distinctive font-family contract found; output may fall back to generic system serif/sans.",
+        ))
+    return findings
+
+
+def check_english_image_alt_missing(html, plan, ctx):
+    findings = []
+    bad = []
+    for i, tag in enumerate(re.findall(r"<img\b[^>]*>", html, flags=re.IGNORECASE), 1):
+        alt = re.search(r"\balt\s*=\s*([\"'])(.*?)\1", tag, flags=re.IGNORECASE | re.DOTALL)
+        if not alt or not alt.group(2).strip():
+            bad.append(f"img#{i}")
+    if bad:
+        findings.append(_finding(
+            "english-image-alt-missing", "fail",
+            "Image tags missing non-empty alt text: " + ", ".join(bad) + ".",
+        ))
+    return findings
+
+
 _CHECK_FUNCTIONS = {
     "check_placeholder_residue": check_placeholder_residue,
     "check_low_power_default": check_low_power_default,
@@ -1507,6 +1804,11 @@ _CHECK_FUNCTIONS = {
     "check_swiss_sxx_count_mismatch": check_swiss_sxx_count_mismatch,
     "check_swiss_sxx_invented_id": check_swiss_sxx_invented_id,
     "check_swiss_low_diversity": check_swiss_low_diversity,
+    "check_english_horizontal_overflow": check_english_horizontal_overflow,
+    "check_english_low_contrast": check_english_low_contrast,
+    "check_english_hyphenation_noise": check_english_hyphenation_noise,
+    "check_english_font_contract_missing": check_english_font_contract_missing,
+    "check_english_image_alt_missing": check_english_image_alt_missing,
 }
 
 
@@ -2984,17 +3286,14 @@ def main():
     final_deck = None  # v0.6.4: Humanize does not own a rendered deck anymore.
 
     if args.presenter_adapter:
-        if final_deck and final_deck.exists():
-            presenter_result = write_presenter_adapter(out, args.title, plan, final_deck)
-        else:
-            presenter_result = {"status": "missing-deck", "message": "presenter adapter requires a rendered final deck; use --selected-template or a renderer that emits outputs/<renderer>/index.html."}
-            render_issues.append(f"presenter adapter: {presenter_result['status']} — {presenter_result['message']}")
+        presenter_result = write_presenter_adapter(out, args.title, plan, final_deck)
         if presenter_result.get("status") != "rendered" and not any("presenter adapter:" in issue for issue in render_issues):
             render_issues.append(f"presenter adapter: {presenter_result.get('status')} — {presenter_result.get('message')}")
         for route in router_plan["routes"]:
             if route["id"] == "presenter-adapter":
                 route["status"] = presenter_result.get("status")
                 route["actual_output"] = presenter_result.get("presenter")
+                route["presenter_shell"] = presenter_result.get("presenter_shell")
                 route["manifest"] = presenter_result.get("manifest")
 
     if args.export_adapter:
