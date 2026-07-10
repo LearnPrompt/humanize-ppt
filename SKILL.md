@@ -6,11 +6,11 @@ description: >-
   where every page turn moves the audience forward, decides per-page visual
   enhancement (real images via baoyu-image-gen on the local Codex CLI, SVG
   diagrams, Remotion video), then runs a capped 3-round presentation checkup
-  (演讲体检) on the rendered HTML, comparing each page against its outline page
+  (演讲体检) on rendered HTML or native PPTX, comparing each page against its outline page
   and writing fix prompts. The beautiful deck is rendered natively by a
-  downstream template skill (broadly compatible with any HTML-PPT skill;
+  downstream renderer (broadly compatible with HTML-PPT skills and native PPTX workflows;
   verified: guizang-ppt-skill for Chinese, frontend-slides /
-  beautiful-html-templates for English) — Humanize orchestrates the
+  beautiful-html-templates for English, ppt-master for editable PowerPoint) — Humanize orchestrates the
   presentation, the template skill paints the slides. Use before generating
   PPT/HTML slides from raw material, and after rendering when the user says
   things like "帮我盯一下渲染出来的 PPT 有没有翻车", "PPT 渲染质检",
@@ -18,19 +18,20 @@ description: >-
   one beautiful template page with no outline and no checkup, a rendering skill
   alone is enough; bring in Humanize when you need the talk's narrative before
   rendering and the checkup after.
-version: 1.0.0
+version: 1.1.0
 author: LearnPrompt
 license: MIT
 requires-skills:
   guizang-ppt-skill: "Required when the deck language is Chinese. The brief writer references ~/.agents/skills/guizang-ppt-skill/SKILL.md; without it the next agent cannot render. v0.6.5 brief writer emits a stderr warning if the skill is not detected."
   frontend-slides: "Recommended when the deck language is English. Same hand-off pattern as guizang. v1.0 support_level: full — brief exit works, full presentation checkup ran on a real deck on 2026-06-17 (docs/showcase/v0.9-frontend-slides/), and 5 renderer-specific failure-mode rules added (horizontal overflow, low contrast, hyphenation noise, font contract, image alt)."
   beautiful-html-templates: "English alternative. Same hand-off pattern. v1.0 support_level: full — brief exit works, full presentation checkup ran on a real Neo-Grid deck on 2026-06-13 (docs/showcase/hermes-agent-mastery/en/), same 5 renderer-specific failure-mode rules as frontend-slides."
+  ppt-master: "Native editable PPTX renderer. Humanize emits ppt-master-production-prompt.md + ppt-master-source.md; PPT Master keeps its mandatory confirmation, main SVG/native DrawingML export, and raw .pptx template-fill routes. support_level: full after the 2026-07-10 real 10-slide main export plus 5-slide template-fill export, office interop render, and OOXML checkups (docs/showcase/ppt-master-native/verification-2026-07-10.md)."
   remotion-video-production: "Recommended (main) for the video media slot. Orchestrates the whole Remotion video pipeline — renders the real mp4 (deterministic loop, no narration) to the slot's asset_path. Verified in v0.9 (docs/showcase/v0.9-visual-enhancement/)."
   remotion-best-practices: "Pair with remotion-video-production while writing Remotion code — avoids unstable patterns (misused CSS / Tailwind animation, wrong asset paths)."
   remotion-video-toolkit: "Add only for complex video work — captions, charts, 3D, batch templates, automated render pipelines. Source: github.com/shreefentsar/remotion-video-toolkit."
   baoyu-image-gen: "Recommended for the image media slot. Drives the local Codex CLI (--provider codex-cli) using the logged-in Codex/ChatGPT subscription — no OPENAI_API_KEY needed. Generates the real hero/concept image to the slot's asset_path. Source: github.com/JimLiu/baoyu-skills. Verified in v0.9."
 metadata:
-  tags: [presentation, ppt, html-slides, humanizer, ast, workflow, brief-orchestrator, hv-analysis, 9-styles]
+  tags: [presentation, ppt, pptx, html-slides, humanizer, ast, workflow, brief-orchestrator, hv-analysis, 9-styles]
 ---
 
 # Humanize PPT
@@ -43,15 +44,15 @@ Humanize PPT is a **presentation system, born for the talk**: an **Outline Direc
 
 The presentation checkup in one sentence: it does not grade beauty, it grades the outline. It compares every rendered page against its outline page, pulls out the pages that can only be looked at but not spoken from, and keeps going until every page is one the speaker can stand up and present. A failed page, in plain words: a page that holds only a few words and never finishes its point, or a page that fails the audience state transfer it promised (the listener walks out of that page in the same state they walked in). Such a page should not exist; the checkup pulls it out and generates fix instructions.
 
-Humanize is broadly compatible with **any** downstream skill that can output an HTML PPT: the brief is plain markdown + JSON, anything can read it. The verified, stable recommendations are: Chinese → `guizang-ppt-skill`; English → `frontend-slides` / `beautiful-html-templates`. Other downstreams are hot-pluggable; support levels live in `registry/renderer_registry.json` and are updated only on real results.
+Humanize is broadly compatible with downstream renderers that can consume plain markdown + JSON. Verified routes are: Chinese HTML → `guizang-ppt-skill`; English HTML → `frontend-slides` / `beautiful-html-templates`; native editable PowerPoint → `ppt-master`. Other downstreams remain hot-pluggable; support levels live in `registry/renderer_registry.json` and move only on real output.
 
-It runs **before** downstream PPT / HTML slide skills and **around** the post-render presentation checkup. It owns the AST contract, the per-page media decision (does this page need a photo, a system diagram, a 10-second process clip, nothing?), the production brief that the next agent consumes, and the checkup pass on the rendered HTML. It does **not** own the rendered HTML itself.
+It runs **before** downstream PPT / HTML slide skills and **around** the post-render presentation checkup. It owns the AST contract, the per-page media decision (does this page need a photo, a system diagram, a 10-second process clip, nothing?), the production brief that the next agent consumes, and the checkup pass on rendered HTML/PPTX. It does **not** own the rendered deck itself.
 
-There are two human review gates before rendering, both Humanize-owned zero-dependency working drafts (never decks): the **outline preview** (`--preview-outline` / `scripts/preview_outline_html.py`, the audience state-transfer map) and, since **v0.9**, the **style gallery** (`--style-gallery`). The style gallery is the cover-style gate: before the outline, Humanize emits ≥4 cover candidates for the renderer, writes one cover-only render command per candidate for the downstream skill to render, and stitches `style_gallery.html` to pick from. Humanize emits only the spec and the commands; the covers are rendered downstream. Picking a cover yields a re-injection command that carries the chosen style into the normal flow. See `references/style-gallery-spec.md`.
+There are two human review gates before rendering: the **outline preview** and the renderer's style gate. HTML routes use Humanize's ≥4 real-cover `--style-gallery`. PPT Master already owns a mandatory three-stage Confirm UI with native visual previews, so `--renderer ppt-master --style-gallery` delegates to that gate and writes `style_gallery_plan.json` + `commands/style-gallery/ppt-master-confirm-ui.md` rather than duplicating the catalog.
 
-V0.6.4 is the **single entrypoint** for this loop. The user calls Humanize PPT once for the brief, hands the brief to a downstream skill for native rendering, then calls Humanize PPT again with `--qa-from <rendered.html>` to run the 3-iteration presentation checkup. Each iteration writes `qa_report.md` (findings), `fix_prompt.md` (downstream-skill-actionable corrections), and `qa_iteration.json` (round state). After 3 rounds with remaining findings, status flips to `needs-human`.
+The user calls Humanize PPT once for the brief, hands the brief to a downstream skill for native rendering, then calls Humanize again with `--qa-from <rendered.html|native.pptx>` to run the 3-iteration presentation checkup. Each iteration writes `qa_report.md`, `fix_prompt.md`, and `qa_iteration.json`. After 3 rounds with remaining failures, status flips to `needs-human`.
 
-Humanize PPT never copies a downstream skill's template, never injects custom sections into it, and never post-processes the rendered HTML. When the downstream skill updates, Humanize PPT needs zero changes. This is the contract — see `references/guizang-production-brief-orchestrator.md` for the full brief specification.
+Humanize PPT never copies a downstream skill's template, never injects custom sections into it, and never post-processes rendered HTML or PPTX. Fixes return to the downstream author source. See `references/guizang-production-brief-orchestrator.md` and `adapters/ppt-master-bridge-notes.md`.
 
 For public positioning, describe Humanize PPT as a brief orchestrator that pairs with native downstream renderers. Do **not** frame it as a renderer itself, and do not present it as a "router" that picks the best visual style for the user — that decision lives in the brief, the downstream skill's own templates, and the human's review. When a user only wants a pretty template page, that is a rendering-skill job, not a Humanize job: state the choice, not a prohibition.
 
@@ -82,7 +83,7 @@ For every Humanize PPT run, produce:
 9. `router_plan.json` — selected primary renderer and staged route plan.
 10. `commands/*.md` — bounded instructions for each downstream specialist agent.
 11. `run_manifest.json` — final file inventory, route status, and QA status.
-12. `<renderer>-production-prompt.md` — the production brief that the next agent consumes. v0.6.4 emits `guizang-production-prompt.md`, `frontend-slides-production-prompt.md`, or `beautiful-html-templates-production-prompt.md` depending on language and route. This file references the downstream skill's own `SKILL.md` and is the only thing the next agent needs to read.
+12. `<renderer>-production-prompt.md` — the downstream entrypoint. In addition to the HTML routes, `ppt-master` emits `ppt-master-production-prompt.md` + self-contained `ppt-master-source.md` and disposable `outputs/ppt-master-handoff/` copies.
 13. `outputs/qa/qa_report.md` — first-pass QA gate (brief mode) or per-iteration QA findings (QA mode).
 
 QA mode (post-render) additionally produces per iteration:
@@ -92,9 +93,9 @@ QA mode (post-render) additionally produces per iteration:
 
 Style-gallery mode (`--style-gallery`, pre-outline gate) instead produces and stops:
 
-16. `style_gallery.html` — zero-dependency picker stitching ≥4 candidate covers.
-17. `style_gallery_plan.json` — per-candidate id, cli, command_file, cover paths, re-injection command.
-18. `commands/style-gallery/<id>.md` — one cover-only render command per candidate (downstream renders only S01 → `outputs/style-gallery/<id>/cover.{html,png}`).
+16. HTML routes: `style_gallery.html` plus ≥4 cover entries. PPT Master: no fake gallery HTML; style selection stays in its native Confirm UI.
+17. `style_gallery_plan.json` — cover candidates for HTML or `mode: downstream-confirm-ui` for PPT Master.
+18. `commands/style-gallery/<id>.md` — cover command for HTML, or `ppt-master-confirm-ui.md` for the native gate.
 
 ## Recommended OPC workflow (v0.6.4)
 
@@ -107,14 +108,15 @@ O — Outline + Per-Page Media Direction
 P — Native Renderer Invocation (100% downstream)
   zh  → guizang-ppt-skill        (Style A or B, native; recommended)
   en  → frontend-slides / beautiful-html-templates (native; recommended)
+  pptx → ppt-master (native DrawingML; explicit --renderer ppt-master)
   other HTML-PPT skills → hot-pluggable, same brief contract
   Humanize emits the production prompt and stops. The downstream
   skill renders the deck. Humanize does NOT copy templates, does
   NOT inject SLIDES_HERE / [必填] replacements, does NOT add
   postMessage bridges to the rendered HTML.
 
-Q — Presentation Checkup (演讲体检) on the rendered HTML
-  Humanize --qa-from <rendered.html> reads the output of P,
+Q — Presentation Checkup (演讲体检) on the rendered artifact
+  Humanize --qa-from <rendered.html|native.pptx> reads the output of P,
   compares pages against the outline, scans for failure modes
   (references/qa-failure-modes.md), writes qa_report.md and
   fix_prompt.md, tracks iteration in qa_iteration.json.
@@ -131,11 +133,11 @@ C — Complete / Control
 
 ### v0.6.4 invariants (these are the hard rules; if you break any, you're off the v0.6.4 boundary)
 
-1. **Humanize is brief-only.** It writes `<renderer>-production-prompt.md` and stops. It does **not** open, copy, or post-process the downstream skill's template. When the downstream skill updates its template, animation markers, or validator, Humanize needs zero changes.
+1. **Humanize is brief-only.** It writes the renderer production contract and stops. It does **not** open, copy, or post-process downstream templates or final HTML/PPTX.
 2. **Downstream renderers are 100% native.** The next agent follows the downstream skill's own `SKILL.md`. The brief tells the next agent which skill to load, which Style (A/B) to use, which layouts to pick from, and which QA gates must pass — but it does not carry template internals.
 3. **The presentation checkup caps at 3 iterations.** Round 4 with remaining fail findings is `needs-human`. The loop does not spin forever; it hands the decision back to a human.
 4. **Speaker notes and presenter shell — Humanize produces a baseline `presenter-shell.html`; downstream owns the full stage.** Humanize owns the semantic source (`speaker_intent.md`) and now also writes `outputs/presenter/presenter-shell.html` directly from `slide_plan.json` + `speaker_intent.md` (usable standalone, even before the downstream deck exists). The downstream skill produces the native speaker notes and fuller presenter console. Humanize does not inject `postMessage` bridges or `?slide=` URL parameters into the rendered HTML.
-5. **The brief is the only thing the next agent reads.** It is a complete contract: deck metadata, per-page media decisions, style files, hard rules, known-good checkpoint, and per-style QA gates. The next agent does not need to re-derive intent from raw source material.
+5. **The production prompt is the downstream entrypoint.** It names every support artifact the renderer must read. PPT Master additionally reads `ppt-master-source.md`, which freezes the Humanize page story and notes intent without duplicating PPT Master's visual contracts.
 
 ### Working rules
 
@@ -152,11 +154,15 @@ C — Complete / Control
 
 14. For Chinese PPT production, the recommended stable path is `Humanize PPT → guizang-ppt-skill native → Humanize --qa-from → downstream presenter/deploy`. Guizang's own material QA and Swiss validator run inside the downstream skill. The presentation checkup in Humanize is a second-pair-of-eyes pass, not a replacement.
 15. For English PPT production, the recommended path is `Humanize PPT → frontend-slides or beautiful-html-templates (native) → Humanize --qa-from → downstream deploy`. The downstream skill owns its own template selection, preview gallery, and selected-template full deck. Humanize does not imitate them. **v1.0 support levels** (see `registry/renderer_registry.json`): both `beautiful-html-templates` and `frontend-slides` are now `full` — brief exit works, full presentation checkup ran on real decks, and 5 renderer-specific failure-mode rules added (horizontal overflow, low contrast, hyphenation noise, font contract, image alt). Screenshot review is still part of the checkup methodology for cases the static scan can't reach.
-16. The verified Style A checkpoint at `examples/03-codex-guizang-native-ink-classic/` is a read-only visual reference. If the presentation checkup ever fails against it (`test_known_good_style_a_passes_all_style_a_gates`), the fixture or the live Guizang skill has drifted — do not weaken the checkup to make the test pass. The same applies to the English checked-up deck at `docs/showcase/hermes-agent-mastery/en/ppt/` (`test_english_showcase_deck_passes_presentation_checkup`).
+16. For native PPTX, use `Humanize → ppt-master → Humanize --qa-from <deck.pptx>`. No raw template means PPT Master's strict main SVG pipeline; `--ppt-master-template <raw.pptx>` deterministically selects native `template-fill-pptx`. Keep its confirmation gates, speaker notes, transition/native-object flags, and downstream visual QA intact. Verification: `docs/showcase/ppt-master-native/verification-2026-07-10.md`.
+17. The verified Style A checkpoint at `examples/03-codex-guizang-native-ink-classic/` is a read-only visual reference. If the presentation checkup ever fails against it (`test_known_good_style_a_passes_all_style_a_gates`), the fixture or the live Guizang skill has drifted — do not weaken the checkup to make the test pass. The same applies to the English checked-up deck at `docs/showcase/hermes-agent-mastery/en/ppt/` (`test_english_showcase_deck_passes_presentation_checkup`).
 
 ## Operational references
 
 - `references/guizang-production-brief-orchestrator.md` — v0.6.4 canonical brief specification. The human + agent-facing contract for what `<renderer>-production-prompt.md` must contain and what it must not contain.
+- `adapters/ppt-master-bridge-notes.md` — native PPTX route boundary, semantic/media/notes mapping, raw-template routing, and OOXML checkup contract.
+- `docs/showcase/ppt-master-native/verification-2026-07-10.md` — real PPT Master export and Humanize PPTX checkup evidence.
+- `docs/versions/v1.1.0-ppt-master.md` — release notes for native PPTX routing, raw-template fill, and OOXML checkup.
 - `SPEC.md` — engine technical specification: boundary, CLI surface (mode-check order), data flow, output contract, the v0.9 style gallery, the presentation checkup, the per-page media model, and the renderer registry. The authoritative "what the engine does and guarantees" reference.
 - `references/qa-failure-modes.md` (+ English mirror `references/qa-failure-modes.en.md`) — failure mode catalog for the presentation checkup (演讲体检): a renderer-agnostic failure-class layer plus guizang-specific modes, each with what the audience would see. Human-readable; the code-side source of truth is `FAILURE_MODES` in `scripts/humanize_ppt_v2.py`. Includes the WebGL-hero static-screenshot capture trap as a "static scan can't catch yet" class.
 - `references/style-gallery-spec.md` — v0.9 spec for the `--style-gallery` cover-style gate: candidates, cover-only commands, the zero-dependency picker, re-injection, and the WebGL screenshot warning.
@@ -209,7 +215,20 @@ python3 scripts/humanize_ppt.py \
   --max-qa-iterations 3
 ```
 
-English paths use the same shape with `--renderer beautiful-html-templates` or `--renderer frontend-slides`, which write `beautiful-html-templates-production-prompt.md` or `frontend-slides-production-prompt.md` respectively. (v0.9: both `beautiful-html-templates` and `frontend-slides` are `support_level: brief+qa-verified` — beautiful after the 2026-06-13 real-deck checkup, frontend-slides after a real-deck checkup on 2026-06-17. The v0.9 style-gallery gate itself changed no support level — those move only on real rendered output.)
+English paths use the same shape with `--renderer beautiful-html-templates` or `--renderer frontend-slides`; both are `support_level: full` after real-deck checks and renderer-specific rules.
+
+Native editable PowerPoint:
+
+```bash
+python3 scripts/humanize_ppt.py \
+  --source examples/01-ai-tool-update/source.md \
+  --out .humanize-ppt-runs/ai-tool-update-pptx \
+  --title "AI 工具更新，不只是功能清单" \
+  --renderer ppt-master \
+  --ppt-master-transition fade
+```
+
+The downstream agent starts from `ppt-master-production-prompt.md`, follows PPT Master's mandatory confirmation and native export workflow, then feeds the deck back with `--qa-from <deck.pptx> --renderer ppt-master`. Add `--ppt-master-template <raw.pptx>` only when the user supplied a native template deck; that switches to `template-fill-pptx`.
 
 Outline preview (audience state-transfer map from an existing `slide_plan.json`, zero-dependency single-file HTML):
 

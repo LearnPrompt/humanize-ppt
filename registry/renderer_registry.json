@@ -1,8 +1,8 @@
 {
-  "version": "1.0.0",
-  "positioning_note": "热插拔：Humanize 广义兼容任何能产出 HTML PPT 的下游 skill——brief 是普通 markdown+JSON，谁都能读。本表只是把『我们真实跑通且输出稳定』的路线标出来：中文推荐 guizang-ppt-skill，英文推荐 frontend-slides / beautiful-html-templates。其他下游可以接，跑通欢迎反馈，support_level 据实更新。",
+  "version": "1.1.0",
+  "positioning_note": "热插拔：Humanize 的 brief 是普通 markdown+JSON，既能交给 HTML PPT skill，也能交给原生 PPTX workflow。本表只标记真实跑通且输出稳定的路线；support_level 必须由真实产物验证推动。",
   "support_levels": {
-    "full": "brief 出口 + 渲染后演讲体检（--qa-from）都已在真实渲染产物上验证过",
+    "full": "brief 出口 + 渲染后演讲体检（--qa-from）+ 渲染器专属失败模式都已在真实 HTML/PPTX 产物上验证过",
     "brief+qa-verified": "brief 出口可用，且演讲体检（--qa-from）已在该渲染器的真实渲染产物上完整跑通（扫描→发现→修复→复检）；渲染器专属失败模式规则尚未沉淀",
     "brief-only": "brief 出口可用；演讲体检（--qa-from）这条腿尚未在该渲染器的真实产物上验证，不承诺"
   },
@@ -43,6 +43,62 @@
         "~/.hermes/skills/guizang-ppt-skill"
       ],
       "command_file": "commands/guizang-agent.md"
+    },
+    {
+      "id": "ppt-master",
+      "display_name": "PPT Master",
+      "skill_name": "ppt-master",
+      "role": "native-editable-pptx-renderer",
+      "support_level": "full",
+      "support_note": "2026-07-10: production brief、main SVG pipeline、raw .pptx template-fill 与 11 个 PPTX 专属失败模式已实现；main route 真实导出 10 页/399 个可编辑容器，template-fill 真实导出 5 页/199 个可编辑容器并通过 LibreOffice 打开渲染，两条均包含 notes、Fade transition 与 Humanize OOXML presentation checkup。记录见 docs/showcase/ppt-master-native/verification-2026-07-10.md。",
+      "best_for": [
+        "原生可编辑 PowerPoint",
+        "DrawingML shapes",
+        "speaker notes",
+        "原生转场与对象动画",
+        "可编辑表格与图表",
+        "raw .pptx template 原生填充"
+      ],
+      "inputs": [
+        "ppt-master-source.md",
+        "deck_brief.md",
+        "ast_outline.md",
+        "slide_plan.json",
+        "speaker_intent.md",
+        "asset_manifest.md",
+        "video_slots.json",
+        "style_brief.md",
+        "optional raw .pptx template"
+      ],
+      "humanize_outputs": [
+        "ppt-master-production-prompt.md",
+        "ppt-master-source.md",
+        "outputs/ppt-master-handoff/"
+      ],
+      "outputs": [
+        "outputs/ppt-master-rendered/deck.pptx",
+        "outputs/ppt-master-rendered/render_manifest.json",
+        "outputs/ppt-master-projects/<project>/exports/*.pptx"
+      ],
+      "local_skill_paths": [
+        "~/.agents/skills/ppt-master",
+        "~/.codex/skills/ppt-master",
+        "~/projects/ppt-master/skills/ppt-master"
+      ],
+      "command_file": "commands/ppt-master-agent.md",
+      "qa_failure_modes": [
+        "pptx-package-invalid",
+        "pptx-slide-count-mismatch",
+        "pptx-placeholder-residue",
+        "pptx-slide-empty",
+        "pptx-flattened-slide",
+        "pptx-missing-speaker-notes",
+        "pptx-speaker-intent-drift",
+        "pptx-ast-content-drift",
+        "pptx-broken-relationship",
+        "pptx-transition-missing",
+        "pptx-native-object-missing"
+      ]
     },
     {
       "id": "beautiful-html-templates",
@@ -177,7 +233,7 @@
         "锁定 known-good 视觉基准"
       ],
       "inputs": [
-        "--qa-from <rendered.html>",
+        "--qa-from <rendered.html|native.pptx>",
         "out/slide_plan.json",
         "out/qa_iteration.json (上一轮)"
       ],

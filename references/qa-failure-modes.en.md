@@ -4,7 +4,7 @@
 > sync; the code-side source of truth is the `FAILURE_MODES` dict in
 > `scripts/humanize_ppt_v2.py`, matched one-to-one by id.
 
-The presentation checkup (the former "QA loop"; the CLI is still `--qa-from`) is the per-page review Humanize PPT runs over the *rendered* HTML before sign-off. The checkup is **not** about how pretty the deck is — it is about the **outline**: it diffs each rendered page against its outline page and catches the pages that can be *looked at* but not *presented*, until every page is one you could stand up and deliver.
+The presentation checkup (the former "QA loop"; the CLI is still `--qa-from`) is the per-page review Humanize PPT runs over rendered HTML or a native PPTX before sign-off. The checkup is **not** about how pretty the deck is — it is about the **outline**: it diffs each rendered page against its outline page and catches the pages that can be *looked at* but not *presented*, until every page is one you could stand up and deliver.
 
 Say plainly what a failed page is. A page with only a few words that never finishes the point it owes; or a page that does not complete the audience state transfer it promised — the listener walks away from it in the same state they arrived. Such pages should not exist. The checkup finds them and emits a fix instruction (`fix_prompt.md`) for the downstream skill to re-render.
 
@@ -23,6 +23,7 @@ Failure modes come in two layers:
   - **guizang-style-b**: Style B only (Swiss-locked)
   - **frontend-slides**: English-renderer rules for overflow, contrast, hyphenation, font contracts, and image alt text
   - **beautiful-html-templates**: the same English-renderer rules, scoped to its native HTML decks
+  - **ppt-master**: native PPTX/OOXML rules for package integrity, page count, editable objects, notes, AST drift, relationships, transitions, and native objects
 
 ## Layer 1: renderer-agnostic failure classes
 
@@ -33,11 +34,12 @@ Failure modes come in two layers:
 | Layout contract breach | Page count or layout doesn't match the outline; content that should appear is missing | `swiss-sxx-count-mismatch`, `swiss-sxx-invented-id`, `swiss-low-diversity` |
 | Missing background layer | The hero page background is blank; the page looks unfinished | `webgl-canvas-missing` |
 | English renderer contract breach | English-native decks show horizontal scroll, weak contrast, noisy broken words, generic font fallback, or inaccessible images | `english-horizontal-overflow`, `english-low-contrast`, `english-hyphenation-noise`, `english-font-contract-missing`, `english-image-alt-missing` |
+| Native PPTX contract breach | PowerPoint cannot open the deck, page count drifts, slides are flattened, notes/transitions/relationships are missing | `pptx-package-invalid`, `pptx-slide-count-mismatch`, `pptx-placeholder-residue`, `pptx-slide-empty`, `pptx-flattened-slide`, `pptx-missing-speaker-notes`, `pptx-speaker-intent-drift`, `pptx-ast-content-drift`, `pptx-broken-relationship`, `pptx-transition-missing`, `pptx-native-object-missing` |
 | AI draft residue | Model scaffolding text like "As an AI" / "First I need to" leaks onto the slide | brief-mode check `visible_slide_text_has_no_ai_draft_markers` (`BANNED_VISIBLE_PATTERNS` in `write_qa`), run on the slide plan *before* rendering |
 
 ### Failure classes the static scan can't catch yet
 
-Font-weight downgrade, viewport clipping caused by real browser layout, image/text misalignment, badges or decorative elements covering body copy — these are real rendering failures, but they need a real browser render to detect, and the static scan in `scripts/humanize_ppt_v2.py` cannot see them today. By catalog discipline they are **not** listed as modes. Until Humanize has a real detection path, they are backstopped by the downstream visual checklist (`references/guizang-material-qa.md`) and a human screenshot review.
+Font-weight downgrade, viewport clipping caused by real browser layout, image/text misalignment, badges or decorative elements covering body copy — these are real rendering failures, but they need a real render to detect. Neither the HTML static scan nor PPTX OOXML inspection can see them today. HTML routes use downstream visual checklists and screenshot review; PPT Master uses its own `svg_quality_checker` and runs `visual-review` only when the user explicitly opts in.
 
 The v0.9.1 English-renderer rules below intentionally cover the static subset Humanize can detect reliably: explicit horizontal overflow settings, obvious low-contrast hex pairs, forced hyphenation/noisy wrapping CSS, missing font contracts, and missing image alt text. They do not claim to replace screenshot review.
 
@@ -177,6 +179,26 @@ Each mode gives four things: symptom, what the audience sees, detection (the rul
 
 **Fix direction:** Add short, meaningful alt text for every image.
 
+## PPT Master native PPTX modes
+
+`scripts/pptx_qa.py` reads OOXML for these rules; `FAILURE_MODES` remains the authority for ids, scope, and default severity. Humanize writes reports and fix prompts but never edits the PPTX zip.
+
+| ID | Audience/delivery symptom | Detection | Fix direction |
+|---|---|---|---|
+| `pptx-package-invalid` | PowerPoint cannot open the file or asks to repair it | ZIP CRC, required package parts, relationship parsing | Re-export from the owning PPT Master project; do not hand-patch OOXML |
+| `pptx-slide-count-mismatch` | The talk has missing or extra pages | Ordered PPTX slide list vs `slide_plan.json` | Align the SVG roster/fill plan with Humanize and re-export |
+| `pptx-placeholder-residue` | TODO/TBD/`[必填]` remains on a live slide | All slide `a:t` text | Remove residue in `svg_output/` or `fill_plan.json`, then re-export |
+| `pptx-slide-empty` | The projector shows a page with no presentable text | No visible `a:t` text | Restore the page message as editable text |
+| `pptx-flattened-slide` | The page is one flat picture instead of editable elements | No `p:sp`, `p:grpSp`, or `p:graphicFrame` | Re-run PPT Master's native DrawingML/template-fill route |
+| `pptx-missing-speaker-notes` | Presenter View has no per-page script | Missing/meaningless notesSlide content | Map `speaker_intent.md` to `notes/total.md` or `slides[].notes` |
+| `pptx-speaker-intent-drift` | Notes exist but no longer support the page intent | Weak lexical overlap with `speaker_intent`, warn | Restore the Humanize intent in PPT Master's note source |
+| `pptx-ast-content-drift` | The page says something different from its AST contract | Weak overlap with title/message/visible content, warn | Restore the state transfer from `slide_plan.json` |
+| `pptx-broken-relationship` | Images, notes, or charts disappear in PowerPoint | Internal slide relationship target missing/invalid | Let the PPT Master exporter rebuild the package |
+| `pptx-transition-missing` | Requested native page transitions are absent | Missing `p:transition` | Re-export with the requested `-t` flag |
+| `pptx-native-object-missing` | A requested editable table/chart is flattened or absent | Planned table page lacks table/chart `graphicData` | Add native markers and re-export with `--native-objects` |
+
+Real verification: `docs/showcase/ppt-master-native/verification-2026-07-10.md`. A 10-slide native deck exported by PPT Master `b0beba5b` passed on round 1 with 0 failures / 1 warning, 10 notes slides, and 399 editable containers.
+
 ## English renderers: full support status
 
 v0.9.1 verified state (matches `registry/renderer_registry.json`):
@@ -188,7 +210,7 @@ The renderer-specific rules stay conservative: they encode static checks Humaniz
 
 ## How the checkup uses this catalog
 
-1. `run_checks(html, plan, modes)` runs each mode's check function and returns a findings list: `[{id, severity, pages, evidence}]`.
+1. HTML uses `run_checks(html, plan, modes)`; PPTX uses `inspect_pptx(path, plan, ...)`. Both return `[{id, severity, pages, evidence}]`.
 2. `_write_qa_report` produces the human-readable `qa_report.md`.
 3. `_write_fix_prompt` produces the downstream-executable `fix_prompt.md` (e.g. "replace S04's `data-layout="S99"` with a registered Sxx layout").
 4. The iteration tracker `qa_iteration.json` records the round, which findings the last round resolved, and which are still open.

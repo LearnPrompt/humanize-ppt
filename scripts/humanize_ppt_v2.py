@@ -11,9 +11,14 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+try:
+    from .pptx_qa import inspect_pptx
+except ImportError:  # Stable scripts/humanize_ppt.py entrypoint imports this as a top-level module.
+    from pptx_qa import inspect_pptx
+
 SKILL_ROOT = Path(__file__).resolve().parents[1]
 REGISTRY_PATH = SKILL_ROOT / "registry" / "renderer_registry.json"
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 BEAUTIFUL_REPO_URL = "https://github.com/zarazhangrui/beautiful-html-templates.git"
 DEFAULT_ZH_PREVIEW_COUNT = 3
 DEFAULT_EN_PREVIEW_COUNT = 5
@@ -512,7 +517,10 @@ def write_contracts(out, title, source_path, text, plan, language):
 def choose_routes(args, source_path, text, language):
     requested = args.renderer
     suffix = source_path.suffix.lower()
-    if requested != "auto":
+    if getattr(args, "ppt_master_template", None):
+        primary = "ppt-master"
+        reason = "用户提供 raw .pptx template，按 PPT Master template-fill-pptx 路由原生填充。"
+    elif requested != "auto":
         primary = requested
         reason = f"用户指定 renderer={requested}。"
     elif suffix in {".ppt", ".pptx"}:
@@ -544,7 +552,7 @@ def choose_routes(args, source_path, text, language):
             "status": "planned",
         }
     ]
-    if args.presenter and primary != "html-ppt":
+    if args.presenter and primary not in {"html-ppt", "ppt-master"}:
         routes.append(
             {
                 "id": "html-ppt",
@@ -567,12 +575,21 @@ def choose_routes(args, source_path, text, language):
             }
         )
     if getattr(args, "export_adapter", False):
+        export_purpose = (
+            "由 PPT Master 原生 export + render manifest 接管；不再生成 HTML/PDF export package。"
+            if primary == "ppt-master"
+            else "为最终deck生成可移植导出包和 PDF 导出脚本。"
+        )
         routes.append(
             {
                 "id": "export-adapter",
                 "stage": "complete",
-                "purpose": "为最终deck生成可移植导出包和 PDF 导出脚本。",
-                "reason": "export_adapter=True。",
+                "purpose": export_purpose,
+                "reason": (
+                    "export_adapter=True；PPT Master 路线由其原生 exporter 接管。"
+                    if primary == "ppt-master"
+                    else "export_adapter=True。"
+                ),
                 "command_file": "commands/export-adapter-agent.md",
                 "status": "planned",
             }
@@ -1329,6 +1346,7 @@ def command_text(route, out):
         "guizang": "guizang-rendered",
         "beautiful-html-templates": "beautiful-rendered",
         "frontend-slides": "frontend-slides-rendered",
+        "ppt-master": "ppt-master-rendered",
         "presenter-adapter": "presenter",
         "export-adapter": "export",
     }
@@ -1347,7 +1365,7 @@ def command_text(route, out):
             f"to use, and where to write your output. The AST files below are supporting\n"
             f"context — the production prompt is the authoritative contract.\n"
         )
-    elif rid in ("frontend-slides", "beautiful-html-templates"):
+    elif rid in ("frontend-slides", "beautiful-html-templates", "ppt-master"):
         prompt_file = f"{rid}-production-prompt.md"
         preamble = (
             f"You are the downstream rendering agent for this deck.\n"
@@ -1423,21 +1441,27 @@ DOWNSTREAM_SKILL_PATHS = {
         Path.home() / ".agents" / "skills" / "beautiful-html-templates" / "SKILL.md",
         Path.home() / ".hermes" / "skills" / "beautiful-html-templates" / "SKILL.md",
     ],
+    "ppt-master": [
+        Path.home() / ".agents" / "skills" / "ppt-master" / "SKILL.md",
+        Path.home() / ".codex" / "skills" / "ppt-master" / "SKILL.md",
+        Path.home() / "projects" / "ppt-master" / "skills" / "ppt-master" / "SKILL.md",
+    ],
 }
 
 
-def check_downstream_install(skill_name, skip=False):
+def check_downstream_install(skill_name, skip=False, extra_paths=None):
     """Return (installed: bool, path: Path|None). If not installed and not
     skipped, print a stderr warning with the install command. Never fatal —
     the brief is still written and the next agent is told to install.
     """
-    paths = DOWNSTREAM_SKILL_PATHS.get(skill_name, [])
+    paths = [Path(p).expanduser() for p in (extra_paths or [])]
+    paths.extend(DOWNSTREAM_SKILL_PATHS.get(skill_name, []))
     for p in paths:
         if p.exists():
             return True, p
     if not skip:
         sys.stderr.write(
-            f"\n[humanize-ppt v0.9.0] WARNING: {skill_name} not detected at any known path:\n"
+            f"\n[humanize-ppt v{VERSION}] WARNING: {skill_name} not detected at any known path:\n"
             f"  - " + "\n  - ".join(str(p) for p in paths) + "\n"
             f"  The brief still ships, but the next agent must install {skill_name} before rendering.\n"
             f"  Install: see the skill's GitHub README, or use the agent's skill install command.\n"
@@ -1528,6 +1552,72 @@ FAILURE_MODES = {
         "severity_default": "fail",
         "description": "Rendered English deck contains image tags with missing or empty alt text.",
         "check": "check_english_image_alt_missing",
+    },
+    "pptx-package-invalid": {
+        "scope": ["ppt-master"],
+        "severity_default": "fail",
+        "description": "The PPTX is not a readable OOXML package or required package parts are missing.",
+        "artifact": "pptx",
+    },
+    "pptx-slide-count-mismatch": {
+        "scope": ["ppt-master"],
+        "severity_default": "fail",
+        "description": "The native PPTX slide count differs from Humanize slide_plan.json.",
+        "artifact": "pptx",
+    },
+    "pptx-placeholder-residue": {
+        "scope": ["ppt-master"],
+        "severity_default": "fail",
+        "description": "Template or draft placeholders remain in native slide text.",
+        "artifact": "pptx",
+    },
+    "pptx-slide-empty": {
+        "scope": ["ppt-master"],
+        "severity_default": "fail",
+        "description": "A native slide contains no editable visible text.",
+        "artifact": "pptx",
+    },
+    "pptx-flattened-slide": {
+        "scope": ["ppt-master"],
+        "severity_default": "fail",
+        "description": "A slide contains no editable shape, group, table, or chart object.",
+        "artifact": "pptx",
+    },
+    "pptx-missing-speaker-notes": {
+        "scope": ["ppt-master"],
+        "severity_default": "fail",
+        "description": "Speaker notes are absent for one or more Humanize-planned pages.",
+        "artifact": "pptx",
+    },
+    "pptx-speaker-intent-drift": {
+        "scope": ["ppt-master"],
+        "severity_default": "warn",
+        "description": "Native speaker notes have weak overlap with Humanize speaker_intent.",
+        "artifact": "pptx",
+    },
+    "pptx-ast-content-drift": {
+        "scope": ["ppt-master"],
+        "severity_default": "warn",
+        "description": "Native slide text has weak overlap with the corresponding Humanize AST page.",
+        "artifact": "pptx",
+    },
+    "pptx-broken-relationship": {
+        "scope": ["ppt-master"],
+        "severity_default": "fail",
+        "description": "A slide relationship points to a missing or invalid OOXML part.",
+        "artifact": "pptx",
+    },
+    "pptx-transition-missing": {
+        "scope": ["ppt-master"],
+        "severity_default": "fail",
+        "description": "A requested native slide transition is missing.",
+        "artifact": "pptx",
+    },
+    "pptx-native-object-missing": {
+        "scope": ["ppt-master"],
+        "severity_default": "fail",
+        "description": "A table page requested as a native object was flattened or omitted.",
+        "artifact": "pptx",
     },
 }
 
@@ -1890,7 +1980,7 @@ def _write_qa_report(out, iteration, findings, status, max_iterations):
     (qa / "qa_report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def _write_fix_prompt(out, iteration, unresolved, rendered_path, style, renderer="guizang"):
+def _write_fix_prompt(out, iteration, unresolved, rendered_path, style, renderer="guizang", artifact_kind="html"):
     qa = _qa_dir(out)
     if not unresolved:
         (qa / "fix_prompt.md").write_text(
@@ -1901,7 +1991,7 @@ def _write_fix_prompt(out, iteration, unresolved, rendered_path, style, renderer
     lines = [
         "# Fix Prompt",
         "",
-        f"> Round {iteration}. Apply the following to the rendered HTML",
+        f"> Round {iteration}. Apply the following to the rendered {artifact_kind.upper()}",
         f"> at `{rendered_path}` via the downstream skill's native re-render.",
         f"> Do not post-process in Humanize.",
         "",
@@ -1920,6 +2010,17 @@ def _write_fix_prompt(out, iteration, unresolved, rendered_path, style, renderer
         "swiss-sxx-count-mismatch": "Make the number of `data-layout=\"Sxx\"` markers equal to the slide count in slide_plan.json. Re-emit from the downstream skill.",
         "swiss-sxx-invented-id": "Replace the invented Sxx values with registered S01..S22 layout IDs from `references/layouts-swiss.md`.",
         "swiss-low-diversity": "Diversify the Swiss layouts. Pick a different registered Sxx per slide where possible. Floor is 60% unique values.",
+        "pptx-package-invalid": "Return to PPT Master's owning project, fix the broken export inputs, then rerun its canonical export command. Do not repair the OOXML zip by hand.",
+        "pptx-slide-count-mismatch": "Make the PPT Master project page roster match `slide_plan.json`, regenerate the affected SVG/fill plan, and export again.",
+        "pptx-placeholder-residue": "Replace all template and draft placeholders in PPT Master's author source (`svg_output/` or `fill_plan.json`), then rerun the native export.",
+        "pptx-slide-empty": "Restore the Humanize page message as editable text in PPT Master's author source and export again.",
+        "pptx-flattened-slide": "Regenerate the page through PPT Master's native SVG-to-PPTX or template-fill route so it contains editable DrawingML objects instead of a flat slide image.",
+        "pptx-missing-speaker-notes": "Map every page in `speaker_intent.md` to PPT Master's `notes/total.md` or template-fill `slides[].notes`, then re-export with notes enabled.",
+        "pptx-speaker-intent-drift": "Revise the PPT Master notes source so the Humanize speaker intent remains explicit for each flagged page.",
+        "pptx-ast-content-drift": "Compare the flagged page with `slide_plan.json`; restore the intended message/state transfer while keeping PPT Master in control of layout.",
+        "pptx-broken-relationship": "Regenerate the PPTX from the owning PPT Master project so all media, notes, chart, and slide relationships are packaged by its exporter.",
+        "pptx-transition-missing": "Re-export from PPT Master with the requested `-t` transition flag; do not patch transitions in Humanize.",
+        "pptx-native-object-missing": "Add the required data-pptx-native table/chart marker in PPT Master's SVG author source and re-export with `--native-objects`.",
     }
     for f in unresolved:
         spec = fix_specs.get(f["id"], f["evidence"])
@@ -1934,7 +2035,8 @@ def _write_fix_prompt(out, iteration, unresolved, rendered_path, style, renderer
 
 
 def run_qa_mode(args):
-    """Post-render QA loop. Reads a rendered HTML, scans for failure modes,
+    """Post-render QA loop. Reads rendered HTML or native PPTX,
+    scans for failure modes,
     writes qa_report.md and fix_prompt.md, tracks iteration.
     """
     rendered = Path(args.qa_from).expanduser().resolve()
@@ -1945,8 +2047,16 @@ def run_qa_mode(args):
     out = Path(args.out).expanduser().resolve()
     out.mkdir(parents=True, exist_ok=True)
 
-    renderer = args.renderer if args.renderer != "auto" else "guizang"
-    style = (getattr(args, "guizang_style", None) or "A").upper()
+    artifact_kind = "pptx" if rendered.suffix.lower() == ".pptx" else "html"
+    if artifact_kind == "pptx":
+        renderer = args.renderer if args.renderer != "auto" else "ppt-master"
+        if renderer != "ppt-master":
+            sys.stderr.write("PPTX QA requires --renderer ppt-master (or --renderer auto).\n")
+            return 2
+        style = "native-pptx"
+    else:
+        renderer = args.renderer if args.renderer != "auto" else "guizang"
+        style = (getattr(args, "guizang_style", None) or "A").upper()
     max_iter = max(1, int(getattr(args, "max_qa_iterations", 3) or 3))
 
     plan_path = out / "slide_plan.json"
@@ -1983,9 +2093,20 @@ def run_qa_mode(args):
         sys.stderr.write(f"qa cap reached ({max_iter} rounds). Status: needs-human.\n")
         return 0
 
-    html = rendered.read_text(encoding="utf-8", errors="replace")
     modes = failure_modes_for(renderer, style=style)
-    findings = run_checks(html, plan, modes)
+    if artifact_kind == "pptx":
+        inspection = inspect_pptx(
+            rendered,
+            plan,
+            require_notes=True,
+            require_transition=getattr(args, "ppt_master_transition", "fade") != "none",
+            require_native_objects=bool(getattr(args, "ppt_master_native_objects", False)),
+            allowed_ids=set(modes),
+        )
+        findings = inspection["findings"]
+    else:
+        html_text = rendered.read_text(encoding="utf-8", errors="replace")
+        findings = run_checks(html_text, plan, modes)
     fail_findings = [f for f in findings if f["severity"] == "fail"]
     warn_findings = [f for f in findings if f["severity"] == "warn"]
 
@@ -2010,7 +2131,15 @@ def run_qa_mode(args):
         status = "iterate"
 
     _write_qa_report(out, iteration, findings, status, max_iter)
-    _write_fix_prompt(out, iteration, unresolved_failures, rendered, style, renderer=renderer)
+    _write_fix_prompt(
+        out,
+        iteration,
+        unresolved_failures,
+        rendered,
+        style,
+        renderer=renderer,
+        artifact_kind=artifact_kind,
+    )
 
     history = list((prev or {}).get("history", []))
     history.append({
@@ -2027,6 +2156,7 @@ def run_qa_mode(args):
         "max_iterations": max_iter,
         "renderer": renderer,
         "style": style,
+        "artifact_kind": artifact_kind,
         "unresolved": unresolved_failures,
         "history": history,
     })
@@ -2036,6 +2166,7 @@ def run_qa_mode(args):
             "iteration": iteration,
             "max_iterations": max_iter,
             "status": status,
+            "artifact_kind": artifact_kind,
             "fail": len(fail_findings),
             "warn": len(warn_findings),
             "qa_report": str(out / "outputs" / "qa" / "qa_report.md"),
@@ -2430,6 +2561,335 @@ The next agent writes its output to its own convention
     }
 
 
+def _safe_project_slug(value):
+    slug = re.sub(r"[^A-Za-z0-9._-]+", "-", str(value or "").strip()).strip("-._").lower()
+    return slug[:64] or "humanize-ppt"
+
+
+def resolve_ppt_master_python(requested=None):
+    """Return a verified Python >=3.10 executable for current PPT Master."""
+    candidates = (
+        [str(requested)]
+        if requested
+        else ["python3.13", "python3.12", "python3.11", "python3.10", sys.executable, "python3"]
+    )
+
+    checked = set()
+    for candidate in candidates:
+        resolved = shutil.which(candidate) if not Path(candidate).expanduser().exists() else str(Path(candidate).expanduser().resolve())
+        if not resolved or resolved in checked:
+            continue
+        checked.add(resolved)
+        try:
+            result = subprocess.run(
+                [
+                    resolved,
+                    "-c",
+                    "import sys; print('.'.join(map(str, sys.version_info[:3]))); raise SystemExit(0 if sys.version_info >= (3, 10) else 1)",
+                ],
+                text=True,
+                capture_output=True,
+            )
+        except OSError:
+            continue
+        if result.returncode == 0:
+            return resolved, result.stdout.strip()
+
+    if requested:
+        raise ValueError(f"--ppt-master-python must be Python 3.10 or newer: {requested}")
+    return "python3", "unverified"
+
+
+def write_ppt_master_source(out, title, plan, source, language):
+    """Write a self-contained semantic source for PPT Master's Strategist.
+
+    PPT Master still owns design_spec/spec_lock and every native rendering
+    decision. This file freezes Humanize's page story, notes intent, and media
+    requirements so the downstream Strategist does not restart from raw source.
+    """
+    source_path = Path(source).expanduser().resolve()
+    lines = [
+        "# Humanize PPT → PPT Master Source Contract",
+        "",
+        f"- Title: {title}",
+        f"- Language: {language}",
+        f"- Original source: `{source_path}`",
+        f"- Planned slides: {len(plan)}",
+        "",
+        "## Story authority",
+        "",
+        "Humanize owns the audience-state-transfer story. Preserve this page order, page count,",
+        "message, and speaker intent unless the user explicitly changes them at PPT Master's",
+        "mandatory confirmation gate. PPT Master owns visual design, layout, SVG authoring,",
+        "native PowerPoint objects, transitions, and export.",
+        "",
+        "## Media mapping",
+        "",
+        "- `gpt-photo` maps to a PPT Master `Acquire Via: ai` image row unless the asset already exists.",
+        "- `screenshot` maps to a user/web factual image; never synthesize a fake UI.",
+        "- `svg-html` and `html-table` remain deterministic SVG/native table work, not generated pictures.",
+        "- Remotion/HyperFrames slots are intent records. PPT Master may represent them with native",
+        "  PowerPoint motion, a static keyframe, or a narrated/video-export route; it must report the",
+        "  chosen fallback because PPT Master does not embed arbitrary Humanize MP4 slots by default.",
+        "",
+        "## Per-slide contract",
+        "",
+    ]
+    for slide in plan:
+        lines.extend(
+            [
+                f"### {slide.get('slide_id')} · {slide.get('title', '')}",
+                "",
+                f"- Role: `{slide.get('role', '')}`",
+                f"- Message: {slide.get('message', '')}",
+                f"- Speaker intent: {slide.get('speaker_intent', '')}",
+                f"- Layout hint (non-binding): `{slide.get('layout_hint') or 'PPT Master decides'}`",
+                "- Visible content:",
+            ]
+        )
+        visible = slide.get("visible_content") or []
+        lines.extend(f"  - {item}" for item in visible)
+        media = slide.get("media") or {}
+        lines.append("- Media:")
+        any_media = False
+        for media_type in ("image", "diagram", "video"):
+            item = media.get(media_type) or {}
+            if not item.get("needed"):
+                continue
+            any_media = True
+            lines.append(
+                f"  - {media_type}: kind=`{item.get('kind', '')}`; "
+                f"asset_path=`{item.get('asset_path') or ''}`; purpose={item.get('purpose', '')}"
+            )
+            if item.get("prompt_hint"):
+                lines.append(f"    - prompt_hint: {item['prompt_hint']}")
+        if not any_media:
+            lines.append("  - none")
+        lines.append("")
+
+    canonical = out / "ppt-master-source.md"
+    canonical.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+
+    handoff = out / "outputs" / "ppt-master-handoff"
+    handoff.mkdir(parents=True, exist_ok=True)
+    staged_source = handoff / "ppt-master-source.md"
+    shutil.copyfile(canonical, staged_source)
+
+    staged_original = None
+    if source_path.exists() and source_path.is_file():
+        staged_original = handoff / f"original-source{source_path.suffix.lower()}"
+        shutil.copy2(source_path, staged_original)
+
+    return canonical, staged_source, staged_original
+
+
+def write_ppt_master_production_brief(
+    out,
+    title,
+    plan,
+    source,
+    language,
+    *,
+    template=None,
+    canvas_format="ppt169",
+    project_name=None,
+    visual_style=None,
+    native_objects=False,
+    transition="fade",
+    animation="none",
+    animation_trigger="after-previous",
+    visual_review=False,
+    repo_hint=None,
+    native_presenter=False,
+    python_executable=None,
+):
+    """Write the native PPT Master production hand-off and staged source."""
+    source = Path(source).expanduser().resolve()
+    canonical, staged_source, staged_original = write_ppt_master_source(
+        out, title, plan, source, language
+    )
+    project_slug = _safe_project_slug(project_name or f"humanize-{Path(out).name}")
+    project_base = out / "outputs" / "ppt-master-projects"
+    rendered_dir = out / "outputs" / "ppt-master-rendered"
+    humanize_entrypoint = SKILL_ROOT / "scripts" / "humanize_ppt.py"
+    route = "template-fill-pptx" if template else "main-svg-pipeline"
+    ppt_python, ppt_python_version = resolve_ppt_master_python(python_executable)
+    if ppt_python_version == "unverified":
+        sys.stderr.write(
+            f"[humanize-ppt v{VERSION}] WARNING: no Python >=3.10 interpreter was detected for PPT Master; "
+            "the brief uses python3 but the downstream preflight must pass before project creation.\n"
+        )
+
+    install_candidates = []
+    if repo_hint:
+        install_candidates.append(str(Path(repo_hint).expanduser().resolve() / "skills" / "ppt-master"))
+    install_candidates.extend(
+        [
+            "~/.agents/skills/ppt-master",
+            "~/.codex/skills/ppt-master",
+            "~/projects/ppt-master/skills/ppt-master",
+        ]
+    )
+    install_lines = "\n".join(
+        f"  {index}. `{path}`" for index, path in enumerate(install_candidates, 1)
+    )
+    staged_inputs = [f'"{staged_source}"']
+    if staged_original:
+        staged_inputs.append(f'"{staged_original}"')
+    staged_inputs_command = (" " + chr(92) + "\n  ").join(staged_inputs)
+
+    route_commands = ""
+    route_rules = ""
+    if template:
+        template_path = Path(template).expanduser().resolve()
+        route_commands = f"""\
+```bash
+\"$PPT_MASTER_PYTHON\" \"$PPT_MASTER_SKILL_DIR/scripts/project_manager.py\" init \"{project_slug}\" --format {canvas_format} --dir \"{project_base}\"
+# Capture the printed project path as <project_path>, then copy (never move) the user template and Humanize source:
+\"$PPT_MASTER_PYTHON\" \"$PPT_MASTER_SKILL_DIR/scripts/project_manager.py\" import-sources \"<project_path>\" \\
+  \"{template_path}\" \"{canonical}\" --copy
+```
+"""
+        route_rules = """\
+- Follow `workflows/template-fill-pptx.md`, not the SVG pipeline.
+- Treat the raw PPTX as a native slide library. Select/reuse/reorder layouts to fit the Humanize story.
+- Build `analysis/fill_plan.json` with `status: draft`; stop for its required page-sequence review.
+- Map every Humanize `speaker_intent` to `slides[].notes` before apply/validate.
+- Preserve and edit native tables/charts already present in the selected template slides; the main SVG pipeline's `--native-objects` flag does not apply here.
+- Template-fill v1 preserves existing object animation XML but does not add or retime object animations. Treat requested object-animation changes as a separately approved direct-PPTX task.
+- Template-fill v1 cannot replace images. Keep the template image, choose another layout, or report `Needs-Manual`; never claim that a Humanize image asset was inserted.
+- Run the workflow's apply, validate, and read-back gates. Do not convert this raw template through SVG.
+"""
+    else:
+        route_commands = f"""\
+```bash
+\"$PPT_MASTER_PYTHON\" \"$PPT_MASTER_SKILL_DIR/scripts/project_manager.py\" init \"{project_slug}\" --format {canvas_format} --dir \"{project_base}\"
+# Capture the printed project path as <project_path>. These files are disposable handoff copies, so the main-pipeline --move rule is safe:
+\"$PPT_MASTER_PYTHON\" \"$PPT_MASTER_SKILL_DIR/scripts/project_manager.py\" import-sources \"<project_path>\" \\
+  {staged_inputs_command} --move
+```
+"""
+        route_rules = """\
+- Follow PPT Master's `SKILL.md` Steps 1–7 in strict serial order.
+- Do not skip or auto-answer the mandatory three-stage Strategist confirmation. Humanize's plan is the story recommendation; the user's confirmed PPT Master values win.
+- Read `ppt-master-source.md` as the content contract. Preserve its page order/count unless the user changes them at the confirmation gate.
+- Generate pages sequentially in the current main agent; obey PPT Master's no-subagent/no-batch SVG rules.
+- Map `speaker_intent` into `notes/total.md` one-to-one before export.
+"""
+
+    if template:
+        export_flag_text = f"--transition {transition}"
+        export_instruction = (
+            "Apply the confirmed fill plan with "
+            f"`{export_flag_text}` in addition to the workflow's required command shape. "
+            "Do not pass main-pipeline `-a` or `--native-objects` flags."
+        )
+    else:
+        export_flags = [f"-t {transition}"]
+        if animation != "none":
+            export_flags.extend([f"-a {animation}", f"--animation-trigger {animation_trigger}"])
+        if native_objects:
+            export_flags.append("--native-objects")
+        export_flag_text = " ".join(export_flags)
+        export_instruction = (
+            f"Export with `{export_flag_text}` in addition to the workflow's required command shape."
+        )
+    if template:
+        visual_review_text = (
+            "PPT Master's optional `workflows/visual-review.md` targets SVG projects and does not run on template-fill. "
+            "The user requested visual review, so render the final PPTX through an office consumer, inspect every page, and record this route boundary in the manifest."
+            if visual_review
+            else "Do not auto-run PPT Master's SVG-only optional visual-review workflow on template-fill."
+        )
+    else:
+        visual_review_text = (
+            "Run `workflows/visual-review.md` after SVG quality check and before post-processing; the user explicitly opted in."
+            if visual_review
+            else "Do not auto-run PPT Master's optional visual-review workflow."
+        )
+
+    prompt = f"""# PPT Master Production Prompt
+
+> Humanize PPT stops at the semantic contract. PPT Master owns the native PowerPoint project and must follow its own authorities end to end. Do not reimplement PPT Master in Humanize and do not patch the exported OOXML in Humanize.
+
+## Resolve PPT Master
+
+Set `PPT_MASTER_SKILL_DIR` to the first existing directory below:
+
+{install_lines}
+
+If using the cloned repository, read its `AGENTS.md` first. In every install shape, read `$PPT_MASTER_SKILL_DIR/SKILL.md` completely before creating or changing a PPT project.
+
+Use the verified interpreter below for every PPT Master script:
+
+```bash
+PPT_MASTER_PYTHON={shlex.quote(ppt_python)}
+\"$PPT_MASTER_PYTHON\" -c 'import sys; assert sys.version_info >= (3, 10), sys.version'
+```
+
+Detected version: `{ppt_python_version}`.
+
+## Resolved route
+
+- Route: `{route}`
+- Canvas: `{canvas_format}`
+- Humanize slides: {len(plan)}
+- Recommended visual style: `{visual_style or 'PPT Master Strategist recommends; user confirms'}`
+- Native table/chart objects: `{str(bool(native_objects)).lower()}`
+- Page transition: `{transition}`
+- Object animation: `{animation}`
+- Animation trigger: `{animation_trigger}`
+- Native presenter requested: `{str(bool(native_presenter)).lower()}` (speaker notes feed PowerPoint Presenter View; no HTML renderer is added)
+- Raw PPTX template: `{str(Path(template).expanduser().resolve()) if template else 'none'}`
+
+## Inputs
+
+- Canonical Humanize source contract: `{canonical}`
+- Humanize AST support files: `deck_brief.md`, `ast_outline.md`, `slide_plan.json`, `speaker_intent.md`, `asset_manifest.md`, `video_slots.json`, `style_brief.md`
+- Original source: `{source}`
+
+## Initialize
+
+{route_commands}
+## Route rules
+
+{route_rules}
+- Humanize media paths are intent/target records. PPT Master must remap them into its own `images/`, `design_spec.md §VIII`, native SVG, or an explicit reported fallback; never leave a broken external path in the PPTX.
+- {visual_review_text}
+
+## Native export
+
+- Run PPT Master's own quality/validation gates before export.
+- {export_instruction}
+- Keep PPT Master's project export as the source of truth, then place a byte-identical copy at `{rendered_dir / 'deck.pptx'}`.
+- Write `{rendered_dir / 'render_manifest.json'}` with the PPT Master commit/version, project path, canonical export path, copied deck path, route, export flags, and validation results.
+
+## Humanize presentation checkup
+
+After the native deck exists, run:
+
+```bash
+\"$PPT_MASTER_PYTHON\" \"{humanize_entrypoint}\" --qa-from \"{rendered_dir / 'deck.pptx'}\" --out \"{out}\" --renderer ppt-master --ppt-master-transition {transition}{' --ppt-master-native-objects' if native_objects else ''} --max-qa-iterations 3
+```
+
+Humanize checks OOXML package integrity, page count, editable objects, placeholders, speaker notes, AST drift, relationships, transitions, and requested native objects. Apply `fix_prompt.md` in PPT Master's author source and re-export; never repair the deck by post-processing it inside Humanize.
+"""
+
+    prompt_path = out / "ppt-master-production-prompt.md"
+    prompt_path.write_text(prompt, encoding="utf-8")
+    return {
+        "status": "brief-written",
+        "prompt": str(prompt_path),
+        "source_contract": str(canonical),
+        "staged_source": str(staged_source),
+        "staged_original": str(staged_original) if staged_original else None,
+        "route": route,
+        "python": ppt_python,
+        "python_version": ppt_python_version,
+        "slides": len(plan),
+    }
+
+
 def write_qa(out, plan, render_issues=None):
     qa = out / "outputs" / "qa"
     qa.mkdir(parents=True, exist_ok=True)
@@ -2482,7 +2942,9 @@ def write_manifest(out, title, source_path, primary, routes, qa_passed):
 
 
 def write_style_brief(out, primary, language, preview_count=None):
-    if language == "zh":
+    if primary == "ppt-master":
+        route_rule = "PPT Master 使用自己的三阶段确认页锁定视觉系统；Humanize 不复制其模板或绕过确认门。"
+    elif language == "zh":
         route_rule = "中文默认走 guizang 稳定成稿；用户显式要求时再进入 preview-first。"
     else:
         route_rule = f"英文默认先定主题，再生成至少 {preview_count or DEFAULT_EN_PREVIEW_COUNT} 个风格候选；选中风格后才进入完整 deck、presenter 和 deploy。"
@@ -2490,7 +2952,11 @@ def write_style_brief(out, primary, language, preview_count=None):
         "version": VERSION,
         "primary_renderer": primary,
         "language": language,
-        "style_mode": "stable-first" if primary == "guizang" else "preview-first",
+        "style_mode": (
+            "downstream-confirmation"
+            if primary == "ppt-master"
+            else ("stable-first" if primary == "guizang" else "preview-first")
+        ),
         "rule": "先保留AST叙事，再选择视觉系统；不要把推荐Skill清单写成产品边界。",
         "route_rule": route_rule,
         "preview_count": preview_count,
@@ -2516,14 +2982,14 @@ def copy_registry_snapshot(out):
 
 def parse_args():
     ap = argparse.ArgumentParser(
-        description="Humanize PPT v0.6.4 — outline director + per-page media decision + brief orchestrator + post-render QA loop"
+        description=f"Humanize PPT v{VERSION} — AST outline director + media plan + HTML/PPTX brief orchestrator + presentation checkup"
     )
     ap.add_argument("--source", default=None, help="Source markdown / PPTX. Required for brief mode.")
     ap.add_argument("--out", required=True, help="Output directory.")
     ap.add_argument("--title", default=None, help="Deck title. Required for brief mode.")
-    ap.add_argument("--qa-from", default=None, help="Path to a rendered HTML deck. Switches to QA mode. Mutually exclusive with --source.")
+    ap.add_argument("--qa-from", default=None, help="Path to a rendered HTML deck or native PPTX. Switches to QA mode. Mutually exclusive with --source.")
     ap.add_argument("--max-qa-iterations", type=int, default=3, help="Max QA rounds before status flips to needs-human. Default 3.")
-    ap.add_argument("--renderer", default="auto", choices=["auto", "guizang", "beautiful-html-templates", "html-ppt", "frontend-slides"])
+    ap.add_argument("--renderer", default="auto", choices=["auto", "guizang", "beautiful-html-templates", "html-ppt", "frontend-slides", "ppt-master"])
     ap.add_argument("--style-mode", default="stable-first", choices=["stable-first", "preview-first", "presenter-first"])
     ap.add_argument("--selected-template", default=None, help="Beautiful template slug to render as a full deck after preview selection.")
     ap.add_argument("--presenter-adapter", action="store_true", help="Generate outputs/presenter/index.html for speaker notes and presenter control.")
@@ -2533,7 +2999,7 @@ def parse_args():
     ap.add_argument("--preview-count", type=int, default=None, help="Number of beautiful-html-templates previews to render. English runs are floored at 5.")
     ap.add_argument("--beautiful-repo", default=None, help="Path to zarazhangrui/beautiful-html-templates. Auto-detected if omitted.")
     ap.add_argument("--no-beautiful-auto-clone", action="store_true", help="Do not auto-clone beautiful-html-templates into ~/.cache/humanize-ppt.")
-    ap.add_argument("--presenter", action="store_true")
+    ap.add_argument("--presenter", action="store_true", help="Request a presenter-capable downstream. PPT Master uses embedded notes + native PowerPoint Presenter View.")
     ap.add_argument("--no-render", action="store_true", help="Only write contracts, router plan, commands, and manifest.")
     ap.add_argument("--guizang-style", default=None, choices=["A", "B"], help="Guizang style (A = flexible, B = Swiss locked). Defaults to A.")
     ap.add_argument(
@@ -2578,6 +3044,39 @@ def parse_args():
         type=int,
         default=4,
         help="v0.9: number of style-gallery candidates. Minimum (and default) 4; capped at the candidates defined for the renderer.",
+    )
+    ap.add_argument(
+        "--ppt-master-template",
+        default=None,
+        help="Raw .pptx template. Forces PPT Master's native template-fill-pptx route; never enters the SVG template route.",
+    )
+    ap.add_argument("--ppt-master-repo", default=None, help="Optional PPT Master clone root containing skills/ppt-master/SKILL.md.")
+    ap.add_argument("--ppt-master-python", default=None, help="Python >=3.10 executable for PPT Master. Auto-detected when omitted.")
+    ap.add_argument("--ppt-master-format", default="ppt169", help="PPT Master canvas id (default: ppt169).")
+    ap.add_argument("--ppt-master-project-name", default=None, help="Optional PPT Master project slug.")
+    ap.add_argument("--ppt-master-visual-style", default=None, help="Initial PPT Master visual-style recommendation; its confirmation UI remains authoritative.")
+    ap.add_argument("--ppt-master-native-objects", action="store_true", help="Request native editable table/chart objects and verify planned table pages in PPTX QA.")
+    ap.add_argument(
+        "--ppt-master-transition",
+        default="fade",
+        choices=["fade", "push", "wipe", "split", "strips", "cover", "random", "none"],
+        help="Native PPT Master page transition (default: fade). PPTX QA verifies it unless set to none.",
+    )
+    ap.add_argument(
+        "--ppt-master-animation",
+        default="none",
+        help="PPT Master object animation: none, auto, mixed, or a supported explicit effect.",
+    )
+    ap.add_argument(
+        "--ppt-master-animation-trigger",
+        default="after-previous",
+        choices=["on-click", "with-previous", "after-previous"],
+        help="PPT Master object animation trigger.",
+    )
+    ap.add_argument(
+        "--ppt-master-visual-review",
+        action="store_true",
+        help="Request per-page visual review. Main SVG projects use PPT Master's optional workflow; template-fill uses a final office-render inspection.",
     )
     return ap.parse_args()
 
@@ -2892,6 +3391,90 @@ def esc_html(value):
     return html.escape(str(value if value is not None else ""), quote=True)
 
 
+def run_ppt_master_style_gate_mode(args, source_path, language):
+    """Delegate style choice to PPT Master's mandatory visual Confirm UI.
+
+    PPT Master already owns a staged style catalog with real previews. Emitting
+    four fake Humanize cover projects would duplicate that system and violate
+    its serial confirmation contract, so this renderer uses a native gate.
+    """
+    out = Path(args.out).expanduser().resolve()
+    command = _style_gallery_base_command(args, source_path)
+    command += ["--renderer", "ppt-master"]
+    if getattr(args, "ppt_master_template", None):
+        command += ["--ppt-master-template", str(Path(args.ppt_master_template).expanduser().resolve())]
+    if getattr(args, "ppt_master_repo", None):
+        command += ["--ppt-master-repo", str(Path(args.ppt_master_repo).expanduser().resolve())]
+    if getattr(args, "ppt_master_python", None):
+        command += ["--ppt-master-python", args.ppt_master_python]
+    command += ["--ppt-master-format", getattr(args, "ppt_master_format", "ppt169")]
+    if getattr(args, "ppt_master_project_name", None):
+        command += ["--ppt-master-project-name", args.ppt_master_project_name]
+    if getattr(args, "ppt_master_visual_style", None):
+        command += ["--ppt-master-visual-style", args.ppt_master_visual_style]
+    command += ["--ppt-master-transition", getattr(args, "ppt_master_transition", "fade")]
+    command += ["--ppt-master-animation", getattr(args, "ppt_master_animation", "none")]
+    command += [
+        "--ppt-master-animation-trigger",
+        getattr(args, "ppt_master_animation_trigger", "after-previous"),
+    ]
+    if getattr(args, "ppt_master_native_objects", False):
+        command.append("--ppt-master-native-objects")
+    if getattr(args, "ppt_master_visual_review", False):
+        command.append("--ppt-master-visual-review")
+    if getattr(args, "skip_install_check", False):
+        command.append("--skip-install-check")
+    reinjection = " ".join(shlex.quote(part) for part in command)
+
+    command_dir = out / "commands" / "style-gallery"
+    command_dir.mkdir(parents=True, exist_ok=True)
+    command_path = command_dir / "ppt-master-confirm-ui.md"
+    command_path.write_text(
+        f"""# PPT Master Native Style Gate
+
+PPT Master owns style selection through its mandatory three-stage Strategist Confirm UI. Humanize must not duplicate its catalog or render speculative covers before that gate.
+
+Run the normal Humanize brief command:
+
+```bash
+{reinjection}
+```
+
+Then hand `ppt-master-production-prompt.md` to the downstream agent. It must open PPT Master's Stage 1 direction page, where `visual_style` options have native preview SVGs. The user's confirmed value is authoritative; continue through Stage 2 and Stage 3 before any slide generation.
+""",
+        encoding="utf-8",
+    )
+    plan = {
+        "version": VERSION,
+        "generated_at": now_iso(),
+        "title": args.title,
+        "source": str(source_path),
+        "language": language,
+        "primary_renderer": "ppt-master",
+        "mode": "downstream-confirm-ui",
+        "picker": None,
+        "command_file": "commands/style-gallery/ppt-master-confirm-ui.md",
+        "candidate_source": "PPT Master Stage 1 visual_style catalog and native preview SVGs",
+        "reinjection_command": reinjection,
+        "next_step": "Run reinjection_command, then use PPT Master's mandatory three-stage Confirm UI.",
+    }
+    plan_path = out / "style_gallery_plan.json"
+    plan_path.write_text(json.dumps(plan, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(json.dumps(
+        {
+            "ok": True,
+            "stopped_at": "ppt-master-style-gate",
+            "primary_renderer": "ppt-master",
+            "gallery_plan": str(plan_path),
+            "command_file": str(command_path),
+            "next_step": plan["next_step"],
+        },
+        ensure_ascii=False,
+        indent=2,
+    ))
+    return 0
+
+
 def run_style_gallery_mode(args):
     """--style-gallery: emit ≥4 cover-style candidates and a picker, then stop.
 
@@ -2925,6 +3508,9 @@ def run_style_gallery_mode(args):
 
     language = detect_language(text)
     primary, _routes = choose_routes(args, source_path, text, language)
+
+    if primary == "ppt-master":
+        return run_ppt_master_style_gate_mode(args, source_path, language)
 
     pool = STYLE_GALLERY_CANDIDATES.get(primary)
     if not pool:
@@ -3133,6 +3719,32 @@ def main():
     if args.qa_from:
         return run_qa_mode(args)
 
+    if args.ppt_master_template:
+        template_path = Path(args.ppt_master_template).expanduser().resolve()
+        if args.renderer not in {"auto", "ppt-master"}:
+            sys.stderr.write("--ppt-master-template conflicts with a non-PPT-Master --renderer.\n")
+            return 2
+        if not template_path.exists() or not template_path.is_file() or template_path.suffix.lower() != ".pptx":
+            sys.stderr.write(f"--ppt-master-template must point to an existing .pptx file: {template_path}\n")
+            return 2
+        args.ppt_master_template = str(template_path)
+
+    if args.ppt_master_repo:
+        repo_path = Path(args.ppt_master_repo).expanduser().resolve()
+        if not (repo_path / "skills" / "ppt-master" / "SKILL.md").exists():
+            sys.stderr.write(
+                f"--ppt-master-repo must contain skills/ppt-master/SKILL.md: {repo_path}\n"
+            )
+            return 2
+        args.ppt_master_repo = str(repo_path)
+
+    if args.ppt_master_python:
+        try:
+            args.ppt_master_python, _ = resolve_ppt_master_python(args.ppt_master_python)
+        except ValueError as exc:
+            sys.stderr.write(f"{exc}\n")
+            return 2
+
     if not (args.title and (args.source or getattr(args, "research_md", None))):
         sys.stderr.write(
             "--title plus (--source or --research-md) are required for brief mode, "
@@ -3205,25 +3817,25 @@ def main():
             accent = getattr(args, "guizang_accent", None)
             if style == "A" and not theme:
                 sys.stderr.write(
-                    "[humanize-ppt v0.9.0] --guizang-style=A requires --guizang-theme. "
+                    f"[humanize-ppt v{VERSION}] --guizang-style=A requires --guizang-theme. "
                     "Choose one of: ink-classic, indigo-porcelain, forest-ink, kraft-paper, dune. "
                     "Defaulting to ink-classic.\n"
                 )
                 theme = "ink-classic"
             if style == "B" and not accent:
                 sys.stderr.write(
-                    "[humanize-ppt v0.9.0] --guizang-style=B requires --guizang-accent. "
+                    f"[humanize-ppt v{VERSION}] --guizang-style=B requires --guizang-accent. "
                     "Choose one of: ikb, lemon-yellow, lemon-green, safety-orange. "
                     "Defaulting to ikb.\n"
                 )
                 accent = "ikb"
             if style == "A" and accent:
                 sys.stderr.write(
-                    f"[humanize-ppt v0.9.0] --guizang-style=A ignores --guizang-accent={accent}.\n"
+                    f"[humanize-ppt v{VERSION}] --guizang-style=A ignores --guizang-accent={accent}.\n"
                 )
             if style == "B" and theme:
                 sys.stderr.write(
-                    f"[humanize-ppt v0.9.0] --guizang-style=B ignores --guizang-theme={theme}.\n"
+                    f"[humanize-ppt v{VERSION}] --guizang-style=B ignores --guizang-theme={theme}.\n"
                 )
             # v0.6.5: install self-check. Warn-only; the brief still ships.
             check_downstream_install(
@@ -3282,6 +3894,47 @@ def main():
                     route["actual_output"] = brief_result["prompt"]
                     route["style_gate"] = "theme-first"
                     route["preview_count"] = preview_count
+        elif primary == "ppt-master":
+            extra_paths = []
+            if args.ppt_master_repo:
+                extra_paths.append(
+                    Path(args.ppt_master_repo) / "skills" / "ppt-master" / "SKILL.md"
+                )
+            check_downstream_install(
+                "ppt-master",
+                skip=getattr(args, "skip_install_check", False),
+                extra_paths=extra_paths,
+            )
+            brief_result = write_ppt_master_production_brief(
+                out,
+                title=args.title,
+                plan=plan,
+                source=source_path,
+                language=language,
+                template=args.ppt_master_template,
+                canvas_format=args.ppt_master_format,
+                project_name=args.ppt_master_project_name,
+                visual_style=args.ppt_master_visual_style,
+                native_objects=args.ppt_master_native_objects,
+                transition=args.ppt_master_transition,
+                animation=args.ppt_master_animation,
+                animation_trigger=args.ppt_master_animation_trigger,
+                visual_review=args.ppt_master_visual_review,
+                repo_hint=args.ppt_master_repo,
+                native_presenter=args.presenter,
+                python_executable=args.ppt_master_python,
+            )
+            for route in router_plan["routes"]:
+                if route["id"] == "ppt-master":
+                    route["status"] = brief_result["status"]
+                    route["actual_output"] = brief_result["prompt"]
+                    route["source_contract"] = brief_result["source_contract"]
+                    route["ppt_master_route"] = brief_result["route"]
+                    route["native_objects"] = args.ppt_master_native_objects
+                    route["transition"] = args.ppt_master_transition
+                    route["native_presenter"] = bool(args.presenter)
+                    route["python"] = brief_result["python"]
+                    route["python_version"] = brief_result["python_version"]
 
     final_deck = None  # v0.6.4: Humanize does not own a rendered deck anymore.
 
@@ -3297,12 +3950,19 @@ def main():
                 route["manifest"] = presenter_result.get("manifest")
 
     if args.export_adapter:
-        if final_deck and final_deck.exists():
+        if primary == "ppt-master":
+            export_result = {
+                "status": "delegated",
+                "package": str(out / "outputs" / "ppt-master-rendered" / "deck.pptx"),
+                "manifest": str(out / "outputs" / "ppt-master-rendered" / "render_manifest.json"),
+                "message": "PPT Master owns native PPTX export; Humanize does not create an HTML/PDF export package.",
+            }
+        elif final_deck and final_deck.exists():
             export_result = write_export_adapter(out, args.title, final_deck, len(plan))
         else:
             export_result = {"status": "missing-deck", "message": "export adapter requires a rendered final deck; use --selected-template or a renderer that emits outputs/<renderer>/index.html."}
             render_issues.append(f"export adapter: {export_result['status']} — {export_result['message']}")
-        if export_result.get("status") != "packaged" and not any("export adapter:" in issue for issue in render_issues):
+        if export_result.get("status") not in {"packaged", "delegated"} and not any("export adapter:" in issue for issue in render_issues):
             render_issues.append(f"export adapter: {export_result.get('status')} — {export_result.get('message')}")
         for route in router_plan["routes"]:
             if route["id"] == "export-adapter":

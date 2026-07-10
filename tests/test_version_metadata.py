@@ -6,17 +6,19 @@ import yaml
 
 
 ROOT = Path(__file__).resolve().parents[1]
-EXPECTED_VERSION = "1.0.0"
+EXPECTED_VERSION = "1.1.0"
 
 
 def test_release_version_metadata_is_consistent():
     skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
     script = (ROOT / "scripts" / "humanize_ppt_v2.py").read_text(encoding="utf-8")
     registry = json.loads((ROOT / "registry" / "renderer_registry.json").read_text(encoding="utf-8"))
+    marketplace = json.loads((ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
 
-    assert re.search(r"^version: 1\.0\.0$", skill, re.MULTILINE)
+    assert re.search(r"^version: 1\.1\.0$", skill, re.MULTILINE)
     assert f'VERSION = "{EXPECTED_VERSION}"' in script
     assert registry["version"] == EXPECTED_VERSION
+    assert marketplace["plugins"][0]["version"] == EXPECTED_VERSION
 
 
 def test_skill_frontmatter_is_valid_yaml():
@@ -31,3 +33,4 @@ def test_skill_frontmatter_is_valid_yaml():
     assert isinstance(meta["description"], str)
     assert "verified: guizang-ppt-skill" in meta["description"]
     assert "frontend-slides" in meta["requires-skills"]
+    assert "ppt-master" in meta["requires-skills"]

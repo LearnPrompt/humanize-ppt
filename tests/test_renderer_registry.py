@@ -31,3 +31,27 @@ def test_presenter_shell_is_registered_as_humanize_output_type():
     assert "slide_plan.json" in presenter["inputs"]
     assert "speaker_intent.md" in presenter["inputs"]
     assert "outputs/presenter/presenter-shell.html" in presenter["outputs"]
+
+
+def test_ppt_master_is_full_with_native_pptx_failure_modes():
+    registry = json.loads((ROOT / "registry" / "renderer_registry.json").read_text(encoding="utf-8"))
+    by_id = {item["id"]: item for item in registry["renderers"]}
+    ppt_master = by_id["ppt-master"]
+
+    assert ppt_master["support_level"] == "full"
+    assert ppt_master["role"] == "native-editable-pptx-renderer"
+    assert "ppt-master-production-prompt.md" in ppt_master["humanize_outputs"]
+    assert "outputs/ppt-master-rendered/deck.pptx" in ppt_master["outputs"]
+    assert {
+        "pptx-package-invalid",
+        "pptx-slide-count-mismatch",
+        "pptx-placeholder-residue",
+        "pptx-slide-empty",
+        "pptx-flattened-slide",
+        "pptx-missing-speaker-notes",
+        "pptx-speaker-intent-drift",
+        "pptx-ast-content-drift",
+        "pptx-broken-relationship",
+        "pptx-transition-missing",
+        "pptx-native-object-missing",
+    } == set(ppt_master["qa_failure_modes"])
