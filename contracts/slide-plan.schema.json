@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Humanize PPT Slide Plan",
-  "description": "v0.6.4: each slide carries Humanize's per-page media decision (image/diagram/video) and a layout hint. Downstream skills consume this and produce their own native HTML.",
+  "description": "Each slide carries Humanize's per-page media decision (image/diagram/video) and a non-binding layout hint. Downstream skills consume this and produce their own native HTML deck or editable PPTX.",
   "type": "array",
   "items": {
     "type": "object",

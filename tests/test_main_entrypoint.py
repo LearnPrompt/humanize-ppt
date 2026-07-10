@@ -21,6 +21,8 @@ def test_stable_main_entrypoint_exposes_help():
     assert "--source" in result.stdout
     assert "--out" in result.stdout
     assert "--presenter-adapter" in result.stdout
+    assert "--ppt-master-template" in result.stdout
+    assert "ppt-master" in result.stdout
 
 
 def test_module_entrypoint_can_render_presenter_shell_without_deck(tmp_path):

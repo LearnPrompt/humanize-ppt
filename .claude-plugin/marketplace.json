@@ -5,8 +5,8 @@
   "plugins": [
     {
       "name": "humanize-ppt",
-      "description": "面向 Agent 的 PPT 渲染质检员:把资料编排成 AST 大纲+逐页素材决定的简报,交给下游 PPT Skill(中文推荐 guizang-ppt-skill,英文推荐 frontend-slides/beautiful-html-templates,广义兼容任何能产出 HTML PPT 的 skill)100%原生渲染。v0.9 出大纲前先过风格画廊:出 ≥4 个封面候选让下游各渲一张供人挑风格(Humanize 只出 spec/command 不自渲)。渲染完做演讲体检:逐页核对渲染结果和大纲页的差异,把只能看不能讲的页揪出来,写 fix prompt,3 轮封顶。Humanize 自己不渲染。PPT is an audience-state changer, not an information container.",
-      "version": "0.9.0",
+      "description": "面向 Agent 的演讲系统:先把资料编排成 AST 大纲和逐页素材决定,再交给下游原生渲染。HTML 路线支持 guizang/frontend-slides/beautiful-html-templates;v1.1 新增 PPT Master 原生可编辑 PPTX、raw .pptx template-fill、speaker notes/转场/native objects 映射和 OOXML 演讲体检。Humanize 不复制模板、不后处理最终 deck;问题写成 fix prompt 回给下游,3 轮封顶。",
+      "version": "1.1.0",
       "author": { "name": "LearnPrompt", "url": "https://github.com/LearnPrompt" },
       "source": "./",
       "category": "productivity",
