@@ -3,6 +3,8 @@
 Date: 2026-06-17
 Status: Implemented in v0.9 (`feat/v0.9-next`).
 
+v1.1 renderer exception: PPT Master already owns a mandatory three-stage Confirm UI with native `visual_style` preview SVGs. `--renderer ppt-master --style-gallery` therefore delegates to that surface; it does not create four speculative PPT Master projects.
+
 ## Motivation
 
 Humanize PPT is *for the presentation* and *compatible with downstream HTML PPT renderers* — and it **never renders**. By v0.8 the flow was: AST slice → (optional `--preview-outline` review) → production brief → downstream renders. The human picks the renderer and (for guizang) a single style/theme up front, blind. They commit to one look before seeing a single pixel.
@@ -41,6 +43,13 @@ For the resolved primary renderer (`choose_routes`), Humanize takes the first
 
 Then it prints `{"ok": true, "stopped_at": "style-gallery", ...}` and returns 0.
 No outline, no brief, no QA.
+
+For `ppt-master`, the renderer-native branch writes instead:
+
+1. `commands/style-gallery/ppt-master-confirm-ui.md` — re-injection command plus the instruction to use PPT Master's Stage 1 direction page.
+2. `style_gallery_plan.json` with `mode: downstream-confirm-ui`, `picker: null`, and `candidate_source` pointing to PPT Master's own visual-style catalog.
+
+It returns `stopped_at: ppt-master-style-gate`. No fake `style_gallery.html`, cover image, or candidate deck is emitted.
 
 ### The candidates
 

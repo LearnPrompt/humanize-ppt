@@ -11,7 +11,7 @@
 [![Release](https://img.shields.io/github/v/release/LearnPrompt/humanize-ppt)](https://github.com/LearnPrompt/humanize-ppt/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**A presentation system, born for the talk.** Good-looking HTML templates are everywhere; what's missing is the line that lets you *deliver* one. Humanize does the part templates don't: it uses AST (audience-state-transfer) to weave your material into that line, so every page turn moves the audience forward; the pages that need a picture get a real image, SVG diagram, or Remotion clip; and after rendering it runs its own presentation checkup to pull out the pages you can only look at, not present. What ships isn't a stack of static pages — it's a presenter mode with a speaker script, its state transitions, and the HTML beauty intact. The full deck is still rendered natively by a downstream template skill: it paints each page, Humanize makes it deliverable on stage.
+**A presentation system, born for the talk.** Good-looking templates are everywhere; what's missing is the line that lets you *deliver* one. Humanize uses AST (audience-state-transfer) to weave material into that line, assigns real images, SVG diagrams, or Remotion clips where needed, and runs a presentation checkup after rendering. The result can be an HTML presenter mode with its visual system intact or a native, element-editable PPTX with speaker notes. The downstream skill still renders the deck natively: it paints each page, Humanize makes it deliverable on stage.
 
 [Install in 30s](#install-in-30s) · [Use it in one line](#use-it-in-one-line) · [See it](#see-it) · [What it solves](#what-it-solves) · [Presentation checkup](#presentation-checkup) · [Visual enhancement](#visual-enhancement) · [English path](#english-path) · [AST](docs/AST-theory.md)
 
@@ -47,12 +47,13 @@ Claude Code users can use the plugin marketplace (auto-updates):
 | `guizang-ppt-skill` | Chinese deck native render (magazine / Swiss) | [op7418/guizang-ppt-skill](https://github.com/op7418/guizang-ppt-skill) |
 | `frontend-slides` | English deck native render (viewport-safe HTML) | [zarazhangrui/frontend-slides](https://github.com/zarazhangrui/frontend-slides) |
 | `beautiful-html-templates` | English deck multi-template render | [zarazhangrui/beautiful-html-templates](https://github.com/zarazhangrui/beautiful-html-templates) |
+| `ppt-master` | Native editable PPTX (DrawingML, notes, transitions, raw `.pptx` template fill) | [hugohe3/ppt-master](https://github.com/hugohe3/ppt-master) |
 | `remotion-video-production` | Per-page explainer video (real mp4), orchestrates the whole pipeline | Remotion (see pairing below) |
 | `baoyu-image-gen` | Images via the local Codex CLI (**no API key**) | [JimLiu/baoyu-skills](https://github.com/JimLiu/baoyu-skills/tree/main/skills/baoyu-image-gen) |
 
 **How to pair the Remotion skills** (a bit of hard-won experience): default to `remotion-video-production` to orchestrate the pipeline, paired with `remotion-best-practices` while writing code to avoid unstable patterns (misused CSS / Tailwind animation, wrong asset paths); for complex work — captions, charts, 3D, batch templates, automated render pipelines — add [`remotion-video-toolkit`](https://github.com/shreefentsar/remotion-video-toolkit).
 
-One line to the agent: "Install humanize-ppt and its recommended downstream skills (guizang-ppt-skill, frontend-slides, beautiful-html-templates, remotion-video-production + remotion-best-practices, baoyu-image-gen)."
+One line to the agent: "Install humanize-ppt plus the renderer I need (guizang/frontend-slides/beautiful-html-templates for HTML, or ppt-master for native PowerPoint); add baoyu-image-gen and Remotion only when the deck needs those assets."
 
 ## Use it in one line
 
@@ -67,6 +68,8 @@ finish with presenter mode.
 ```
 
 For Chinese, swap in "Chinese + guizang-ppt-skill". CLI flags, staged control, and re-injection commands live in [Advanced usage](#advanced-usage) below — beginners can skip them.
+
+For a PowerPoint deck that stays editable element-by-element, ask Humanize to define the AST, delegate native rendering to `ppt-master`, then feed the PPTX back into the presentation checkup. Humanize writes `ppt-master-production-prompt.md`; PPT Master keeps its mandatory confirmation and native export gates.
 
 ## See it
 
@@ -135,7 +138,7 @@ Humanize PPT fills that gap. It doesn't take over the template's "renders beauti
 3. **Automatic presentation checkup — stop hunting for the broken page.** Text covered by a badge used to mean a back-and-forth with Codex to find which page. Better to let the checkup scan it all at once after render and tell you which page, what's wrong, how to fix.
 4. **Presenter mode — what ships is something you can take on stage.** Human feel, a speaker script, the state transition per page, and the HTML beauty kept intact.
 
-The boundary is clear: **the full beautiful deck is rendered natively by the downstream template skill**; Humanize doesn't copy its template or touch the rendered HTML. Humanize directs the talk; the template paints each page.
+The boundary is clear: **the full deck is rendered natively by the downstream renderer**; Humanize doesn't copy its template or touch rendered HTML/PPTX. Humanize directs the talk; downstream paints each page.
 
 If you see `humanize-ppt-team` inside WorkBuddy, treat it as a multi-agent packaging of the same core: AST outline, media decisions, renderer hand-off, presenter mode, and checkup split across specialist agents. It is not a separate monolithic renderer. Chinese positioning note: [WorkBuddy Team vs Humanize PPT](docs/workbuddy-team-vs-humanize-ppt.md).
 
@@ -157,7 +160,7 @@ v0.9 filled all 8 media slots of one deck with real assets ([production record](
 
 ## Style gallery
 
-Don't make people pick a style blind. `--style-gallery` stops before the outline, emits ≥4 cover candidates, writes one "cover only" render command per candidate for the downstream skill, and stitches a zero-dependency `style_gallery.html` to pick from. Pick one and its re-injection command carries the style into the normal flow. Covers are rendered downstream; Humanize emits only the spec/command. Spec: [references/style-gallery-spec.md](references/style-gallery-spec.md).
+Don't make people pick a style blind. HTML renderers use Humanize's ≥4 real-cover gallery. PPT Master already owns a three-stage Confirm UI with native visual-style previews, so `--renderer ppt-master --style-gallery` delegates to that native gate instead of creating four speculative projects. See [references/style-gallery-spec.md](references/style-gallery-spec.md) and the [PPT Master bridge](adapters/ppt-master-bridge-notes.md).
 
 ## Outline preview
 
@@ -188,6 +191,21 @@ python3 scripts/humanize_ppt.py \
 
 Produces `guizang-production-prompt.md` for `guizang-ppt-skill` to render. For English, set `--renderer` to `frontend-slides` or `beautiful-html-templates`.
 
+Native editable PPTX:
+
+```bash
+python3 scripts/humanize_ppt.py \
+  --source examples/01-ai-tool-update/source.md \
+  --out .humanize-ppt-runs/ai-tool-update-pptx \
+  --title "AI Tool Updates Beyond the Changelog" \
+  --renderer ppt-master \
+  --ppt-master-transition fade
+```
+
+This writes `ppt-master-production-prompt.md` and `ppt-master-source.md`. Add `--ppt-master-template <template.pptx>` for PPT Master's deterministic native `template-fill-pptx` route; a raw PPTX is never misread as an SVG template directory.
+
+Humanize auto-detects Python 3.10+ and records the verified interpreter in the handoff. Use `--ppt-master-python <python>` to pin it; do not assume a command named `python3` is new enough.
+
 ### Style gallery (cover gate before the outline)
 
 ```bash
@@ -205,6 +223,8 @@ python3 scripts/humanize_ppt.py --qa-from <rendered.html> \
 ```
 
 Produces `qa_report.md` / `fix_prompt.md` / `qa_iteration.json`, capped at 3 rounds, `needs-human` if not converged. `fix_prompt.md` goes back to the downstream skill — never post-process the HTML in Humanize.
+
+For PPT Master, point `--qa-from` at `<native-deck.pptx>` and use `--renderer ppt-master`. The checkup inspects OOXML package integrity, page count, editable objects, speaker notes, AST drift, relationships, and transitions; rendered visual collisions remain PPT Master's own SVG/browser gate.
 
 ### Image / video / outline preview
 
@@ -245,15 +265,16 @@ python3 scripts/record_demo_gif.py --source examples/01-ai-tool-update/source.md
 
 In a line: the template renders beautifully; Humanize makes it deliverable, watched, and stage-ready. Upstream and downstream, not competitors.
 
-## English path
+## Verified downstream paths
 
-The Humanize brief is plain markdown + JSON, so it's **broadly compatible with any HTML-PPT skill**. Both the Chinese and English routes have been through a real presentation checkup:
+The Humanize brief is plain markdown + JSON, so it works with both HTML-PPT skills and native PPTX workflows:
 
 | Renderer | Status | Verified |
 |---|---|---|
 | `guizang-ppt-skill` (Chinese) | full chain | brief + checkup on real rendered output; 7 guizang-specific failure-mode rules |
 | `beautiful-html-templates` (English) | full chain | brief exit + a full checkup on a real Neo-Grid deck on 2026-06-13 (found a badge covering 9 pages → fixed → re-check passed, [log](docs/showcase/hermes-agent-mastery/en/qa/presentation-checkup-2026-06-13.md)) |
 | `frontend-slides` (English) | full chain | brief exit + a full checkup on a real 5-page deck on 2026-06-17 (scan pass + negative control + screenshot review, [log](docs/showcase/v0.9-frontend-slides/qa/presentation-checkup-2026-06-17.md)) |
+| `ppt-master` (native PPTX) | full chain | real main SVG + raw template-fill routes; the main-route deck had 10 slides and 399 editable containers, while the 5-slide template-fill deck had 199 editable containers and passed an independent office open/render gate; both completed notes, Fade transitions, and Humanize PPTX checkup ([record](docs/showcase/ppt-master-native/verification-2026-07-10.md)) |
 
 English and Chinese are now both `full`: brief exit works + checkup verified on real output + image generation wired in + renderer-specific failure modes recorded. Guizang has 7 Style A/B rules; the English pair now add 5 static rules for horizontal overflow, low contrast, hyphenation noise, missing font contracts, and missing image alt text. Screenshot review remains part of the process for occlusion, clipping, and visual alignment failures that static HTML cannot prove.
 
@@ -265,19 +286,19 @@ English and Chinese are now both `full`: brief exit works + checkup verified on 
 
 > PPT is not an information container. PPT is an audience state-transfer artifact.
 
-See [AST Theory](docs/AST-theory.md), [SPEC.md](SPEC.md), [v1.0 Release Notes](docs/versions/v1.0.0-full-english-presenter.md), [v0.9 Release Notes](docs/versions/v0.9.0-style-gallery.md).
+See [AST Theory](docs/AST-theory.md), [SPEC.md](SPEC.md), [v1.1 PPT Master Release Notes](docs/versions/v1.1.0-ppt-master.md), and [v1.0 Release Notes](docs/versions/v1.0.0-full-english-presenter.md).
 
 ## Safety
 
-- Never copies or post-processes the downstream skill's rendered HTML; render problems always become a fix prompt sent back downstream;
+- Never copies or post-processes the downstream skill's rendered HTML/PPTX; render problems always become a fix prompt sent back downstream;
 - All-local scripts, zero API, zero key (images use the local Codex CLI subscription); no material content leaves the machine;
 - The checkup stops at 3 rounds and flags `needs-human` rather than retrying forever;
 - No private paths, accounts, or credentials in the brief or examples.
 
 ## Reference
 
-- [SPEC.md](SPEC.md), [v0.9 Release Notes](docs/versions/v0.9.0-style-gallery.md), [Style Gallery Spec](references/style-gallery-spec.md), [Presentation Checkup Failure Modes](references/qa-failure-modes.en.md), [Brief Specification](references/guizang-production-brief-orchestrator.md), [AST Theory](docs/AST-theory.md), [OPC Workflow](docs/OPC-workflow.md).
-- Downstream: [guizang-ppt-skill](https://github.com/op7418/guizang-ppt-skill), [frontend-slides](https://github.com/zarazhangrui/frontend-slides), [beautiful-html-templates](https://github.com/zarazhangrui/beautiful-html-templates), [baoyu-image-gen](https://github.com/JimLiu/baoyu-skills/tree/main/skills/baoyu-image-gen).
+- [SPEC.md](SPEC.md), [v1.1 PPT Master Release Notes](docs/versions/v1.1.0-ppt-master.md), [PPT Master bridge](adapters/ppt-master-bridge-notes.md), [Style Gallery Spec](references/style-gallery-spec.md), [Presentation Checkup Failure Modes](references/qa-failure-modes.en.md), [Brief Specification](references/guizang-production-brief-orchestrator.md), [AST Theory](docs/AST-theory.md).
+- Downstream: [guizang-ppt-skill](https://github.com/op7418/guizang-ppt-skill), [frontend-slides](https://github.com/zarazhangrui/frontend-slides), [beautiful-html-templates](https://github.com/zarazhangrui/beautiful-html-templates), [ppt-master](https://github.com/hugohe3/ppt-master), [baoyu-image-gen](https://github.com/JimLiu/baoyu-skills/tree/main/skills/baoyu-image-gen).
 
 ## License
 
