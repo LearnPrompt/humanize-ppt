@@ -3,33 +3,28 @@ name: humanize-ppt
 description: >-
   A presentation system for agent-made PPTs — born for the talk, not just the
   template. It turns raw material into an AST (audience-state-transfer) outline
-  where every page turn moves the audience forward, decides per-page visual
-  enhancement (real images via baoyu-image-gen on the local Codex CLI, SVG
-  diagrams, Remotion video), then runs a capped 3-round presentation checkup
-  (演讲体检) on rendered HTML or native PPTX, comparing each page against its outline page
-  and writing fix prompts. The beautiful deck is rendered natively by a
-  downstream renderer (broadly compatible with HTML-PPT skills and native PPTX workflows;
-  verified: guizang-ppt-skill for Chinese, frontend-slides /
-  beautiful-html-templates for English, ppt-master for editable PowerPoint) — Humanize orchestrates the
-  presentation, the template skill paints the slides. Use before generating
+  with per-page visual-enhancement decisions (image / SVG diagram / video),
+  hands a production brief to a downstream renderer (HTML-PPT skills or native
+  PPTX), then runs a capped 3-round presentation checkup (演讲体检) on the
+  rendered deck. It never renders slides itself. Use before generating
   PPT/HTML slides from raw material, and after rendering when the user says
-  things like "帮我盯一下渲染出来的 PPT 有没有翻车", "PPT 渲染质检",
-  "给这份 deck 做演讲体检", or "告诉我哪几页只能看不能讲". If all you want is
-  one beautiful template page with no outline and no checkup, a rendering skill
-  alone is enough; bring in Humanize when you need the talk's narrative before
-  rendering and the checkup after.
+  things like "给这份 deck 做演讲体检" or "PPT 渲染质检". If all you want is
+  one beautiful template page with no outline and no checkup, a rendering
+  skill alone is enough.
 version: 1.1.0
 author: LearnPrompt
 license: MIT
 requires-skills:
-  guizang-ppt-skill: "Required when the deck language is Chinese. The brief writer references ~/.agents/skills/guizang-ppt-skill/SKILL.md; without it the next agent cannot render. v0.6.5 brief writer emits a stderr warning if the skill is not detected."
-  frontend-slides: "Recommended when the deck language is English. Same hand-off pattern as guizang. v1.0 support_level: full — brief exit works, full presentation checkup ran on a real deck on 2026-06-17 (docs/showcase/v0.9-frontend-slides/), and 5 renderer-specific failure-mode rules added (horizontal overflow, low contrast, hyphenation noise, font contract, image alt)."
-  beautiful-html-templates: "English alternative. Same hand-off pattern. v1.0 support_level: full — brief exit works, full presentation checkup ran on a real Neo-Grid deck on 2026-06-13 (docs/showcase/hermes-agent-mastery/en/), same 5 renderer-specific failure-mode rules as frontend-slides."
-  ppt-master: "Native editable PPTX renderer. Humanize emits ppt-master-production-prompt.md + ppt-master-source.md; PPT Master keeps its mandatory confirmation, main SVG/native DrawingML export, and raw .pptx template-fill routes. support_level: full after the 2026-07-10 real 10-slide main export plus 5-slide template-fill export, office interop render, and OOXML checkups (docs/showcase/ppt-master-native/verification-2026-07-10.md)."
-  remotion-video-production: "Recommended (main) for the video media slot. Orchestrates the whole Remotion video pipeline — renders the real mp4 (deterministic loop, no narration) to the slot's asset_path. Verified in v0.9 (docs/showcase/v0.9-visual-enhancement/)."
-  remotion-best-practices: "Pair with remotion-video-production while writing Remotion code — avoids unstable patterns (misused CSS / Tailwind animation, wrong asset paths)."
-  remotion-video-toolkit: "Add only for complex video work — captions, charts, 3D, batch templates, automated render pipelines. Source: github.com/shreefentsar/remotion-video-toolkit."
-  baoyu-image-gen: "Recommended for the image media slot. Drives the local Codex CLI (--provider codex-cli) using the logged-in Codex/ChatGPT subscription — no OPENAI_API_KEY needed. Generates the real hero/concept image to the slot's asset_path. Source: github.com/JimLiu/baoyu-skills. Verified in v0.9."
+  guizang-ppt-skill: "Required for Chinese decks — the downstream native HTML renderer the brief targets."
+  frontend-slides: "Recommended English HTML renderer. support_level: full."
+  beautiful-html-templates: "English HTML alternative. support_level: full."
+  ppt-master: "Native editable PPTX renderer. support_level: full."
+  remotion-video-production: "Main pipeline for the video media slot — renders the real mp4 to the slot's asset_path."
+  remotion-best-practices: "Pair with remotion-video-production while writing Remotion code."
+  remotion-video-toolkit: "Only for complex video work — captions, charts, 3D, batch templates."
+  baoyu-image-gen: "Image media slot — drives the local Codex CLI, no OPENAI_API_KEY needed."
+# Verification evidence and per-renderer hand-off details: references/renderer-verification.md
+# Machine-readable support levels: registry/renderer_registry.json
 metadata:
   tags: [presentation, ppt, pptx, html-slides, humanizer, ast, workflow, brief-orchestrator, hv-analysis, 9-styles]
 ---
@@ -150,110 +145,17 @@ C — Complete / Control
 12. For WorkBuddy/CodeBuddy team upload packages, do **not** package demo or rendered HTML outputs as the team zip. The upload zip must mirror a team-plugin structure like `trading-team`: root-level `.codebuddy-plugin/plugin.json`, `agents/`, `skills/`, `rules/`, and `setting.json` (plus optional `avatars/`, `.workbuddy-plugin/`, `README.md`, `settings.json`). The `rules/` directory should include a scenario rule file such as `rules/<plugin-name>_rules.md` with frontmatter (`description`, `alwaysApply`, `enabled`, `updatedAt`, `provider`) and a `<system_reminder>` block describing available agents, skills, SOP, and usage requirements. Verify with `unzip -l` that the root is not `index.html/assets/screenshots/source` and is not folder-wrapped unless the target uploader explicitly requires a wrapper directory.
 13. Do not treat HyperFrames/Remotion videos as a single embedded player that replaces PPT content. For Humanize PPT deliverables, video tools are **material producers**: transitions, explainer clips, before/after comparisons, talking-material inserts, social previews, and fallback stills that fill specific slide needs. The `media.video` decision per page (see `slide_plan.json` schema) tells the downstream skill which pages want a Remotion clip, for what purpose, and at what duration.
 
-### Renderer-specific guidance (kept for history; the boundary itself is the invariants above)
-
-14. For Chinese PPT production, the recommended stable path is `Humanize PPT → guizang-ppt-skill native → Humanize --qa-from → downstream presenter/deploy`. Guizang's own material QA and Swiss validator run inside the downstream skill. The presentation checkup in Humanize is a second-pair-of-eyes pass, not a replacement.
-15. For English PPT production, the recommended path is `Humanize PPT → frontend-slides or beautiful-html-templates (native) → Humanize --qa-from → downstream deploy`. The downstream skill owns its own template selection, preview gallery, and selected-template full deck. Humanize does not imitate them. **v1.0 support levels** (see `registry/renderer_registry.json`): both `beautiful-html-templates` and `frontend-slides` are now `full` — brief exit works, full presentation checkup ran on real decks, and 5 renderer-specific failure-mode rules added (horizontal overflow, low contrast, hyphenation noise, font contract, image alt). Screenshot review is still part of the checkup methodology for cases the static scan can't reach.
-16. For native PPTX, use `Humanize → ppt-master → Humanize --qa-from <deck.pptx>`. No raw template means PPT Master's strict main SVG pipeline; `--ppt-master-template <raw.pptx>` deterministically selects native `template-fill-pptx`. Keep its confirmation gates, speaker notes, transition/native-object flags, and downstream visual QA intact. Verification: `docs/showcase/ppt-master-native/verification-2026-07-10.md`.
-17. The verified Style A checkpoint at `examples/03-codex-guizang-native-ink-classic/` is a read-only visual reference. If the presentation checkup ever fails against it (`test_known_good_style_a_passes_all_style_a_gates`), the fixture or the live Guizang skill has drifted — do not weaken the checkup to make the test pass. The same applies to the English checked-up deck at `docs/showcase/hermes-agent-mastery/en/ppt/` (`test_english_showcase_deck_passes_presentation_checkup`).
-
 ## Operational references
 
-- `references/guizang-production-brief-orchestrator.md` — v0.6.4 canonical brief specification. The human + agent-facing contract for what `<renderer>-production-prompt.md` must contain and what it must not contain.
-- `adapters/ppt-master-bridge-notes.md` — native PPTX route boundary, semantic/media/notes mapping, raw-template routing, and OOXML checkup contract.
-- `docs/showcase/ppt-master-native/verification-2026-07-10.md` — real PPT Master export and Humanize PPTX checkup evidence.
-- `docs/versions/v1.1.0-ppt-master.md` — release notes for native PPTX routing, raw-template fill, and OOXML checkup.
-- `SPEC.md` — engine technical specification: boundary, CLI surface (mode-check order), data flow, output contract, the v0.9 style gallery, the presentation checkup, the per-page media model, and the renderer registry. The authoritative "what the engine does and guarantees" reference.
-- `references/qa-failure-modes.md` (+ English mirror `references/qa-failure-modes.en.md`) — failure mode catalog for the presentation checkup (演讲体检): a renderer-agnostic failure-class layer plus guizang-specific modes, each with what the audience would see. Human-readable; the code-side source of truth is `FAILURE_MODES` in `scripts/humanize_ppt_v2.py`. Includes the WebGL-hero static-screenshot capture trap as a "static scan can't catch yet" class.
-- `references/style-gallery-spec.md` — v0.9 spec for the `--style-gallery` cover-style gate: candidates, cover-only commands, the zero-dependency picker, re-injection, and the WebGL screenshot warning.
-- `scripts/preview_outline_html.py` — outline preview: renders the audience state-transfer map (one zero-dependency single-file HTML; per-slide enter-state → intent → leave-state rows plus a state-arc summary) from `slide_plan.json`. Real sample: `examples/04-preview-outline-ai-tool-update/`.
-- `scripts/record_demo_gif.py` — records the style gallery + outline preview (the two zero-dependency working drafts) into one demo GIF (requires playwright + ffmpeg). The gallery covers are downstream-rendered; `--covers-dir` overlays real covers before recording.
-- `docs/versions/v0.9.0-style-gallery.md` — v0.9 release notes: the cover-style gallery gate, the WebGL static-screenshot failure class, the English failure-mode mirror, SPEC.md, and the README/GIF-slot work.
-- `docs/versions/v0.8.0-presentation-checkup.md` — v0.8.0 release notes: why the QA loop was renamed to presentation checkup, the hot-pluggable route framing, the plain-language usage rewrite, and the verified English checkup run.
-- `docs/versions/v0.7.0-render-qa-inspector.md` — v0.7.0 release notes: why the positioning moved to render-QA inspector, English-path support levels, and the outline preview artifact.
-- `references/agent-teams-public-preview.md` — Agent Teams architecture, specialist-agent command protocol, public preview release loop, and README split convention. (Historical; v0.6.4 collapses the Agent Teams model into a brief + QA loop.)
-- `references/humanize-ppt-public-writing.md` — Public-facing positioning and article/script patterns: Humanize PPT as brief orchestrator, not a fixed 4-Skill bundle.
-- `references/workbuddy-team-packaging-and-video-materials.md` — WorkBuddy/CodeBuddy team upload zip structure, validation script, scenario rules shape, and the Remotion/HyperFrames-as-material-producers pitfall.
-- `references/guizang-material-qa.md` — Guizang downstream workflow, material production rules, Swiss visual QA checklist, and failure patterns learned from a full Humanize PPT → guizang deck pass. **Caveat:** these rules apply to the rendered HTML, not to the Humanize brief.
-- `references/guizang-presenter-deploy.md` — Default Chinese PPT production path: guizang stable deck, material QA, presenter shell, and static deploy checks. **Caveat:** these rules apply to the rendered HTML, not to the Humanize brief.
-- `references/beautiful-preview-first-adapter.md` — Durable adapter pattern for connecting `beautiful-html-templates`: version boundary, template selection, real title-slide previews, manifests, QA, and pitfalls. (Historical; v0.6.4 hands template selection to the downstream skill.)
-- `references/selected-template-full-deck-adapter.md` — Durable adapter pattern for V0.4 selected-template full deck generation: required artifacts, routing, QA, and TDD coverage. (Historical.)
-- `references/presenter-export-adapter.md` — Durable adapter pattern for adding V0.5-style presenter shell and export package after a final deck exists. (Historical; v0.6.4 hands presenter/export to the downstream skill.)
-- `docs/versions/v0.6.4-guizang-production-brief-orchestrator.md` — v0.6.4 release notes: what changed, lessons, boundaries, known-good checkpoint, QA loop cap.
-- `docs/versions/v0.2-router-edition.md` through `v0.6.3-english-style-gallery.md` — historical version notes, kept for context.
-- `docs/versions/v0.4-selected-template-full-deck.md` — V0.4 Selected Template Full Deck notes: `--selected-template`, selected deck output, manifests, QA, and current boundaries.
-- `docs/versions/v0.5-presenter-export-adapter.md` — V0.5 Presenter / Export Adapter notes: `--presenter-adapter`, `--export-adapter`, output artifacts, and boundaries.
-- `docs/versions/v0.6.1-guizang-material-qa.md` — V0.6.1 Guizang material QA notes: downstream artifact recording, Remotion-as-material, SVG-safe Chinese diagrams, and visual review rules.
-- `docs/versions/v0.6.2-guizang-presenter-deploy.md` — V0.6.2 Guizang presenter deploy notes: Chinese default path, `postMessage` presenter shell, and public static showcase.
-- `docs/versions/v0.6.3-english-style-gallery.md` — V0.6.3 English style gallery notes: theme-first gate, five visible style candidates, and selected-style continuation.
-- `docs/smoke-test.md` — No-dependency smoke check for validating the stable entrypoint on machines without pytest.
-- `docs/plans/2026-05-25-release-readiness-checklist.md` — V0.6 release-readiness checklist and release-note draft.
+- `references/guizang-production-brief-orchestrator.md` — canonical brief specification: what `<renderer>-production-prompt.md` must and must not contain.
+- `references/qa-failure-modes.md` (+ English mirror `references/qa-failure-modes.en.md`) — failure-mode catalog for the presentation checkup; code-side source of truth is `FAILURE_MODES` in `scripts/humanize_ppt_v2.py`.
+- `references/style-gallery-spec.md` — the `--style-gallery` cover-style gate.
+- `references/renderer-guidance.md` — per-renderer recommended paths and the known-good checkpoint rules.
+- `references/renderer-verification.md` — per-renderer verification evidence behind the frontmatter one-liners.
+- `adapters/ppt-master-bridge-notes.md` — native PPTX route boundary and OOXML checkup contract.
+- `SPEC.md` — engine technical specification: CLI surface, data flow, output contract, style gallery, checkup, media model, renderer registry.
+- Full annotated index of all references, adapters, version notes, and helper scripts: `docs/index.md`.
 
 ## Local demo
 
-The recommended stable entrypoint is `scripts/humanize_ppt.py`. Versioned scripts remain available for compatibility.
-
-Brief mode (v0.6.4 default — writes a Guizang production brief, no HTML):
-
-```bash
-python3 scripts/humanize_ppt.py \
-  --source examples/01-ai-tool-update/source.md \
-  --out .humanize-ppt-runs/ai-tool-update-v0.6.4 \
-  --title "AI 工具更新，不只是功能清单" \
-  --renderer guizang \
-  --guizang-style A
-```
-
-The next agent reads `guizang-production-prompt.md` and renders natively via `guizang-ppt-skill`. Once the deck is rendered, run the presentation checkup:
-
-```bash
-python3 scripts/humanize_ppt.py \
-  --qa-from .humanize-ppt-runs/ai-tool-update-v0.6.4/rendered/index.html \
-  --out .humanize-ppt-runs/ai-tool-update-v0.6.4 \
-  --renderer guizang \
-  --guizang-style A \
-  --max-qa-iterations 3
-```
-
-English paths use the same shape with `--renderer beautiful-html-templates` or `--renderer frontend-slides`; both are `support_level: full` after real-deck checks and renderer-specific rules.
-
-Native editable PowerPoint:
-
-```bash
-python3 scripts/humanize_ppt.py \
-  --source examples/01-ai-tool-update/source.md \
-  --out .humanize-ppt-runs/ai-tool-update-pptx \
-  --title "AI 工具更新，不只是功能清单" \
-  --renderer ppt-master \
-  --ppt-master-transition fade
-```
-
-The downstream agent starts from `ppt-master-production-prompt.md`, follows PPT Master's mandatory confirmation and native export workflow, then feeds the deck back with `--qa-from <deck.pptx> --renderer ppt-master`. Add `--ppt-master-template <raw.pptx>` only when the user supplied a native template deck; that switches to `template-fill-pptx`.
-
-Outline preview (audience state-transfer map from an existing `slide_plan.json`, zero-dependency single-file HTML):
-
-```bash
-python3 scripts/preview_outline_html.py \
-  --slide-plan .humanize-ppt-runs/ai-tool-update-v0.6.4/slide_plan.json \
-  --out .humanize-ppt-runs/ai-tool-update-v0.6.4/preview-outline.html \
-  --title "AI 工具更新，不只是功能清单"
-```
-
-The legacy V0.2-compatible entrypoint remains available for compatibility with earlier agents:
-
-```bash
-python3 scripts/humanize_ppt_v2.py \
-  --source examples/01-ai-tool-update/source.md \
-  --out .humanize-ppt-runs/ai-tool-update-v0.2 \
-  --title "AI 工具更新，不只是功能清单" \
-  --renderer auto
-```
-
-Legacy V0.1 demo remains available:
-
-```bash
-python3 scripts/humanize_ppt_v1.py \
-  --source examples/01-ai-tool-update/source.md \
-  --out .humanize-ppt-runs/ai-tool-update \
-  --title "AI 工具更新，不只是功能清单"
-```
+The recommended stable entrypoint is `scripts/humanize_ppt.py` (versioned scripts remain as compatibility shims). Full CLI examples — brief mode, presentation checkup, native PPTX, outline preview, legacy entrypoints — live in `docs/local-demo.md`.
