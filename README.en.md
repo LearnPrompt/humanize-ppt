@@ -73,6 +73,17 @@ For a PowerPoint deck that stays editable element-by-element, ask Humanize to de
 
 ## See it
 
+### v1.1: native editable PPTX through PPT Master, in Chinese and English
+
+| Chinese showcase | English showcase |
+|---|---|
+| <img src="docs/showcase/ppt-master-native/zh/preview.png" width="430" alt="Five-slide Chinese PPT Master native editable PPTX showcase"> | <img src="docs/showcase/ppt-master-native/en/preview.png" width="430" alt="Five-slide English PPT Master native editable PPTX showcase"> |
+| [Download Chinese PPTX](docs/showcase/ppt-master-native/zh/humanize-ppt-master-showcase-zh.pptx) · [View source](docs/showcase/ppt-master-native/source/showcase-zh.md) | [Download English PPTX](docs/showcase/ppt-master-native/en/humanize-ppt-master-showcase-en.pptx) · [View source](docs/showcase/ppt-master-native/source/showcase-en.md) |
+
+<p align="center"><sub>
+▲ Two real PPT Master native exports use the same five-slide semantic contract, the same design-confirmation gate, and the same presentation-checkup standard. Text, shapes, relationship diagrams, speaker notes, and transitions remain in PowerPoint. English has been a full-support path since v1.0; v1.1 adds the native editable PPT Master route rather than reintroducing English support. <a href="docs/showcase/ppt-master-native/verification-2026-07-14.md">Read the bilingual verification record</a>.
+</sub></p>
+
 ### Style gallery: downstream renders 4 covers before the outline, so you can pick
 
 <p align="center">

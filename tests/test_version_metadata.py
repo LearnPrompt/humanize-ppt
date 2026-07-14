@@ -31,6 +31,11 @@ def test_skill_frontmatter_is_valid_yaml():
     assert meta["name"] == "humanize-ppt"
     assert meta["version"] == EXPECTED_VERSION
     assert isinstance(meta["description"], str)
-    assert "verified: guizang-ppt-skill" in meta["description"]
+    # Agent Skills spec caps description at 1024 characters; the detailed
+    # renderer verification record lives in references/renderer-verification.md.
+    assert len(meta["description"]) <= 1024
+    assert "presentation checkup" in meta["description"]
+    assert "演讲体检" in meta["description"]
+    assert "guizang-ppt-skill" in meta["requires-skills"]
     assert "frontend-slides" in meta["requires-skills"]
     assert "ppt-master" in meta["requires-skills"]
