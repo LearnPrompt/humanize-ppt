@@ -73,13 +73,13 @@ Claude Code 用户也可以走 plugin marketplace（自动更新）：
 
 ### v1.1：PPT Master 原生可编辑，中文和英文走同一条正式路径
 
-| 中文 Showcase | English Showcase |
+| 中文 Showcase · Memphis Pop | English Showcase · Risograph Zine |
 |---|---|
-| <img src="docs/showcase/ppt-master-native/zh/preview.png" width="430" alt="PPT Master 中文原生可编辑 PPTX Showcase 五页预览"> | <img src="docs/showcase/ppt-master-native/en/preview.png" width="430" alt="PPT Master English native editable PPTX showcase, five-slide preview"> |
+| <img src="docs/showcase/ppt-master-native/zh/preview.png" width="430" alt="PPT Master 中文 Memphis Pop 原生可编辑 PPTX Showcase 五页预览"> | <img src="docs/showcase/ppt-master-native/en/preview.png" width="430" alt="PPT Master English Risograph Zine native editable PPTX showcase, five-slide preview"> |
 | [下载中文 PPTX](docs/showcase/ppt-master-native/zh/humanize-ppt-master-showcase-zh.pptx) · [查看源材料](docs/showcase/ppt-master-native/source/showcase-zh.md) | [Download English PPTX](docs/showcase/ppt-master-native/en/humanize-ppt-master-showcase-en.pptx) · [View source](docs/showcase/ppt-master-native/source/showcase-en.md) |
 
 <p align="center"><sub>
-▲ 两份真实的 PPT Master 原生导出使用相同 5 页语义契约、相同设计确认门和相同演讲体检标准；文字、形状、关系图、speaker notes 与转场都保留在 PowerPoint 里。英文路线从 v1.0 起已经是 full support，v1.1 新增的是 PPT Master 原生可编辑 PPTX 路径，不是重新补一条英文路径。<a href="docs/showcase/ppt-master-native/verification-2026-07-14.md">查看双语验证记录</a>。
+▲ 两份真实的 PPT Master 原生导出使用相同 5 页语义契约、相同设计确认门和相同演讲体检标准；中文采用 Memphis Pop，英文采用 Risograph Zine，证明同一条原生路径可以做出真正不同的视觉语言。文字、形状、关系图、speaker notes 与转场都保留在 PowerPoint 里。英文路线从 v1.0 起已经是 full support，v1.1 新增的是 PPT Master 原生可编辑 PPTX 路径，不是重新补一条英文路径。<a href="docs/showcase/ppt-master-native/verification-2026-07-14.md">查看双语验证记录</a>。
 </sub></p>
 
 ### 风格画廊：出大纲前，下游真渲 4 张封面让你挑

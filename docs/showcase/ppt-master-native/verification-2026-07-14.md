@@ -2,10 +2,10 @@
 
 ## Scope and version boundary
 
-- Pull request: `LearnPrompt/humanize-ppt#10`
-- Humanize PR base: `938bcd53158494daab523ea15d43d06d7de3278d`
-- Humanize implementation head before these showcase/docs additions: `a26adefd5d86c5e2bed8c0704a06e76767e34eed`
-- PPT Master export baseline: `b0beba5b659c664bdbf0c07227fbdee313698dd7`
+- Original integration pull request: `LearnPrompt/humanize-ppt#10` (merged)
+- Humanize `main` before this Showcase redesign: `dca83b7c376d5a7c83b2fff50af114a1217d44a7`
+- Follow-up branch: `docs/redesign-ppt-master-showcases`
+- PPT Master export baseline: `47b4f61eba6c7f818bcf486b803072579e34e68b`
 
 English was already a `full` renderer path before v1.1. The new evidence here is the PPT Master native editable `.pptx` delivery path in both Chinese and English, not a new or reduced English-support tier.
 
@@ -13,23 +13,25 @@ English was already a `full` renderer path before v1.1. The new evidence here is
 
 The PR implementation diff before the showcase additions changes `SKILL.md`, documentation, reference material, and version-metadata tests. It does not modify the Humanize generation engine or renderer implementation. The earlier base-versus-head audit generated and compared the Chinese and English contracts and found no material output change; the full test suite passed with `122 passed`.
 
-The two new showcases are therefore additive product evidence for the already-integrated PPT Master route. They use the same five-slide semantic structure and the same production gates; only the language copy and typography strategy intentionally differ.
+The first paired showcases proved the route but used the same generic dark-tech visual system. This follow-up replaces only the committed PPTX/preview artifacts and their documentation; it does not change the Humanize engine or PPT Master adapter. The new decks keep the same five-slide semantic structure and production gates while intentionally using different visual systems.
 
 ## Controlled bilingual inputs
 
 - [Chinese source](source/showcase-zh.md)
 - [English source](source/showcase-en.md)
 - Both sources produce five pages: title, ownership boundary, production chain, native-delivery contents, and bilingual-path conclusion.
-- Both decks use the same 16:9 dark-tech system, design-confirmation gate, native export path, Fade transitions, and Humanize PPTX checkup.
+- Both decks use the same 16:9 canvas, design-confirmation gate, native export path, Fade transitions, and Humanize PPTX checkup.
+- Chinese visual style: PPT Master's Memphis Pop — cream paper, bold outlined geometry, hot pink, cyan, and yellow.
+- English visual style: PPT Master's Risograph Zine — paper stock, Federal Blue and fluorescent pink, cut-paste blocks, misregistration, and halftone marks.
 
 ## Delivered artifacts
 
-| Language | PPTX | Rendered preview |
-|---|---|---|
-| Chinese | [humanize-ppt-master-showcase-zh.pptx](zh/humanize-ppt-master-showcase-zh.pptx) | [preview.png](zh/preview.png) |
-| English | [humanize-ppt-master-showcase-en.pptx](en/humanize-ppt-master-showcase-en.pptx) | [preview.png](en/preview.png) |
+| Language | Style | PPTX | Rendered preview |
+|---|---|---|---|
+| Chinese | Memphis Pop | [humanize-ppt-master-showcase-zh.pptx](zh/humanize-ppt-master-showcase-zh.pptx) | [preview.png](zh/preview.png) |
+| English | Risograph Zine | [humanize-ppt-master-showcase-en.pptx](en/humanize-ppt-master-showcase-en.pptx) | [preview.png](en/preview.png) |
 
-The previews are contact sheets rendered from the committed PPTX files with LibreOffice. For validation only, `Microsoft YaHei` was locally mapped to `PingFang SC`; the PPTX packages themselves retain `Microsoft YaHei`, `Arial`, and `Consolas` for PowerPoint compatibility. LibreOffice's narrow centered-text-box behavior can render very short labels more tightly than PowerPoint, but it did not hide or flatten slide content.
+The previews are contact sheets rendered from the committed PPTX files with LibreOffice. For validation only, `Microsoft YaHei` was locally mapped to `PingFang SC`; the PPTX packages themselves retain `Microsoft YaHei`, `Impact`, `Arial`, and `Consolas` for PowerPoint compatibility. The final cross-renderer pass checked all ten pages and replaced narrow file-name tickets with editable single-letter stage indexes where LibreOffice otherwise wrapped the final character.
 
 ## Native OOXML inspection
 
@@ -38,7 +40,7 @@ The previews are contact sheets rendered from the committed PPTX files with Libr
 | Slides | 5 | 5 |
 | Speaker-note pages | 5 | 5 |
 | Fade transitions | 5 | 5 |
-| Native editable shapes | 238 | 244 |
+| Editable DrawingML containers (`p:sp` + `p:grpSp`) | 224 | 268 |
 | Picture elements | 0 | 0 |
 | Packaged media files | 0 | 0 |
 | Timing/animation trees | 0 | 0 |
@@ -51,9 +53,9 @@ For each deck:
 
 - PPT Master's SVG quality check: `5 passed / 0 warnings / 0 errors`, with no spec-lock drift.
 - PPT Master export: `5/5` native pages, `5/5` notes, Fade transition, no skipped pages.
-- Humanize PPTX checkup: passed on iteration 1 with `0 fail / 1 warn`.
-- The single non-blocking warning is `pptx-speaker-intent-drift`: the five real notes pages do not lexically repeat the generated Humanize speaker-intent text. It is not a rendering, package-integrity, editability, or bilingual-support failure.
+- Humanize PPTX checkup: passed on iteration 1 with `0 fail / 0 warn`.
+- LibreOffice open/render: all ten pages rendered; the committed contact sheets were generated from the final PPTX files.
 
 ## Merge decision
 
-The original PR remains non-regressive for existing Chinese and English output, and the new bilingual showcases verify the PPT Master native route with real editable artifacts. The evidence supports merging PR #10 after the repository test suite and PR checks remain green.
+PR #10 is already merged and remains non-regressive for existing Chinese and English output. This follow-up changes only Showcase artifacts and documentation. With both decks passing PPT Master static checks, native export, LibreOffice rendering, Humanize PPTX checkup, and the repository suite, the redesign is safe to merge.
