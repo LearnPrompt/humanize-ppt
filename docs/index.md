@@ -8,7 +8,9 @@ Public preview docs. The current public preview shows the tuned Skill sharing de
 - Hermes Agent Mastery PPT: `showcase/hermes-agent-mastery/ppt/`
 - Hermes Agent Mastery English presenter: `showcase/hermes-agent-mastery/en/presenter/`
 - Hermes Agent Mastery English PPT: `showcase/hermes-agent-mastery/en/ppt/`
-- Routes: Chinese uses `guizang-ppt-skill`; English uses `beautiful-html-templates / frontend-slides`.
+- PPT Master native Chinese Showcase: `showcase/ppt-master-native/zh/`
+- PPT Master native English Showcase: `showcase/ppt-master-native/en/`
+- Routes: Chinese HTML uses `guizang-ppt-skill`; English HTML uses `beautiful-html-templates / frontend-slides`; native editable PPTX in both languages uses `ppt-master`.
 
 ## Full annotated reference index
 
@@ -27,6 +29,7 @@ Moved from `SKILL.md` (which keeps only the runtime-critical shortlist).
 
 - `../adapters/ppt-master-bridge-notes.md` — native PPTX route boundary, semantic/media/notes mapping, raw-template routing, and OOXML checkup contract.
 - `showcase/ppt-master-native/verification-2026-07-10.md` — real PPT Master export and Humanize PPTX checkup evidence.
+- `showcase/ppt-master-native/verification-2026-07-14.md` — paired Chinese/English PPT Master exports, rendered previews, native-editability evidence, and Humanize checkup results.
 - `../references/guizang-material-qa.md` — Guizang downstream workflow, material production rules, Swiss visual QA checklist, and failure patterns learned from a full Humanize PPT → guizang deck pass. **Caveat:** these rules apply to the rendered HTML, not to the Humanize brief.
 - `../references/guizang-presenter-deploy.md` — Default Chinese PPT production path: guizang stable deck, material QA, presenter shell, and static deploy checks. **Caveat:** these rules apply to the rendered HTML, not to the Humanize brief.
 - `../references/beautiful-preview-first-adapter.md` — Durable adapter pattern for connecting `beautiful-html-templates`: version boundary, template selection, real title-slide previews, manifests, QA, and pitfalls. (Historical; v0.6.4 hands template selection to the downstream skill.)
