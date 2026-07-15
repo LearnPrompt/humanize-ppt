@@ -269,14 +269,21 @@ def test_cli_preview_then_confirm_then_brief_writes_full_chain(tmp_path):
     )
     assert r2.returncode == 0
     assert (tmp_path / "preview-confirmed.json").exists()
-    # 3. Final brief write (without --preview or --confirm)
+    # 3. Final brief write (without --preview or --confirm).
+    # v1.1.1: brief mode now guards --out before wiping it (see
+    # ensure_clean_out_dir). At this point --out only holds
+    # outline-preview.md / preview-confirmed.json from steps 1-2, neither of
+    # which is a brief-mode marker (run_manifest.json / style_gallery_plan.json),
+    # so the guard correctly asks for --force here. This mirrors real CLI
+    # usage: continuing a preview/confirm session into its final brief write
+    # is exactly the "I know this directory, wipe it" case --force exists for.
     r3 = subprocess.run(
         [sys.executable, str(ROOT / "scripts" / "humanize_ppt.py"),
          "--source", str(SAMPLE_SOURCE), "--out", str(tmp_path),
          "--title", "Test", "--renderer", "guizang",
          "--guizang-style", "A", "--guizang-theme", "ink-classic",
-         "--skip-install-check"],
+         "--force", "--skip-install-check"],
         cwd=ROOT, text=True, capture_output=True,
     )
-    assert r3.returncode == 0
+    assert r3.returncode == 0, r3.stdout + r3.stderr
     assert (tmp_path / "guizang-production-prompt.md").exists()

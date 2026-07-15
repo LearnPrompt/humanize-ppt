@@ -6,7 +6,7 @@ import yaml
 
 
 ROOT = Path(__file__).resolve().parents[1]
-EXPECTED_VERSION = "1.1.0"
+EXPECTED_VERSION = "1.1.1"
 
 
 def test_release_version_metadata_is_consistent():
@@ -15,7 +15,7 @@ def test_release_version_metadata_is_consistent():
     registry = json.loads((ROOT / "registry" / "renderer_registry.json").read_text(encoding="utf-8"))
     marketplace = json.loads((ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
 
-    assert re.search(r"^version: 1\.1\.0$", skill, re.MULTILINE)
+    assert re.search(rf"^version: {re.escape(EXPECTED_VERSION)}$", skill, re.MULTILINE)
     assert f'VERSION = "{EXPECTED_VERSION}"' in script
     assert registry["version"] == EXPECTED_VERSION
     assert marketplace["plugins"][0]["version"] == EXPECTED_VERSION

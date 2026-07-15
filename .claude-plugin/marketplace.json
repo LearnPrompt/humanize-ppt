@@ -6,7 +6,7 @@
     {
       "name": "humanize-ppt",
       "description": "面向 Agent 的演讲系统:先把资料编排成 AST 大纲和逐页素材决定,再交给下游原生渲染。HTML 路线支持 guizang/frontend-slides/beautiful-html-templates;v1.1 新增 PPT Master 原生可编辑 PPTX、raw .pptx template-fill、speaker notes/转场/native objects 映射和 OOXML 演讲体检。Humanize 不复制模板、不后处理最终 deck;问题写成 fix prompt 回给下游,3 轮封顶。",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "author": { "name": "LearnPrompt", "url": "https://github.com/LearnPrompt" },
       "source": "./",
       "category": "productivity",
