@@ -11,7 +11,7 @@ description: >-
   things like "给这份 deck 做演讲体检" or "PPT 渲染质检". If all you want is
   one beautiful template page with no outline and no checkup, a rendering
   skill alone is enough.
-version: 1.1.0
+version: 1.1.1
 author: LearnPrompt
 license: MIT
 requires-skills:
@@ -31,7 +31,7 @@ metadata:
 
 # Humanize PPT
 
-Use this skill when a user wants to turn raw material, notes, voice transcripts, documents, links, or old PPTs into a presentation-ready outline and per-page media decisions before delegating rendering to a downstream skill.
+Use this skill when a user wants to turn raw material, notes, voice transcripts, documents, or links into a presentation-ready outline and per-page media decisions before delegating rendering to a downstream skill. Old PPT/PPTX files are not read directly: extract their text first (see `scripts/pptx_qa.py`'s dump/inspect output), then feed that text in as `--source`. A deck Humanize PPT already rendered goes through `--qa-from <rendered.pptx>` instead — the presentation checkup, not brief mode.
 
 ## Positioning
 
@@ -159,3 +159,5 @@ C — Complete / Control
 ## Local demo
 
 The recommended stable entrypoint is `scripts/humanize_ppt.py` (versioned scripts remain as compatibility shims). Full CLI examples — brief mode, presentation checkup, native PPTX, outline preview, legacy entrypoints — live in `docs/local-demo.md`.
+
+**`--out` warning:** point `--out` at a dedicated run directory. Brief mode rebuilds it from scratch every run, but only wipes it automatically when it is missing, empty, or already a previous Humanize PPT run (`run_manifest.json` / `style_gallery_plan.json` at its root) — otherwise it refuses and asks for `--force`.
