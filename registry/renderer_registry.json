@@ -1,5 +1,5 @@
 {
-  "version": "1.1.1",
+  "version": "1.1.2",
   "positioning_note": "热插拔：Humanize 的 brief 是普通 markdown+JSON，既能交给 HTML PPT skill，也能交给原生 PPTX workflow。本表只标记真实跑通且输出稳定的路线；support_level 必须由真实产物验证推动。",
   "support_levels": {
     "full": "brief 出口 + 渲染后演讲体检（--qa-from）+ 渲染器专属失败模式都已在真实 HTML/PPTX 产物上验证过",

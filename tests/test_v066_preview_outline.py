@@ -270,20 +270,41 @@ def test_cli_preview_then_confirm_then_brief_writes_full_chain(tmp_path):
     assert r2.returncode == 0
     assert (tmp_path / "preview-confirmed.json").exists()
     # 3. Final brief write (without --preview or --confirm).
-    # v1.1.1: brief mode now guards --out before wiping it (see
-    # ensure_clean_out_dir). At this point --out only holds
-    # outline-preview.md / preview-confirmed.json from steps 1-2, neither of
-    # which is a brief-mode marker (run_manifest.json / style_gallery_plan.json),
-    # so the guard correctly asks for --force here. This mirrors real CLI
-    # usage: continuing a preview/confirm session into its final brief write
-    # is exactly the "I know this directory, wipe it" case --force exists for.
+    # v1.1.2: outline-preview.md / preview-confirmed.json (written by steps
+    # 1-2) are now recognized brief-mode markers in HUMANIZE_OUT_MARKERS, so
+    # ensure_clean_out_dir accepts this --out as a continuation of the same
+    # Humanize PPT run and no longer needs --force here. This mirrors real
+    # CLI usage: continuing a preview/confirm session into its final brief
+    # write on the same --out is exactly the documented
+    # --preview-outline -> --confirm-outline -> brief flow.
     r3 = subprocess.run(
         [sys.executable, str(ROOT / "scripts" / "humanize_ppt.py"),
          "--source", str(SAMPLE_SOURCE), "--out", str(tmp_path),
          "--title", "Test", "--renderer", "guizang",
          "--guizang-style", "A", "--guizang-theme", "ink-classic",
-         "--force", "--skip-install-check"],
+         "--skip-install-check"],
         cwd=ROOT, text=True, capture_output=True,
     )
     assert r3.returncode == 0, r3.stdout + r3.stderr
     assert (tmp_path / "guizang-production-prompt.md").exists()
+
+
+def test_ensure_clean_out_dir_recognizes_outline_gate_markers(tmp_path):
+    """v1.1.2: outline-preview.md and preview-confirmed.json — the artifacts
+    --preview-outline / --confirm-outline write into --out — are recognized
+    HUMANIZE_OUT_MARKERS, so a non-empty --out carrying only one of them is
+    treated as a continuation of the same Humanize PPT run (wiped and
+    rebuilt) rather than refused as "someone else's directory"."""
+    assert "outline-preview.md" in hp.HUMANIZE_OUT_MARKERS
+    assert "preview-confirmed.json" in hp.HUMANIZE_OUT_MARKERS
+
+    for marker_name in ("outline-preview.md", "preview-confirmed.json"):
+        out = tmp_path / marker_name.replace(".", "_")
+        out.mkdir()
+        (out / marker_name).write_text("marker", encoding="utf-8")
+        (out / "unrelated.txt").write_text("stale", encoding="utf-8")
+
+        error = hp.ensure_clean_out_dir(out, force=False)
+
+        assert error is None, f"{marker_name}: expected ensure_clean_out_dir to accept and wipe, got refusal: {error}"
+        assert not (out / "unrelated.txt").exists()
