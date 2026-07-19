@@ -11,7 +11,7 @@ description: >-
   things like "给这份 deck 做演讲体检" or "PPT 渲染质检". If all you want is
   one beautiful template page with no outline and no checkup, a rendering
   skill alone is enough.
-version: 1.1.1
+version: 1.1.2
 author: LearnPrompt
 license: MIT
 requires-skills:
@@ -160,4 +160,4 @@ C — Complete / Control
 
 The recommended stable entrypoint is `scripts/humanize_ppt.py` (versioned scripts remain as compatibility shims). Full CLI examples — brief mode, presentation checkup, native PPTX, outline preview, legacy entrypoints — live in `docs/local-demo.md`.
 
-**`--out` warning:** point `--out` at a dedicated run directory. Brief mode rebuilds it from scratch every run, but only wipes it automatically when it is missing, empty, or already a previous Humanize PPT run (`run_manifest.json` / `style_gallery_plan.json` at its root) — otherwise it refuses and asks for `--force`.
+**`--out` warning:** point `--out` at a dedicated run directory. Brief mode rebuilds it from scratch every run, but only wipes it automatically when it is missing, empty, or already a previous Humanize PPT run (`run_manifest.json` / `style_gallery_plan.json` / `outline-preview.md` / `preview-confirmed.json` at its root) — otherwise it refuses and asks for `--force`.

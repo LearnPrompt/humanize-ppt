@@ -6,7 +6,7 @@ import yaml
 
 
 ROOT = Path(__file__).resolve().parents[1]
-EXPECTED_VERSION = "1.1.1"
+EXPECTED_VERSION = "1.1.2"
 
 
 def test_release_version_metadata_is_consistent():
