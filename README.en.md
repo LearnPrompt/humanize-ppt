@@ -310,6 +310,7 @@ See [AST Theory](docs/AST-theory.md), [SPEC.md](SPEC.md), [v1.1 PPT Master Relea
 
 - [SPEC.md](SPEC.md), [v1.1 PPT Master Release Notes](docs/versions/v1.1.0-ppt-master.md), [PPT Master bridge](adapters/ppt-master-bridge-notes.md), [Style Gallery Spec](references/style-gallery-spec.md), [Presentation Checkup Failure Modes](references/qa-failure-modes.en.md), [Brief Specification](references/guizang-production-brief-orchestrator.md), [AST Theory](docs/AST-theory.md).
 - Downstream: [guizang-ppt-skill](https://github.com/op7418/guizang-ppt-skill), [frontend-slides](https://github.com/zarazhangrui/frontend-slides), [beautiful-html-templates](https://github.com/zarazhangrui/beautiful-html-templates), [ppt-master](https://github.com/hugohe3/ppt-master), [baoyu-image-gen](https://github.com/JimLiu/baoyu-skills/tree/main/skills/baoyu-image-gen).
+- Also from us: Viral AI prompts, rerun on a second model, results published either way: cases and side-by-side reruns are in [awesome-seedance](https://github.com/LearnPrompt/awesome-seedance?utm_source=humanize-ppt&utm_medium=github&utm_campaign=readme-en&utm_content=goodcase-pointer), the full site is [goodcase.ai](https://goodcase.ai/?utm_source=humanize-ppt&utm_medium=github&utm_campaign=readme-en&utm_content=goodcase-pointer).
 
 ## License
 

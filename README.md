@@ -319,6 +319,7 @@ Humanize 的 brief 是普通 markdown + JSON，谁都能读，所以它既能接
 
 - [SPEC.md](SPEC.md)、[v1.1 PPT Master 版本说明](docs/versions/v1.1.0-ppt-master.md)、[PPT Master bridge](adapters/ppt-master-bridge-notes.md)、[v1.0 版本说明](docs/versions/v1.0.0-full-english-presenter.md)、[风格画廊规约](references/style-gallery-spec.md)、[演讲体检失败模式](references/qa-failure-modes.md)（[en](references/qa-failure-modes.en.md)）、[brief 规约](references/guizang-production-brief-orchestrator.md)、[AST 理论](docs/AST-theory.md)。
 - 下游：[guizang-ppt-skill](https://github.com/op7418/guizang-ppt-skill)、[frontend-slides](https://github.com/zarazhangrui/frontend-slides)、[beautiful-html-templates](https://github.com/zarazhangrui/beautiful-html-templates)、[ppt-master](https://github.com/hugohe3/ppt-master)、[baoyu-image-gen](https://github.com/JimLiu/baoyu-skills/tree/main/skills/baoyu-image-gen)。
+- 同门：爆款 AI 提示语换个模型重跑，结果好坏都公开：案例和对照在 [awesome-seedance](https://github.com/LearnPrompt/awesome-seedance?utm_source=humanize-ppt&utm_medium=github&utm_campaign=readme-zh&utm_content=goodcase-pointer)，完整站点在 [goodcase.ai](https://goodcase.ai/?utm_source=humanize-ppt&utm_medium=github&utm_campaign=readme-zh&utm_content=goodcase-pointer)。
 
 ## License
 
